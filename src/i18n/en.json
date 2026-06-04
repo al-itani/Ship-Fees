@@ -187,6 +187,7 @@
   "automate_berthing_saved": "Berthing record saved",
   "automate_services_saved": "service lines saved",
   "automate_new_automation": "New Automation",
+  "add_line": "Add Line",
 
   "import_document": "Import Document",
   "import_document_loading": "Processing document…",

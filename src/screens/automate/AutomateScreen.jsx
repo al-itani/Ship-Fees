@@ -77,6 +77,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const [saving, setSaving]             = useState(false)
   const [toast, setToast]               = useState(null)
   const [doneInfo, setDoneInfo]         = useState(null)
+  const [manualLines, setManualLines]   = useState([])
 
   useEffect(() => {
     window.api.containerGetCodes().then(r => { if (r.success) setContainerCodes(r.data) })
@@ -293,15 +294,17 @@ export default function AutomateScreen({ onGenerateReceipt }) {
         if (!bRes.success) { showToast(bRes.error || 'Error saving berthing', 'error'); return }
       }
 
+      const validManualLines = manualLines.filter(l => l.service_code)
+      const allServiceLines = [...serviceLines, ...validManualLines]
       let servicesSaved = 0
-      if (serviceLines.length > 0) {
-        const isContainer = serviceLines[0]._type === 'container'
-        const svc = { voyageNumber, vesselName: form.vesselName.trim(), vesselType: form.vesselType || null, lines: serviceLines, created_by: session.id, replaceUserLines: true }
+      if (allServiceLines.length > 0) {
+        const isContainer = allServiceLines[0]._type === 'container'
+        const svc = { voyageNumber, vesselName: form.vesselName.trim(), vesselType: form.vesselType || null, lines: allServiceLines, created_by: session.id, replaceUserLines: true }
         const sRes = isContainer
           ? await window.api.containerSaveSession(svc)
           : await window.api.gcSaveSession(svc)
         if (!sRes.success) { showToast(sRes.error || 'Error saving services', 'error'); return }
-        servicesSaved = serviceLines.length
+        servicesSaved = allServiceLines.length
       }
 
       setDoneInfo({ voyageNumber, servicesSaved, berthingFee: totalFee })
@@ -319,6 +322,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setBerthingRows([{ ...EMPTY_ROW }])
     setBreakdowns([null])
     setServiceLines([])
+    setManualLines([])
     setUncertainFields(new Set())
     setErrors({})
     setDoneInfo(null)
@@ -327,6 +331,31 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   function showToast(msg, type) {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 4000)
+  }
+
+  function addManualLine() {
+    const blank = isContainerSession
+      ? { _type: 'container', _manual: true, service_code: '', container_type: '20ft', quantity: 1, price_per_unit: 0, line_total: 0, is_taxable: 0, description: '' }
+      : { _type: 'gc', _manual: true, service_code: '', quantity: 1, rate: 0, minimum: 0, line_total: 0, is_taxable: 0, description: '', unit: '' }
+    setManualLines(prev => [...prev, blank])
+  }
+
+  function updateManualLine(i, updates) {
+    setManualLines(prev => prev.map((l, idx) => {
+      if (idx !== i) return l
+      const u = { ...l, ...updates }
+      if (u._type === 'container') {
+        u.line_total = Number(u.quantity) * Number(u.price_per_unit)
+      } else {
+        const raw = Number(u.quantity) * Number(u.rate)
+        u.line_total = u.minimum > 0 ? Math.max(raw, u.minimum) : raw
+      }
+      return u
+    }))
+  }
+
+  function removeManualLine(i) {
+    setManualLines(prev => prev.filter((_, idx) => idx !== i))
   }
 
   const fieldStyle = (err, unc) => ({
@@ -349,7 +378,8 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const atdDate = form.atd ? form.atd.split('T')[0] : ''
   const atdTime = form.atd ? (form.atd.split('T')[1] || '').slice(0, 5) : ''
 
-  const isContainerSession = serviceLines.length > 0 && serviceLines[0]._type === 'container'
+  const sessionType        = serviceLines.length > 0 ? serviceLines[0]._type : (form.vesselType === 'Container' ? 'container' : 'gc')
+  const isContainerSession = sessionType === 'container'
   const hasAnyBreakdown    = breakdowns.some(Boolean)
   const totalBerthingFee   = breakdowns.reduce((sum, bd) => sum + (bd?.finalFee || 0), 0)
 
@@ -587,53 +617,120 @@ export default function AutomateScreen({ onGenerateReceipt }) {
           </div>
 
           {/* Service lines card */}
-          {serviceLines.length > 0 && (
-            <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)', marginBottom: 20 }}>
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #F0F0F0', fontWeight: 700, fontSize: 15 }}>
-                📋 {t('services_section')} ({serviceLines.length})
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#F8FAFF' }}>
-                    <th style={thStyle}>{t('service_code')}</th>
-                    {isContainerSession && <th style={thStyle}>{t('container_type')}</th>}
-                    <th style={{ ...thStyle, textAlign: 'end' }}>{t('quantity')}</th>
-                    <th style={{ ...thStyle, textAlign: 'end' }}>{t('price_per_unit')}</th>
-                    <th style={{ ...thStyle, textAlign: 'end' }}>{t('line_total')}</th>
-                    <th style={{ ...thStyle, width: 36 }}></th>
+          <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)', marginBottom: 20 }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid #F0F0F0', fontWeight: 700, fontSize: 15 }}>
+              📋 {t('services_section')} ({serviceLines.length + manualLines.length})
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFF' }}>
+                  <th style={thStyle}>{t('service_code')}</th>
+                  {isContainerSession && <th style={thStyle}>{t('container_type')}</th>}
+                  <th style={{ ...thStyle, textAlign: 'end' }}>{t('quantity')}</th>
+                  <th style={{ ...thStyle, textAlign: 'end' }}>{t('price_per_unit')}</th>
+                  <th style={{ ...thStyle, textAlign: 'end' }}>{t('line_total')}</th>
+                  <th style={{ ...thStyle, width: 36 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {serviceLines.map((l, i) => (
+                  <tr key={`p${i}`} style={{ borderBottom: '1px solid #F5F5F5', background: l._uncertain ? '#FFFBEB' : 'transparent' }}>
+                    <td style={tdStyle}>
+                      <strong>{l.service_code}</strong>
+                      {' '}
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{l.description}</span>
+                      {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4 }}>⚠</span>}
+                    </td>
+                    {isContainerSession && <td style={tdStyle}>{l.container_type}</td>}
+                    <td style={{ ...tdStyle, textAlign: 'end' }}>
+                      <span className="num-ltr">{l.quantity}</span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'end' }}>
+                      <span className="num-ltr">{fmt(l._type === 'container' ? l.price_per_unit : l.rate)}</span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'end' }}>
+                      <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                      <button
+                        onClick={() => setServiceLines(prev => prev.filter((_, j) => j !== i))}
+                        style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+                      >×</button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {serviceLines.map((l, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #F5F5F5', background: l._uncertain ? '#FFFBEB' : 'transparent' }}>
-                      <td style={tdStyle}>
-                        <strong>{l.service_code}</strong>
-                        {' '}
-                        <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{l.description}</span>
-                        {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4 }}>⚠</span>}
+                ))}
+                {manualLines.map((l, i) => {
+                  const inpStyle = { height: 30, padding: '0 6px', border: '1px solid #BFDBFE', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white' }
+                  return (
+                    <tr key={`m${i}`} style={{ borderBottom: '1px solid #DBEAFE', background: '#EFF6FF' }}>
+                      <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5 }}>
+                        <select
+                          value={l.service_code}
+                          onChange={e => {
+                            const code = e.target.value
+                            const mc = (isContainerSession ? containerCodes : gcCodes).find(c => c.code === code)
+                            if (isContainerSession) {
+                              const rate = l.container_type === '40ft' && mc?.default_rate_40 != null ? mc.default_rate_40 : (mc?.default_rate_20 ?? 0)
+                              updateManualLine(i, { service_code: code, description: mc?.description || '', is_taxable: mc?.is_taxable || 0, price_per_unit: rate })
+                            } else {
+                              const rate = mc?.rate ?? 0; const min = mc?.minimum ?? 0
+                              updateManualLine(i, { service_code: code, description: mc?.description || '', unit: mc?.unit || '', is_taxable: mc?.is_taxable || 0, rate, minimum: min })
+                            }
+                          }}
+                          style={{ ...inpStyle, minWidth: 120 }}>
+                          <option value="">— code —</option>
+                          {(isContainerSession ? containerCodes : gcCodes)
+                            .filter(c => c.is_active && !c.is_fixed)
+                            .map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
+                        </select>
                       </td>
-                      {isContainerSession && <td style={tdStyle}>{l.container_type}</td>}
-                      <td style={{ ...tdStyle, textAlign: 'end' }}>
-                        <span className="num-ltr">{l.quantity}</span>
+                      {isContainerSession && (
+                        <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5 }}>
+                          <select
+                            value={l.container_type}
+                            onChange={e => {
+                              const ctype = e.target.value
+                              const mc = containerCodes.find(c => c.code === l.service_code)
+                              const rate = ctype === '40ft' && mc?.default_rate_40 != null ? mc.default_rate_40 : (mc?.default_rate_20 ?? l.price_per_unit)
+                              updateManualLine(i, { container_type: ctype, price_per_unit: rate })
+                            }}
+                            style={{ ...inpStyle, width: 68 }}>
+                            <option value="20ft">20ft</option>
+                            <option value="40ft">40ft</option>
+                          </select>
+                        </td>
+                      )}
+                      <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
+                        <input type="number" min="1" step="1" value={l.quantity}
+                          onChange={e => updateManualLine(i, { quantity: Number(e.target.value) })}
+                          style={{ ...inpStyle, width: 70, textAlign: 'end' }} />
                       </td>
-                      <td style={{ ...tdStyle, textAlign: 'end' }}>
-                        <span className="num-ltr">{fmt(l._type === 'container' ? l.price_per_unit : l.rate)}</span>
+                      <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
+                        <input type="number" step="0.01" value={isContainerSession ? l.price_per_unit : l.rate}
+                          onChange={e => updateManualLine(i, { [isContainerSession ? 'price_per_unit' : 'rate']: Number(e.target.value) })}
+                          style={{ ...inpStyle, width: 90, textAlign: 'end' }} />
                       </td>
-                      <td style={{ ...tdStyle, textAlign: 'end' }}>
-                        <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                      <td style={{ ...tdStyle, textAlign: 'end', fontWeight: 600 }}>
+                        <span className="num-ltr">{fmt(l.line_total)}</span>
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
-                        <button
-                          onClick={() => setServiceLines(prev => prev.filter((_, j) => j !== i))}
-                          style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
-                        >×</button>
+                        <button onClick={() => removeManualLine(i)}
+                          style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}>
+                          ×
+                        </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  )
+                })}
+              </tbody>
+            </table>
+            <div style={{ padding: '10px 14px', borderTop: '1px solid #F0F0F0' }}>
+              <button onClick={addManualLine}
+                style={{ padding: '5px 14px', borderRadius: 6, border: '1px dashed #93C5FD', background: '#EFF6FF', fontSize: 12, color: '#2563EB', cursor: 'pointer', fontWeight: 500 }}>
+                + {t('add_line')}
+              </button>
             </div>
-          )}
+          </div>
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 12 }}>
