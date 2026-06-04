@@ -52,7 +52,7 @@ export default function MainApp() {
       case 'receipts_archive':
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':
-        return <AutomateScreen />
+        return <AutomateScreen onGenerateReceipt={handleGenerateReceipt} />
       case 'cma':
         return <CMAScreen />
       case 'settings':

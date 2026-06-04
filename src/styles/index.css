@@ -78,35 +78,42 @@ input:focus, select:focus {
 }
 
 /* ── Print / PDF export ─────────────────────────────────────────────────── */
+@page {
+  size: A4 portrait;
+  margin: 8mm;
+}
+
 @media print {
-  /* Let the document expand to full receipt height */
   html, body {
     height: auto !important;
     overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  /* Reset the overlay so it doesn't clip the receipt */
+  /* Remove everything from layout except the receipt portal — display:none
+     eliminates the space, unlike visibility:hidden which kept #root above
+     the receipt and caused a blank first page */
+  body > *:not(#receipt-overlay) { display: none !important; }
   #receipt-overlay {
     position: static !important;
     height: auto !important;
     overflow: visible !important;
     background: transparent !important;
     display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  /* Hide everything, then reveal only the receipt */
-  * { visibility: hidden !important; }
-  #receipt-overlay,
-  #receipt-print-area,
-  #receipt-print-area * { visibility: visible !important; }
+  .no-print { display: none !important; }
   #receipt-print-area {
     position: static !important;
     width: 100% !important;
     height: auto !important;
     overflow: visible !important;
     box-shadow: none !important;
-    padding: 14mm 18mm !important;
+    padding: 4mm 6mm !important;
     margin: 0 !important;
     background: white !important;
+    zoom: 0.82;
   }
-  .no-print { display: none !important; }
 }
 

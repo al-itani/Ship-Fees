@@ -44,3 +44,9 @@ Thumbs.db
 ~$*
 *.tmp
 *.bak
+
+# Scanned port documents — local test files, not source
+Receipts/
+
+# App config/secrets
+C:/ShipFees/

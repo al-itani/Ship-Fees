@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
 import { calculateReceipt } from '../../logic/receiptCalc.js'
+import portLogo from '../../assets/port-logo.jpg'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '—'
@@ -174,8 +175,8 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
           onClick={onClose}
           style={{
             padding: '8px 18px', borderRadius: 6,
-            border: '1px solid rgba(255,255,255,0.4)',
-            background: 'rgba(255,255,255,0.15)', color: 'white',
+            border: '1px solid #94a3b8',
+            background: 'white', color: '#1e293b',
             cursor: 'pointer', fontSize: 13, fontWeight: 500,
           }}
         >
@@ -186,8 +187,8 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
           <button
             onClick={handlePrint}
             style={{
-              padding: '8px 18px', borderRadius: 6, border: 'none',
-              background: 'rgba(255,255,255,0.2)', color: 'white',
+              padding: '8px 18px', borderRadius: 6, border: '1px solid #94a3b8',
+              background: 'white', color: '#1e293b',
               cursor: 'pointer', fontSize: 13, fontWeight: 500,
             }}
           >
@@ -197,9 +198,9 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
             onClick={handleExportPDF}
             disabled={exporting || loading || !!error}
             style={{
-              padding: '8px 18px', borderRadius: 6, border: 'none',
-              background: exporting ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)',
-              color: 'white', cursor: exporting ? 'not-allowed' : 'pointer',
+              padding: '8px 18px', borderRadius: 6, border: '1px solid #94a3b8',
+              background: 'white', color: exporting ? '#94a3b8' : '#1e293b',
+              cursor: exporting ? 'not-allowed' : 'pointer',
               fontSize: 13, fontWeight: 500,
             }}
           >
@@ -276,19 +277,23 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
         }}>
           {/* ── Header ──────────────────────────────────────────────────────── */}
           <div style={{
-            textAlign: 'center',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             borderBottom: '3px solid #1B2A4A',
             paddingBottom: 14, marginBottom: 20,
           }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1B2A4A', letterSpacing: '0.04em' }}>
-              PORT OF BEIRUT
+            <img src={portLogo} alt="Port of Beirut" style={{ height: 72, width: 'auto' }} />
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#1B2A4A', letterSpacing: '0.04em' }}>
+                PORT OF BEIRUT
+              </div>
+              <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
+                Gestion et Exploitation du Port du Liban &mdash; إدارة واستثمار مرفأ بيروت
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: '#1B2A4A' }}>
+                {t('bill_of_services')}
+              </div>
             </div>
-            <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>
-              Port du Liban &mdash; مرفأ بيروت
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: '#1B2A4A' }}>
-              {t('bill_of_services')}
-            </div>
+            <div style={{ width: 80 }} />
           </div>
 
           {/* ── Bill Info Grid ───────────────────────────────────────────────── */}

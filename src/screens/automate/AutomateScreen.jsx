@@ -61,7 +61,7 @@ const thStyle = {
 }
 const tdStyle = { padding: '9px 14px', verticalAlign: 'middle', fontSize: 13 }
 
-export default function AutomateScreen() {
+export default function AutomateScreen({ onGenerateReceipt }) {
   const { t } = useTranslation()
   const { session, ratesData, agents } = useSession()
 
@@ -673,12 +673,20 @@ export default function AutomateScreen() {
               <div>{t('automate_berthing_saved')} — <span className="num-ltr">{fmt(doneInfo.berthingFee)}</span></div>
               {doneInfo.servicesSaved > 0 && <div>{doneInfo.servicesSaved} {t('automate_services_saved')}</div>}
             </div>
-            <button
-              onClick={handleStartOver}
-              style={{ padding: '12px 28px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
-            >
-              {t('automate_start_over')}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+              <button
+                onClick={() => onGenerateReceipt(doneInfo.voyageNumber)}
+                style={{ width: '100%', padding: '13px 0', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+              >
+                🧾 {t('generate_receipt')}
+              </button>
+              <button
+                onClick={handleStartOver}
+                style={{ width: '100%', padding: '10px 0', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+              >
+                {t('automate_new_automation')}
+              </button>
+            </div>
           </div>
         </div>
       )}

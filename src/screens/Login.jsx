@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 import i18n from '../i18n/index.js'
+import portLogo from '../assets/port-logo.jpg'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -69,12 +70,9 @@ export default function Login() {
         background: 'white', borderRadius: 12, padding: 40,
         width: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
       }}>
-        <h1 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 700, color: '#1B2A4A', textAlign: 'center' }}>
-          ⚓
-        </h1>
-        <h2 style={{ margin: '0 0 32px', fontSize: 17, fontWeight: 700, color: '#1B2A4A', textAlign: 'center', lineHeight: 1.3 }}>
-          {t('app_title')}
-        </h2>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <img src={portLogo} alt="Port of Beirut" style={{ width: 120, height: 'auto', display: 'inline-block' }} />
+        </div>
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 18 }}>
