@@ -1,0 +1,112 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg:           #F5F6FA;
+  --color-surface:      #FFFFFF;
+  --color-sidebar:      #1B2A4A;
+  --color-sidebar-text: #FFFFFF;
+  --color-primary:      #2E4D8A;
+  --color-primary-hover:#1B3A6B;
+  --color-danger:       #C0392B;
+  --color-border:       #DDE1E9;
+  --color-text:         #1A1A2E;
+  --color-text-muted:   #6C757D;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+  font-size: 14px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+* { box-sizing: border-box; }
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 14px;
+}
+
+input:focus, select:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(46, 77, 138, 0.18);
+}
+
+/* RTL number spans always display LTR */
+.num-ltr {
+  direction: ltr;
+  display: inline-block;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+
+/* Searchable select dropdown */
+.searchable-select-dropdown {
+  position: absolute;
+  z-index: 9999;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.searchable-select-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.searchable-select-option:hover,
+.searchable-select-option.active {
+  background: #EEF2FF;
+  color: var(--color-primary);
+}
+
+/* ── Document import spinner ────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Print / PDF export ─────────────────────────────────────────────────── */
+@media print {
+  /* Let the document expand to full receipt height */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  /* Reset the overlay so it doesn't clip the receipt */
+  #receipt-overlay {
+    position: static !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+    display: block !important;
+  }
+  /* Hide everything, then reveal only the receipt */
+  * { visibility: hidden !important; }
+  #receipt-overlay,
+  #receipt-print-area,
+  #receipt-print-area * { visibility: visible !important; }
+  #receipt-print-area {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    padding: 14mm 18mm !important;
+    margin: 0 !important;
+    background: white !important;
+  }
+  .no-print { display: none !important; }
+}
+

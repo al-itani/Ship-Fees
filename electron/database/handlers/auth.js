@@ -1,0 +1,45 @@
+const bcrypt = require('bcryptjs')
+const db = require('../db')
+
+function login(username, password) {
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username)
+    if (!user) return { success: false, error: 'invalid_login' }
+    if (!user.is_active) return { success: false, error: 'account_disabled' }
+
+    const valid = bcrypt.compareSync(password, user.password_hash)
+    if (!valid) return { success: false, error: 'invalid_login' }
+
+    db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(user.id)
+
+    const permissions = db.prepare('SELECT permission_key FROM user_permissions WHERE user_id = ?')
+      .all(user.id).map(r => r.permission_key)
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        role: user.role,
+        language: user.language,
+        must_change_password: user.must_change_password,
+        permissions,
+      },
+    }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+function changePassword(userId, newPassword) {
+  try {
+    const hash = bcrypt.hashSync(newPassword, 10)
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, userId)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { login, changePassword }

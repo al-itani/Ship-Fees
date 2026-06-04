@@ -1,0 +1,2042 @@
+[
+  {
+    "code": "GF1",
+    "description": "GF1",
+    "rate": 0.28,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "BM1",
+    "description": "BM1",
+    "rate": 1.2,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "BCC1",
+    "description": "BCC1",
+    "rate": 60.0,
+    "minimum": 0,
+    "unit": "load",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "CMN",
+    "description": "CMN",
+    "rate": 30.0,
+    "minimum": 0,
+    "unit": "load",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "CMQ",
+    "description": "CMQ",
+    "rate": 24.0,
+    "minimum": 0,
+    "unit": "load",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EAN10",
+    "description": "EAN10",
+    "rate": 42.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EN10",
+    "description": "EN10",
+    "rate": 36.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EAQ10",
+    "description": "EAQ10",
+    "rate": 36.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EN20",
+    "description": "EN20",
+    "rate": 48.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EN240",
+    "description": "EN240",
+    "rate": 120.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ10",
+    "description": "EQ10",
+    "rate": 30.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ20",
+    "description": "EQ20",
+    "rate": 42.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ40",
+    "description": "EQ40",
+    "rate": 96.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GM140",
+    "description": "GM140",
+    "rate": 100.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "RMQ",
+    "description": "RMQ",
+    "rate": 18.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ3",
+    "description": "EQ3",
+    "rate": 18.0,
+    "minimum": 36.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EN3",
+    "description": "EN3",
+    "rate": 23.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ5",
+    "description": "EQ5",
+    "rate": 24.0,
+    "minimum": 48.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EN5",
+    "description": "EN5",
+    "rate": 30.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PQ1",
+    "description": "PQ1",
+    "rate": 60.0,
+    "minimum": 120.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PN1",
+    "description": "PN1",
+    "rate": 90.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "TRV",
+    "description": "TRV",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "car",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GM165",
+    "description": "GM165",
+    "rate": 115.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GM300",
+    "description": "GM300",
+    "rate": 172.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PW1",
+    "description": "PW1",
+    "rate": 1.25,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GM50",
+    "description": "GM50",
+    "rate": 58.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GM90",
+    "description": "GM90",
+    "rate": 80.0,
+    "minimum": 160.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FTRV",
+    "description": "FTRV",
+    "rate": 1.05,
+    "minimum": 0,
+    "unit": "car",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCC1",
+    "description": "FCC1",
+    "rate": 21.0,
+    "minimum": 0,
+    "unit": "load",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "H-ZF",
+    "description": "H-ZF",
+    "rate": 16.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PA-BC",
+    "description": "PA-BC",
+    "rate": 0.92,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PA-BC(KATARACO)",
+    "description": "PA-BC(KATARACO)",
+    "rate": 35.0,
+    "minimum": 175.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PARC",
+    "description": "PARC",
+    "rate": 35.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PARCT",
+    "description": "PARCT",
+    "rate": 35.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PT-BC",
+    "description": "PT-BC",
+    "rate": 35.0,
+    "minimum": 175.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QT-BC",
+    "description": "QT-BC",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QUAI",
+    "description": "QUAI",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QUAIT",
+    "description": "QUAIT",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 1,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QU-BC",
+    "description": "QU-BC",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SALON",
+    "description": "SALON",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WA-BC",
+    "description": "WA-BC",
+    "rate": 300.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WATER",
+    "description": "WATER",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "Ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WEGH",
+    "description": "WEGH",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WEGH1",
+    "description": "WEGH1",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRL1T",
+    "description": "WRL1T",
+    "rate": 10.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRK2T",
+    "description": "WRK2T",
+    "rate": 6.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRK3T",
+    "description": "WRK3T",
+    "rate": 50.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRKR1",
+    "description": "WRKR1",
+    "rate": 10.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRKR2",
+    "description": "WRKR2",
+    "rate": 6.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRKR3",
+    "description": "WRKR3",
+    "rate": 50.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WRKZF",
+    "description": "WRKZF",
+    "rate": 25.0,
+    "minimum": 0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PARC-H",
+    "description": "PARC-H",
+    "rate": 35.0,
+    "minimum": 175.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QUAI-H",
+    "description": "QUAI-H",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PARCT-H",
+    "description": "PARCT-H",
+    "rate": 35.0,
+    "minimum": 175.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QUAIT-H",
+    "description": "QUAIT-H",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 1,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SALON-H",
+    "description": "SALON-H",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WATER-H",
+    "description": "WATER-H",
+    "rate": 10.0,
+    "minimum": 50.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WEGH-H",
+    "description": "WEGH-H",
+    "rate": 20.0,
+    "minimum": 100.0,
+    "unit": "hour",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Container free quantity",
+    "description": "Container free quantity",
+    "rate": 1.5,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Container overhead",
+    "description": "Container overhead",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "IDF Internal data entry additio",
+    "description": "IDF Internal data entry additio",
+    "rate": 15.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Cancellation of IDF Internal d",
+    "description": "Cancellation of IDF Internal d",
+    "rate": -15.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "COPIC",
+    "description": "COPIC",
+    "rate": 15.0,
+    "minimum": 0,
+    "unit": "opera",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GMX",
+    "description": "GMX",
+    "rate": 100.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "RETOU",
+    "description": "RETOU",
+    "rate": 15.0,
+    "minimum": 0,
+    "unit": "opera",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "tourist1",
+    "description": "tourist1",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "passe",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SEAL",
+    "description": "SEAL",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "numb",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "STMP2",
+    "description": "STMP2",
+    "rate": 0.67,
+    "minimum": 0,
+    "unit": "Stamp",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "STMP2 (nasim majdalani)",
+    "description": "STMP2 (nasim majdalani)",
+    "rate": 2.0,
+    "minimum": 0,
+    "unit": "Stamp",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Metre",
+    "description": "Metre",
+    "rate": 0.8,
+    "minimum": 40.0,
+    "unit": "m2/da",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WGHT4",
+    "description": "WGHT4",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "opera",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WGHT1",
+    "description": "WGHT1",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "opera",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PARCL",
+    "description": "PARCL",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "packa",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "INSUR",
+    "description": "INSUR",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "PASNG",
+    "description": "PASNG",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "passe",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "BAGS",
+    "description": "BAGS",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "packa",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "STORE",
+    "description": "STORE",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "packa",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EXPRT1",
+    "description": "EXPRT1",
+    "rate": 65.0,
+    "minimum": 0,
+    "unit": "exper",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WATER_B",
+    "description": "WATER_B",
+    "rate": 5.0,
+    "minimum": 60.0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "BILLF",
+    "description": "BILLF",
+    "rate": 1.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ASSUR",
+    "description": "ASSUR",
+    "rate": 10.0,
+    "minimum": 500.0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "STAMP",
+    "description": "STAMP",
+    "rate": 2.0,
+    "minimum": 0,
+    "unit": "Stamp",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WGHT3",
+    "description": "WGHT3",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "opera",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ECSTA",
+    "description": "ECSTA",
+    "rate": 2.0,
+    "minimum": 0,
+    "unit": "",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SS  20",
+    "description": "SS  20",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "20_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SS  40",
+    "description": "SS  40",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "40_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SS_40 (MARIOT SHIPPING)",
+    "description": "SS_40 (MARIOT SHIPPING)",
+    "rate": 4.0,
+    "minimum": 0,
+    "unit": "40_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "REEFER_20",
+    "description": "REEFER_20",
+    "rate": 50.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Reefer",
+    "description": "Reefer",
+    "rate": 60.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "RDS",
+    "description": "RDS",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "CtrlQuay",
+    "description": "CtrlQuay",
+    "rate": 50.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ResCT_20",
+    "description": "ResCT_20",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ResCT_40",
+    "description": "ResCT_40",
+    "rate": 5.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCLEAN",
+    "description": "FCLEAN",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "RCLEAN",
+    "description": "RCLEAN",
+    "rate": 1.95,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "LCLEAN",
+    "description": "LCLEAN",
+    "rate": 1.5,
+    "minimum": 0,
+    "unit": "day",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C32_20",
+    "description": "C32_20",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "20_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C32_40",
+    "description": "C32_40",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "40_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C33_20",
+    "description": "C33_20",
+    "rate": 46.0,
+    "minimum": 0,
+    "unit": "20_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C33_40",
+    "description": "C33_40",
+    "rate": 46.0,
+    "minimum": 0,
+    "unit": "40_F",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "automation",
+    "description": "automation",
+    "rate": 1.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "DEBIT1",
+    "description": "DEBIT1",
+    "rate": 1.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Internal",
+    "description": "Internal",
+    "rate": 1.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Rounding",
+    "description": "Rounding",
+    "rate": 15.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN0",
+    "description": "FN0",
+    "rate": 1.14,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN0-E",
+    "description": "FN0-E",
+    "rate": 0.83,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SN1",
+    "description": "SN1",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN1",
+    "description": "FN1",
+    "rate": 1.23,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN1-E",
+    "description": "FN1-E",
+    "rate": 0.894,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN2",
+    "description": "FN2",
+    "rate": 1.4,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN2-E",
+    "description": "FN2-E",
+    "rate": 1.022,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN3",
+    "description": "FN3",
+    "rate": 2.8,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN3-E",
+    "description": "FN3-E",
+    "rate": 2.044,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN4",
+    "description": "FN4",
+    "rate": 3.5,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN4-E",
+    "description": "FN4-E",
+    "rate": 2.555,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN5",
+    "description": "FN5",
+    "rate": 7.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN5-E",
+    "description": "FN5-E",
+    "rate": 5.11,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN6",
+    "description": "FN6",
+    "rate": 14.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN6-E",
+    "description": "FN6-E",
+    "rate": 10.22,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Container",
+    "description": "Container",
+    "rate": 1.5,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q1",
+    "description": "Q1",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q1-E",
+    "description": "Q1-E",
+    "rate": 2.19,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q2",
+    "description": "Q2",
+    "rate": 3.5,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q2-E",
+    "description": "Q2-E",
+    "rate": 2.56,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q3",
+    "description": "Q3",
+    "rate": 6.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q3-E",
+    "description": "Q3-E",
+    "rate": 4.38,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q4",
+    "description": "Q4",
+    "rate": 7.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q4-E",
+    "description": "Q4-E",
+    "rate": 5.11,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q5",
+    "description": "Q5",
+    "rate": 15.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q5-E",
+    "description": "Q5-E",
+    "rate": 10.95,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q6",
+    "description": "Q6",
+    "rate": 30.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q6-E",
+    "description": "Q6-E",
+    "rate": 21.9,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q0",
+    "description": "Q0",
+    "rate": 2.25,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q0-E",
+    "description": "Q0-E",
+    "rate": 1.64,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN7",
+    "description": "FN7",
+    "rate": 21.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN7-E",
+    "description": "FN7-E",
+    "rate": 15.33,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N0",
+    "description": "N0",
+    "rate": 3.25,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N0-E",
+    "description": "N0-E",
+    "rate": 2.373,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N0(wfp+b)",
+    "description": "N0(wfp+b)",
+    "rate": 2.75,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N1",
+    "description": "N1",
+    "rate": 3.5,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N1-E",
+    "description": "N1-E",
+    "rate": 2.555,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Container overhead_B",
+    "description": "Container overhead_B",
+    "rate": 3.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N2",
+    "description": "N2",
+    "rate": 4.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N2-E",
+    "description": "N2-E",
+    "rate": 2.92,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N3",
+    "description": "N3",
+    "rate": 8.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N3-E",
+    "description": "N3-E",
+    "rate": 5.84,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N4",
+    "description": "N4",
+    "rate": 10.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N4-E",
+    "description": "N4-E",
+    "rate": 7.3,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N5",
+    "description": "N5",
+    "rate": 20.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N5-E",
+    "description": "N5-E",
+    "rate": 14.6,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N6",
+    "description": "N6",
+    "rate": 40.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N6-E",
+    "description": "N6-E",
+    "rate": 29.2,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N7",
+    "description": "N7",
+    "rate": 60.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N7-E",
+    "description": "N7-E",
+    "rate": 43.8,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q7",
+    "description": "Q7",
+    "rate": 50.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q7-E",
+    "description": "Q7-E",
+    "rate": 36.5,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N8",
+    "description": "N8",
+    "rate": 80.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N8-E",
+    "description": "N8-E",
+    "rate": 58.4,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N9",
+    "description": "N9",
+    "rate": 100.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N9-E",
+    "description": "N9-E",
+    "rate": 73.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N10",
+    "description": "N10",
+    "rate": 910.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N11",
+    "description": "N11",
+    "rate": 1015.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N12",
+    "description": "N12",
+    "rate": 1155.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N13",
+    "description": "N13",
+    "rate": 1330.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N14",
+    "description": "N14",
+    "rate": 1593.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N15",
+    "description": "N15",
+    "rate": 1960.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N16",
+    "description": "N16",
+    "rate": 2485.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N17",
+    "description": "N17",
+    "rate": 3203.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N18",
+    "description": "N18",
+    "rate": 205.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q8",
+    "description": "Q8",
+    "rate": 60.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q8-E",
+    "description": "Q8-E",
+    "rate": 43.8,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q9",
+    "description": "Q9",
+    "rate": 80.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q9-E",
+    "description": "Q9-E",
+    "rate": 58.4,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q10",
+    "description": "Q10",
+    "rate": 613.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q11",
+    "description": "Q11",
+    "rate": 700.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q12",
+    "description": "Q12",
+    "rate": 840.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q13",
+    "description": "Q13",
+    "rate": 1015.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q14",
+    "description": "Q14",
+    "rate": 1243.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q15",
+    "description": "Q15",
+    "rate": 1610.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q16",
+    "description": "Q16",
+    "rate": 2100.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Q17",
+    "description": "Q17",
+    "rate": 2800.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN8",
+    "description": "FN8",
+    "rate": 28.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN8-E",
+    "description": "FN8-E",
+    "rate": 20.44,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN9",
+    "description": "FN9",
+    "rate": 35.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN9-E",
+    "description": "FN9-E",
+    "rate": 25.55,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN10",
+    "description": "FN10",
+    "rate": 319.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN11",
+    "description": "FN11",
+    "rate": 356.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN12",
+    "description": "FN12",
+    "rate": 405.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN13",
+    "description": "FN13",
+    "rate": 466.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN14",
+    "description": "FN14",
+    "rate": 558.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN15",
+    "description": "FN15",
+    "rate": 686.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN16",
+    "description": "FN16",
+    "rate": 700.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN17",
+    "description": "FN17",
+    "rate": 700.0,
+    "minimum": 0,
+    "unit": "unit",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "JN0",
+    "description": "JN0",
+    "rate": 0.33,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN0",
+    "description": "SFN0",
+    "rate": 0.65,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN1",
+    "description": "SFN1",
+    "rate": 0.7,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN2",
+    "description": "SFN2",
+    "rate": 0.8,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN3",
+    "description": "SFN3",
+    "rate": 1.6,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN4",
+    "description": "SFN4",
+    "rate": 2.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN5",
+    "description": "SFN5",
+    "rate": 4.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN6",
+    "description": "SFN6",
+    "rate": 8.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN7",
+    "description": "SFN7",
+    "rate": 12.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SFN8",
+    "description": "SFN8",
+    "rate": 16.0,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FN0(WFP+E)",
+    "description": "FN0(WFP+E)",
+    "rate": 0.97,
+    "minimum": 0,
+    "unit": "ton",
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  }
+]

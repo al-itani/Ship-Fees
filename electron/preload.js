@@ -1,0 +1,50 @@
+const { contextBridge, ipcRenderer } = require('electron')
+
+contextBridge.exposeInMainWorld('api', {
+  login:              (username, password) => ipcRenderer.invoke('auth:login', username, password),
+  changePassword:     (userId, newPassword) => ipcRenderer.invoke('auth:changePassword', userId, newPassword),
+
+  getRates:           () => ipcRenderer.invoke('berthing:getRates'),
+  getAgents:          () => ipcRenderer.invoke('berthing:getAgents'),
+  saveBerthing:       (data) => ipcRenderer.invoke('berthing:save', data),
+  getBerthingRecords: () => ipcRenderer.invoke('berthing:getAll'),
+  updateBerthing:     (id, data) => ipcRenderer.invoke('berthing:update', id, data),
+  deleteBerthing:     (id, userId) => ipcRenderer.invoke('berthing:delete', id, userId),
+
+  containerLookupVoyage: (voyageNumber) => ipcRenderer.invoke('container:lookupVoyage', voyageNumber),
+  containerGetCodes:     () => ipcRenderer.invoke('container:getCodes'),
+  containerSaveSession:  (data) => ipcRenderer.invoke('container:saveSession', data),
+  containerGetLines:     (voyageNumber) => ipcRenderer.invoke('container:getLines', voyageNumber),
+  containerDeleteLine:   (id, userId) => ipcRenderer.invoke('container:deleteLine', id, userId),
+
+  gcLookupVoyage: (voyageNumber) => ipcRenderer.invoke('gc:lookupVoyage', voyageNumber),
+  gcGetCodes:     () => ipcRenderer.invoke('gc:getCodes'),
+  gcSaveSession:  (data) => ipcRenderer.invoke('gc:saveSession', data),
+  gcGetLines:     (voyageNumber) => ipcRenderer.invoke('gc:getLines', voyageNumber),
+  gcDeleteLine:   (id, userId) => ipcRenderer.invoke('gc:deleteLine', id, userId),
+
+  receiptGetData:  (voyageNumber) => ipcRenderer.invoke('receipt:getData', voyageNumber),
+  receiptSave:     (data) => ipcRenderer.invoke('receipt:save', data),
+  receiptGetAll:   () => ipcRenderer.invoke('receipt:getAll'),
+  receiptDelete:   (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
+  receiptExportPDF: (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
+
+  usersGetAll:         ()                              => ipcRenderer.invoke('users:getAll'),
+  usersCreate:         (data)                          => ipcRenderer.invoke('users:create', data),
+  usersUpdate:         (id, data, adminId)             => ipcRenderer.invoke('users:update', id, data, adminId),
+  usersResetPassword:  (id, tmpPwd, adminId)           => ipcRenderer.invoke('users:resetPassword', id, tmpPwd, adminId),
+  usersSetActive:      (id, isActive, adminId)         => ipcRenderer.invoke('users:setActive', id, isActive, adminId),
+  usersGetPermissions: (userId)                        => ipcRenderer.invoke('users:getPermissions', userId),
+  usersSetPermission:  (userId, key, grant, adminId)   => ipcRenderer.invoke('users:setPermission', userId, key, grant, adminId),
+  usersCheckRecords:   (userId)                        => ipcRenderer.invoke('users:checkRecords', userId),
+  usersDelete:         (id, adminId)                   => ipcRenderer.invoke('users:delete', id, adminId),
+
+  settingsLoad: ()       => ipcRenderer.invoke('settings:load'),
+  settingsSave: (data)   => ipcRenderer.invoke('settings:save', data),
+
+  aiExtract:        (images) => ipcRenderer.invoke('ai:extract', images),
+  aiTestConnection: ()       => ipcRenderer.invoke('ai:testConnection'),
+
+  cmaGetReport:   (year, month)          => ipcRenderer.invoke('cma:getReport', year, month),
+  cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
+})

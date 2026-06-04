@@ -1,0 +1,812 @@
+[
+  {
+    "code": "C1",
+    "description": "C1",
+    "default_rate_20": 39.81,
+    "default_rate_40": 54.65,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C2",
+    "description": "C2",
+    "default_rate_20": 7.96,
+    "default_rate_40": 13.66,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C3",
+    "description": "C3",
+    "default_rate_20": 21.23,
+    "default_rate_40": 28.69,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C4",
+    "description": "C4",
+    "default_rate_20": 11.65,
+    "default_rate_40": 16.82,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C5",
+    "description": "C5",
+    "default_rate_20": 20.39,
+    "default_rate_40": 27.52,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C6",
+    "description": "C6",
+    "default_rate_20": 14.54,
+    "default_rate_40": 19.39,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C7",
+    "description": "C7",
+    "default_rate_20": 9.69,
+    "default_rate_40": 14.54,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C8",
+    "description": "C8",
+    "default_rate_20": 4.85,
+    "default_rate_40": 7.27,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C9",
+    "description": "C9",
+    "default_rate_20": 30.3,
+    "default_rate_40": 48.47,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C10",
+    "description": "C10",
+    "default_rate_20": 49.46,
+    "default_rate_40": 61.58,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C11",
+    "description": "C11",
+    "default_rate_20": 66.43,
+    "default_rate_40": 85.82,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C12",
+    "description": "C12",
+    "default_rate_20": 28.0,
+    "default_rate_40": 35.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C12+",
+    "description": "C12+",
+    "default_rate_20": 15.0,
+    "default_rate_40": 18.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C13",
+    "description": "C13",
+    "default_rate_20": 61.6,
+    "default_rate_40": 61.6,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C14",
+    "description": "C14",
+    "default_rate_20": 61.6,
+    "default_rate_40": 61.6,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C15",
+    "description": "C15",
+    "default_rate_20": 36.35,
+    "default_rate_40": 48.47,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C16",
+    "description": "C16",
+    "default_rate_20": 16.97,
+    "default_rate_40": 21.81,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C17",
+    "description": "C17",
+    "default_rate_20": 36.35,
+    "default_rate_40": 48.47,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C18",
+    "description": "C18",
+    "default_rate_20": 16.97,
+    "default_rate_40": 21.81,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C19",
+    "description": "C19",
+    "default_rate_20": 35.0,
+    "default_rate_40": 43.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C20",
+    "description": "C20",
+    "default_rate_20": 83.0,
+    "default_rate_40": 114.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C21",
+    "description": "C21",
+    "default_rate_20": 61.6,
+    "default_rate_40": 61.6,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C22",
+    "description": "C22",
+    "default_rate_20": 25.76,
+    "default_rate_40": 33.6,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C23",
+    "description": "C23",
+    "default_rate_20": 25.76,
+    "default_rate_40": 50.4,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C24",
+    "description": "C24",
+    "default_rate_20": 13.44,
+    "default_rate_40": 13.44,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C25",
+    "description": "C25",
+    "default_rate_20": 9.0,
+    "default_rate_40": 9.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C26",
+    "description": "C26",
+    "default_rate_20": 18.0,
+    "default_rate_40": 18.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C27",
+    "description": "C27",
+    "default_rate_20": 16.8,
+    "default_rate_40": 25.76,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C28",
+    "description": "C28",
+    "default_rate_20": 67.2,
+    "default_rate_40": 100.8,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C29",
+    "description": "C29",
+    "default_rate_20": 46.89,
+    "default_rate_40": 67.05,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C30",
+    "description": "C30",
+    "default_rate_20": 27.0,
+    "default_rate_40": 38.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C31",
+    "description": "C31",
+    "default_rate_20": 17.0,
+    "default_rate_40": 26.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C32",
+    "description": "C32",
+    "default_rate_20": 20.0,
+    "default_rate_40": 20.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C33",
+    "description": "C33",
+    "default_rate_20": 46.0,
+    "default_rate_40": 46.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FRP",
+    "description": "FRP",
+    "default_rate_20": 19.91,
+    "default_rate_40": 27.33,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FRV",
+    "description": "FRV",
+    "default_rate_20": 10.2,
+    "default_rate_40": 13.76,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCP",
+    "description": "FCP",
+    "default_rate_20": 27.87,
+    "default_rate_40": 38.26,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCV",
+    "description": "FCV",
+    "default_rate_20": 14.27,
+    "default_rate_40": 19.26,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Fine2",
+    "description": "Fine2",
+    "default_rate_20": 30.0,
+    "default_rate_40": 30.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-MSK1",
+    "description": "T-MSK1",
+    "default_rate_20": 52.0,
+    "default_rate_40": 52.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-MSK2",
+    "description": "T-MSK2",
+    "default_rate_20": 58.0,
+    "default_rate_40": 58.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ELCT1",
+    "description": "ELCT1",
+    "default_rate_20": 50.0,
+    "default_rate_40": 60.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "A-MSC",
+    "description": "A-MSC",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C7-MC",
+    "description": "C7-MC",
+    "default_rate_20": 9.69,
+    "default_rate_40": 14.54,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S-MSC",
+    "description": "S-MSC",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-MSC",
+    "description": "T-MSC",
+    "default_rate_20": 41.0,
+    "default_rate_40": 41.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "H-MSC",
+    "description": "H-MSC",
+    "default_rate_20": 50.0,
+    "default_rate_40": 50.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "HMV-C",
+    "description": "HMV-C",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "HMV-M",
+    "description": "HMV-M",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C7-ME",
+    "description": "C7-ME",
+    "default_rate_20": 0.0,
+    "default_rate_40": 0.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "Fine1",
+    "description": "Fine1",
+    "default_rate_20": 275.0,
+    "default_rate_40": 275.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "TR-STD",
+    "description": "TR-STD",
+    "default_rate_20": 66.0,
+    "default_rate_40": 66.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FH-CMA",
+    "description": "FH-CMA",
+    "default_rate_20": 35.0,
+    "default_rate_40": null,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-CMA",
+    "description": "T-CMA",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S-CMA",
+    "description": "S-CMA",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S1-C1",
+    "description": "S1-C1",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S2-C1",
+    "description": "S2-C1",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S1-C5",
+    "description": "S1-C5",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "S2-C5",
+    "description": "S2-C5",
+    "default_rate_20": 70.0,
+    "default_rate_40": 70.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "F-CMA",
+    "description": "F-CMA",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "M-CMA",
+    "description": "M-CMA",
+    "default_rate_20": 36.0,
+    "default_rate_40": 36.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "H-CMA",
+    "description": "H-CMA",
+    "default_rate_20": 50.0,
+    "default_rate_40": 50.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "SEAL",
+    "description": "SEAL",
+    "default_rate_20": 5.0,
+    "default_rate_40": 5.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-T21",
+    "description": "T-T21",
+    "default_rate_20": 40.0,
+    "default_rate_40": 40.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "T-SHS",
+    "description": "T-SHS",
+    "default_rate_20": 52.0,
+    "default_rate_40": 52.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C12-SP",
+    "description": "C12-SP",
+    "default_rate_20": 4.21,
+    "default_rate_40": 5.22,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C1-E",
+    "description": "C1-E",
+    "default_rate_20": 26.54,
+    "default_rate_40": 35.38,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C2-E",
+    "description": "C2-E",
+    "default_rate_20": 5.31,
+    "default_rate_40": 8.85,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C3-E",
+    "description": "C3-E",
+    "default_rate_20": 14.15,
+    "default_rate_40": 18.58,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C6-E",
+    "description": "C6-E",
+    "default_rate_20": 10.61,
+    "default_rate_40": 14.15,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C7-E",
+    "description": "C7-E",
+    "default_rate_20": 7.07,
+    "default_rate_40": 10.61,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FRP-E",
+    "description": "FRP-E",
+    "default_rate_20": 13.27,
+    "default_rate_40": 17.7,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCP-E",
+    "description": "FCP-E",
+    "default_rate_20": 18.58,
+    "default_rate_40": 24.77,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QU-BC",
+    "description": "QU-BC",
+    "default_rate_20": 20.0,
+    "default_rate_40": 20.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "pa-bc",
+    "description": "pa-bc",
+    "default_rate_20": 35.0,
+    "default_rate_40": 35.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "STAMP",
+    "description": "STAMP",
+    "default_rate_20": 2.0,
+    "default_rate_40": 2.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "CTRLQUAY",
+    "description": "CTRLQUAY",
+    "default_rate_20": 50.0,
+    "default_rate_40": 50.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "FCLEAN",
+    "description": "FCLEAN",
+    "default_rate_20": 516.0,
+    "default_rate_40": 516.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "WATER",
+    "description": "WATER",
+    "default_rate_20": 5.0,
+    "default_rate_40": 5.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "GMX",
+    "description": "GMX",
+    "default_rate_20": 100.0,
+    "default_rate_40": 100.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "N6",
+    "description": "N6",
+    "default_rate_20": 40.0,
+    "default_rate_40": 40.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "ASSUR",
+    "description": "ASSUR",
+    "default_rate_20": 10.0,
+    "default_rate_40": 10.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C123",
+    "description": "C123",
+    "default_rate_20": 69.0,
+    "default_rate_40": 97.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C321-E",
+    "description": "C321-E",
+    "default_rate_20": 51.0,
+    "default_rate_40": 71.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C524",
+    "description": "C524",
+    "default_rate_20": 40.0,
+    "default_rate_40": 58.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C425",
+    "description": "C425",
+    "default_rate_20": 40.0,
+    "default_rate_40": 58.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C34",
+    "description": "C34",
+    "default_rate_20": null,
+    "default_rate_40": null,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C35",
+    "description": "C35",
+    "default_rate_20": null,
+    "default_rate_40": null,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C20-DG",
+    "description": "C20-DG",
+    "default_rate_20": 125.0,
+    "default_rate_40": 171.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "C19-E",
+    "description": "C19-E",
+    "default_rate_20": 26.0,
+    "default_rate_40": 32.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  }
+]
