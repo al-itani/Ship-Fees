@@ -15,7 +15,7 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
 function lookupVoyage(voyageNumber) {
   try {
     const berthing = db.prepare(`
-      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent
+      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent, bill_number
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at DESC LIMIT 1
@@ -28,7 +28,23 @@ function lookupVoyage(voyageNumber) {
       return { success: false, error: 'voyage_is_gc' }
     }
 
-    return { success: true, data: { berthing, moduleType: voyage?.module_type || null } }
+    // Warn if another active Container voyage shares the same bill_number
+    let duplicateWarning = null
+    if (berthing.bill_number) {
+      const dup = db.prepare(`
+        SELECT br.voyage_number, br.vessel_name, br.ata
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.is_deleted = 0
+          AND v.module_type = 'Container'
+          AND br.voyage_number != ?
+          AND br.bill_number = ?
+        LIMIT 1
+      `).get(voyageNumber, berthing.bill_number)
+      if (dup) duplicateWarning = dup
+    }
+
+    return { success: true, data: { berthing, moduleType: voyage?.module_type || null }, duplicateWarning }
   } catch (err) {
     return { success: false, error: err.message }
   }

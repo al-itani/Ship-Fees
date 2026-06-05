@@ -81,6 +81,7 @@
   "change_voyage": "تغيير الرحلة",
   "voyage_not_found": "الرحلة غير موجودة. أنشئ سجل رسو أولاً.",
   "voyage_is_gc": "هذه الرحلة تحتوي على سجلات بضائع عامة — لا يمكن إضافة خدمات حاويات.",
+  "container_duplicate_bill_warning": "تحذير: الرحلة {{voyageNumber}} ({{vesselName}}، {{ata}}) تحمل نفس رقم البوليصة وهي مسجّلة كرحلة حاويات. تأكد من أنك لا تنشئ سجلاً مكرراً.",
   "add_service_line": "إضافة سطر خدمة",
   "service_code": "كود الخدمة",
   "container_type": "الطول",
