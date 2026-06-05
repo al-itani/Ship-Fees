@@ -159,6 +159,7 @@
 
   "no_receipts": "No receipts generated yet.",
   "search_receipts": "Search by vessel, voyage, or agent...",
+  "filter_all_months": "All months",
   "confirm_delete_receipt": "Delete this receipt?",
   "receipt_voyage_label": "Voyage",
 

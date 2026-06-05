@@ -125,9 +125,12 @@ function getAll() {
       SELECT r.id, r.voyage_number, r.bill_number, r.final_price, r.generated_by, r.generated_at,
              br.vessel_name, br.shipping_agent, br.ata, br.atd
       FROM receipts r
-      LEFT JOIN berthing_records br ON r.voyage_number = br.voyage_number AND br.is_deleted = 0
+      LEFT JOIN berthing_records br ON br.id = (
+        SELECT id FROM berthing_records
+        WHERE voyage_number = r.voyage_number AND is_deleted = 0
+        ORDER BY created_at ASC LIMIT 1
+      )
       WHERE r.is_deleted = 0
-      GROUP BY r.id
       ORDER BY r.generated_at DESC
     `).all()
     return { success: true, data: rows }

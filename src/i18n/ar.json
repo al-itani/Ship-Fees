@@ -159,6 +159,7 @@
 
   "no_receipts": "لم يتم إنشاء أي وصولات بعد.",
   "search_receipts": "البحث بالسفينة أو الرحلة أو الوكيل...",
+  "filter_all_months": "كل الأشهر",
   "confirm_delete_receipt": "حذف هذا الوصل؟",
   "receipt_voyage_label": "الرحلة",
 

@@ -25,6 +25,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
   const [receipts, setReceipts]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [search, setSearch]         = useState('')
+  const [monthFilter, setMonthFilter] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast]           = useState(null)
 
@@ -68,7 +69,15 @@ export default function ReceiptArchive({ onViewReceipt }) {
     }
   }
 
+  // Build sorted list of unique year-month values from ATA dates
+  const monthOptions = [...new Set(
+    receipts
+      .map(r => r.ata ? r.ata.slice(0, 7) : null)
+      .filter(Boolean)
+  )].sort((a, b) => b.localeCompare(a))
+
   const filtered = receipts.filter(r => {
+    if (monthFilter && (r.ata || '').slice(0, 7) !== monthFilter) return false
     if (!search.trim()) return true
     const q = search.toLowerCase()
     return (
@@ -96,11 +105,11 @@ export default function ReceiptArchive({ onViewReceipt }) {
         🗂 {t('receipts_archive')}
       </h2>
 
-      {/* Search */}
-      <div style={{ marginBottom: 16, maxWidth: 380 }}>
+      {/* Search + Month filter */}
+      <div style={{ marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <input
           style={{
-            width: '100%', height: 40, padding: '0 14px',
+            flex: '1 1 280px', height: 40, padding: '0 14px',
             border: '1px solid var(--color-border)',
             borderRadius: 6, fontSize: 14, outline: 'none', background: 'white',
           }}
@@ -110,6 +119,25 @@ export default function ReceiptArchive({ onViewReceipt }) {
           onFocus={e => { e.target.style.borderColor = 'var(--color-primary)' }}
           onBlur={e => { e.target.style.borderColor = 'var(--color-border)' }}
         />
+        <select
+          value={monthFilter}
+          onChange={e => setMonthFilter(e.target.value)}
+          style={{
+            height: 40, padding: '0 12px',
+            border: '1px solid var(--color-border)',
+            borderRadius: 6, fontSize: 14, outline: 'none',
+            background: 'white', cursor: 'pointer', minWidth: 160,
+            color: monthFilter ? 'var(--color-text)' : 'var(--color-text-muted)',
+          }}
+        >
+          <option value="">{t('filter_all_months')}</option>
+          {monthOptions.map(ym => {
+            const [year, month] = ym.split('-')
+            const label = new Date(Number(year), Number(month) - 1, 1)
+              .toLocaleString('en-US', { month: 'long', year: 'numeric' })
+            return <option key={ym} value={ym}>{label}</option>
+          })}
+        </select>
       </div>
 
       {loading && (

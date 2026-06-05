@@ -31,11 +31,12 @@ function getReport(year, month) {
 
     const rows = db.prepare(`
       WITH voyage_agents AS (
-        SELECT DISTINCT br.voyage_number, br.shipping_agent
+        SELECT br.voyage_number, br.shipping_agent
         FROM berthing_records br
         JOIN voyages v ON br.voyage_number = v.voyage_number
         WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
           AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
       )
       SELECT
         va.shipping_agent AS agent,
@@ -62,16 +63,17 @@ function getVoyageDetail(year, month, agent) {
 
     const rows = db.prepare(`
       WITH voyage_list AS (
-        SELECT DISTINCT
+        SELECT
           br.voyage_number,
           br.shipping_agent,
-          (SELECT vessel_name FROM berthing_records WHERE voyage_number = br.voyage_number AND is_deleted = 0 LIMIT 1) AS vessel_name,
-          (SELECT bill_number FROM berthing_records WHERE voyage_number = br.voyage_number AND is_deleted = 0 LIMIT 1) AS bill_number
+          br.vessel_name,
+          br.bill_number
         FROM berthing_records br
         JOIN voyages v ON br.voyage_number = v.voyage_number
         WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
           AND br.shipping_agent = ?
           AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
       )
       SELECT
         vl.vessel_name,

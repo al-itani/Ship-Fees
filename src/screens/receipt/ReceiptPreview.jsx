@@ -166,7 +166,9 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
 
       {/* Toolbar */}
       <div className="no-print" style={{
+        position: 'sticky', top: 0, zIndex: 10,
         width: '100%', maxWidth: 860,
+        background: '#D8DDE8',
         padding: '14px 20px', display: 'flex',
         justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,

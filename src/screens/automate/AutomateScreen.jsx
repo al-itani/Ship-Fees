@@ -661,13 +661,16 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                 ))}
                 {manualLines.map((l, i) => {
                   const inpStyle = { height: 30, padding: '0 6px', border: '1px solid #BFDBFE', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white' }
+                  const codeOptions = (isContainerSession ? containerCodes : gcCodes)
+                    .filter(c => c.is_active && !c.is_fixed)
+                    .map(c => c.code)
                   return (
                     <tr key={`m${i}`} style={{ borderBottom: '1px solid #DBEAFE', background: '#EFF6FF' }}>
-                      <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5 }}>
-                        <select
+                      <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5, minWidth: 180 }}>
+                        <SearchableSelect
+                          options={codeOptions}
                           value={l.service_code}
-                          onChange={e => {
-                            const code = e.target.value
+                          onChange={code => {
                             const mc = (isContainerSession ? containerCodes : gcCodes).find(c => c.code === code)
                             if (isContainerSession) {
                               const rate = l.container_type === '40ft' && mc?.default_rate_40 != null ? mc.default_rate_40 : (mc?.default_rate_20 ?? 0)
@@ -677,12 +680,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                               updateManualLine(i, { service_code: code, description: mc?.description || '', unit: mc?.unit || '', is_taxable: mc?.is_taxable || 0, rate, minimum: min })
                             }
                           }}
-                          style={{ ...inpStyle, minWidth: 120 }}>
-                          <option value="">— code —</option>
-                          {(isContainerSession ? containerCodes : gcCodes)
-                            .filter(c => c.is_active && !c.is_fixed)
-                            .map(c => <option key={c.code} value={c.code}>{c.code}</option>)}
-                        </select>
+                        />
                       </td>
                       {isContainerSession && (
                         <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5 }}>
