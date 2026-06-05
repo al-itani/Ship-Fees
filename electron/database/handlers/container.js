@@ -28,11 +28,10 @@ function lookupVoyage(voyageNumber) {
       return { success: false, error: 'voyage_is_gc' }
     }
 
-    // Warn if another active Container voyage shares the same bill_number
-    let duplicateWarning = null
+    // Block if another active Container voyage already has the same bill_number
     if (berthing.bill_number) {
       const dup = db.prepare(`
-        SELECT br.voyage_number, br.vessel_name, br.ata
+        SELECT br.voyage_number
         FROM berthing_records br
         JOIN voyages v ON br.voyage_number = v.voyage_number
         WHERE br.is_deleted = 0 AND v.is_deleted = 0
@@ -41,10 +40,10 @@ function lookupVoyage(voyageNumber) {
           AND br.bill_number = ?
         LIMIT 1
       `).get(voyageNumber, berthing.bill_number)
-      if (dup) duplicateWarning = dup
+      if (dup) return { success: false, error: 'container_duplicate_bill', existingVoyage: dup.voyage_number }
     }
 
-    return { success: true, data: { berthing, moduleType: voyage?.module_type || null }, duplicateWarning }
+    return { success: true, data: { berthing, moduleType: voyage?.module_type || null } }
   } catch (err) {
     return { success: false, error: err.message }
   }

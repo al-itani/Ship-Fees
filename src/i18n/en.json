@@ -81,7 +81,7 @@
   "change_voyage": "Change Voyage",
   "voyage_not_found": "Voyage not found. Create a Berthing record first.",
   "voyage_is_gc": "This voyage has General Cargo records — cannot add Container services.",
-  "container_duplicate_bill_warning": "Warning: voyage {{voyageNumber}} ({{vesselName}}, {{ata}}) has the same bill number and is already recorded as a Container voyage. Make sure you are not creating a duplicate.",
+  "container_duplicate_bill": "Bill number already recorded under voyage {{voyageNumber}}. Delete that entry first.",
   "add_service_line": "Add Service Line",
   "service_code": "Service Code",
   "container_type": "Length",

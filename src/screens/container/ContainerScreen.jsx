@@ -27,7 +27,6 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   const [looking, setLooking] = useState(false)
 
   const [voyageInfo, setVoyageInfo] = useState(null)
-  const [duplicateWarning, setDuplicateWarning] = useState(null)
   const [codes, setCodes] = useState([])
 
   const [line, setLine] = useState(EMPTY_LINE)
@@ -61,11 +60,11 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
       if (!res.success) {
         const msg = res.error === 'voyage_not_found' ? t('voyage_not_found')
           : res.error === 'voyage_is_gc' ? t('voyage_is_gc')
+          : res.error === 'container_duplicate_bill' ? t('container_duplicate_bill', { voyageNumber: res.existingVoyage })
           : res.error
         setVoyageError(msg)
       } else {
         setVoyageInfo(res.data)
-        setDuplicateWarning(res.duplicateWarning || null)
         setPhase('entry')
         setLine(EMPTY_LINE)
         setLineError('')
@@ -134,11 +133,11 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
       if (!res.success) {
         const msg = res.error === 'voyage_not_found' ? t('voyage_not_found')
           : res.error === 'voyage_is_gc' ? t('voyage_is_gc')
+          : res.error === 'container_duplicate_bill' ? t('container_duplicate_bill', { voyageNumber: res.existingVoyage })
           : res.error
         setVoyageError(msg)
       } else {
         setVoyageInfo(res.data)
-        setDuplicateWarning(res.duplicateWarning || null)
         setPhase('entry')
         setLine(EMPTY_LINE)
         setLineError('')
@@ -217,7 +216,6 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   function handleChangeVoyage() {
     setPhase('lookup')
     setVoyageInfo(null)
-    setDuplicateWarning(null)
     setSavedLines([])
     setPendingLines([])
     setLine(EMPTY_LINE)
@@ -310,24 +308,6 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
       {/* ── ENTRY ── */}
       {phase === 'entry' && voyageInfo && (
         <>
-          {/* Duplicate bill_number warning */}
-          {duplicateWarning && (
-            <div style={{
-              marginBottom: 16, padding: '12px 16px', borderRadius: 6,
-              background: '#FFFBEB', border: '1px solid #F59E0B',
-              color: '#92400E', fontSize: 13, display: 'flex', gap: 10, alignItems: 'flex-start',
-            }}>
-              <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
-              <span>
-                {t('container_duplicate_bill_warning', {
-                  voyageNumber: duplicateWarning.voyage_number,
-                  vesselName:   duplicateWarning.vessel_name || '—',
-                  ata:          (duplicateWarning.ata || '').slice(0, 10),
-                })}
-              </span>
-            </div>
-          )}
-
           {/* Vessel header */}
           <div style={{
             background: 'white', borderRadius: 8,

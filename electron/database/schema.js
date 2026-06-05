@@ -184,6 +184,22 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`) } catch {}
 
+  // One-time data fix: soft-delete duplicate voyage entries B2026-258 and 258
+  try {
+    const dupeExists = db.prepare(
+      `SELECT id FROM berthing_records WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0`
+    ).get()
+    if (dupeExists) {
+      db.exec(`
+        UPDATE container_services SET is_deleted = 1 WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0;
+        UPDATE gc_services        SET is_deleted = 1 WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0;
+        UPDATE receipts           SET is_deleted = 1 WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0;
+        UPDATE berthing_records   SET is_deleted = 1 WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0;
+        UPDATE voyages            SET is_deleted = 1 WHERE voyage_number IN ('B2026-258','258') AND is_deleted = 0;
+      `)
+    }
+  } catch {}
+
   // user_permissions table — stores per-user permission grants
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_permissions (
