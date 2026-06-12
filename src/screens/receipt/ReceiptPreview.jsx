@@ -294,6 +294,9 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
               <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: '#1B2A4A' }}>
                 {t('bill_of_services')}
               </div>
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4, direction: 'rtl' }}>
+                فاتورة أولية &nbsp;|&nbsp; إعداد: ابراهيم العيتاني
+              </div>
             </div>
             <div style={{ width: 80 }} />
           </div>

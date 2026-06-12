@@ -184,6 +184,9 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`) } catch {}
 
+  // Fix PQ1 rate to $60 if it was stored incorrectly
+  try { db.prepare(`UPDATE gc_codes SET rate = 60 WHERE code = 'PQ1' AND rate != 60`).run() } catch {}
+
   // One-time data fix: soft-delete duplicate voyage entries B2026-258 and 258
   try {
     const dupeExists = db.prepare(

@@ -203,6 +203,11 @@
   "import_error_json": "أرجع الذكاء الاصطناعي بيانات غير متوقعة. حاول مرة أخرى.",
   "import_error_file_size": "الملف كبير جداً (الحد الأقصى 8 ميغابايت).",
   "import_error_pdf_page": "تعذّر تحويل صفحة PDF.",
+  "queue_add_page": "إضافة صفحة",
+  "queue_process_all": "معالجة جميع الصفحات",
+  "queue_page_label": "صفحة",
+  "queue_dup_warning": "قد يكون هذا الملف مضافاً بالفعل.",
+  "queue_large_warning": "مستند كبير — قد تستغرق المعالجة لحظة.",
 
   "cma_receipt": "وصل CMA",
   "cma_month": "الشهر",

@@ -203,6 +203,11 @@
   "import_error_json": "AI returned unexpected data. Try again.",
   "import_error_file_size": "File too large (max 8 MB).",
   "import_error_pdf_page": "Could not rasterize PDF page.",
+  "queue_add_page": "Add Page",
+  "queue_process_all": "Process All Pages",
+  "queue_page_label": "Page",
+  "queue_dup_warning": "This file may already be added.",
+  "queue_large_warning": "Large document — processing may take a moment.",
 
   "cma_receipt": "CMA Receipt",
   "cma_month": "Month",

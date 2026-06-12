@@ -8,7 +8,7 @@ const MAX_BYTES = 8 * 1024 * 1024 // 8 MB
 const MAX_DIM     = 2000
 const JPEG_QUALITY = 0.82
 
-function compressToJpeg(base64, srcMediaType) {
+export function compressToJpeg(base64, srcMediaType) {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onerror = reject
@@ -33,7 +33,7 @@ function compressToJpeg(base64, srcMediaType) {
 // Rasterise each page of a PDF (up to 4) into separate JPEG images.
 // Returns an array of { data: base64, mediaType } — one entry per page.
 // Each page is rendered at full quality; Claude receives them as separate images.
-async function pdfToImages(file) {
+export async function pdfToImages(file) {
   const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
   if (!GlobalWorkerOptions.workerSrc) {
     const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
