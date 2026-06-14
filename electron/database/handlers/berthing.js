@@ -12,7 +12,7 @@ const berthingSchema = z.object({
   atd:              z.string().min(1),
   loa:              z.number().positive(),
   days:             z.number().int().positive(),
-  position:         z.enum(['Quay', 'P2', 'En Rade']),
+  position:         z.enum(['Quay', 'P2', 'En Rade', 'Congestion']),
   vessel_category:  z.string().optional().nullable(),
   maintenance:      z.enum(['Yes', 'No']),
   l_index:          z.number().int(),

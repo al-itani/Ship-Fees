@@ -167,4 +167,19 @@ function deleteLine(id, userId) {
   }
 }
 
-module.exports = { lookupVoyage, getCodes, saveSession, getLines, deleteLine }
+function listVoyages() {
+  try {
+    const rows = db.prepare(`
+      SELECT voyage_number, vessel_name
+      FROM berthing_records
+      WHERE is_deleted = 0
+      GROUP BY voyage_number
+      ORDER BY MAX(rowid) DESC
+    `).all()
+    return { success: true, data: rows }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { lookupVoyage, getCodes, saveSession, getLines, deleteLine, listVoyages }

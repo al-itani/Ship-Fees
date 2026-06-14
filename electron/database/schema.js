@@ -30,7 +30,7 @@ module.exports = function initSchema(db) {
       atd TEXT NOT NULL,
       loa REAL NOT NULL,
       days INTEGER NOT NULL,
-      position TEXT NOT NULL CHECK(position IN ('Quay', 'P2', 'En Rade')),
+      position TEXT NOT NULL CHECK(position IN ('Quay', 'P2', 'En Rade', 'Congestion')),
       vessel_category TEXT,
       maintenance TEXT NOT NULL DEFAULT 'No',
       l_index INTEGER NOT NULL,
@@ -187,6 +187,22 @@ module.exports = function initSchema(db) {
   // Fix PQ1 rate to $60 if it was stored incorrectly
   try { db.prepare(`UPDATE gc_codes SET rate = 60 WHERE code = 'PQ1' AND rate != 60`).run() } catch {}
 
+  // Ensure these codes exist (may be missing from databases seeded before they were added)
+  try {
+    const ensureCode = db.prepare(`
+      INSERT INTO container_codes (code, description, default_rate_20, default_rate_40, is_taxable, is_fixed, is_active)
+      VALUES (?, ?, ?, ?, 0, 0, 1)
+      ON CONFLICT(code) DO NOTHING
+    `)
+    for (const [code, r20, r40] of [
+      ['C6',  14.54, 19.39],
+      ['FRP', 19.91, 27.33],
+      ['FRV', 10.20, 13.76],
+      ['FCP', 27.87, 38.26],
+      ['FCV', 14.27, 19.26],
+    ]) ensureCode.run(code, code, r20, r40)
+  } catch {}
+
   // One-time data fix: soft-delete duplicate voyage entries B2026-258 and 258
   try {
     const dupeExists = db.prepare(
@@ -234,6 +250,54 @@ module.exports = function initSchema(db) {
       db.exec(`UPDATE berthing_minimums SET position = 'En Rade' WHERE position = 'SWAP_TEMP'`)
     })()
   }
+
+  // Migration: expand berthing_records CHECK to allow 'Congestion' position
+  try {
+    const schemaRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='berthing_records'`).get()
+    if (schemaRow && !schemaRow.sql.includes("'Congestion'")) {
+      db.transaction(() => {
+        db.exec(`ALTER TABLE berthing_records RENAME TO berthing_records_pre_cong`)
+        db.exec(`
+          CREATE TABLE berthing_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            voyage_number TEXT NOT NULL,
+            bill_number TEXT NOT NULL,
+            vessel_name TEXT NOT NULL,
+            vessel_type TEXT,
+            flag TEXT,
+            shipping_agent TEXT NOT NULL,
+            ata TEXT NOT NULL,
+            atd TEXT NOT NULL,
+            loa REAL NOT NULL,
+            days INTEGER NOT NULL,
+            position TEXT NOT NULL CHECK(position IN ('Quay', 'P2', 'En Rade', 'Congestion')),
+            vessel_category TEXT,
+            maintenance TEXT NOT NULL DEFAULT 'No',
+            l_index INTEGER NOT NULL,
+            d1_days INTEGER NOT NULL DEFAULT 0,
+            d2_days INTEGER NOT NULL DEFAULT 0,
+            d3_days INTEGER NOT NULL DEFAULT 0,
+            raw_fee REAL NOT NULL,
+            discount_factor REAL NOT NULL DEFAULT 1.0,
+            fee_after_discount REAL NOT NULL,
+            min_fee REAL NOT NULL,
+            late_fee REAL NOT NULL DEFAULT 0,
+            maintenance_fee REAL NOT NULL DEFAULT 0,
+            final_fee REAL NOT NULL,
+            created_by INTEGER NOT NULL REFERENCES users(id),
+            created_at TEXT NOT NULL DEFAULT (datetime('now')),
+            updated_by INTEGER REFERENCES users(id),
+            updated_at TEXT,
+            is_deleted INTEGER NOT NULL DEFAULT 0,
+            deleted_by INTEGER REFERENCES users(id),
+            deleted_at TEXT
+          )
+        `)
+        db.exec(`INSERT INTO berthing_records SELECT * FROM berthing_records_pre_cong`)
+        db.exec(`DROP TABLE berthing_records_pre_cong`)
+      })()
+    }
+  } catch {}
 
   // Remove any duplicate auto/fixed service lines per voyage (keep oldest row per code)
   db.exec(`

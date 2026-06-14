@@ -808,5 +808,32 @@
     "is_taxable": 0,
     "is_fixed": 0,
     "is_active": 1
+  },
+  {
+    "code": "PARC",
+    "description": "PARC",
+    "default_rate_20": 35.0,
+    "default_rate_40": 35.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "QUAI",
+    "description": "QUAI",
+    "default_rate_20": 20.0,
+    "default_rate_40": 20.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
+    "code": "EQ10",
+    "description": "EQ10",
+    "default_rate_20": 30.0,
+    "default_rate_40": 30.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
   }
 ]

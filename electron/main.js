@@ -17,6 +17,9 @@ const aiHandlers         = require('./handlers/ai')
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
+let lastDocumentDir = null
+let lastReceiptDir  = null
+
 const isDev = !app.isPackaged
 
 function createWindow() {
@@ -57,6 +60,7 @@ ipcMain.handle('berthing:delete',    (_, id, userId) => berthingHandlers.softDel
 
 // Container
 ipcMain.handle('container:lookupVoyage', (_, voyageNumber) => containerHandlers.lookupVoyage(voyageNumber))
+ipcMain.handle('container:listVoyages',  () => containerHandlers.listVoyages())
 ipcMain.handle('container:getCodes',     () => containerHandlers.getCodes())
 ipcMain.handle('container:saveSession',  (_, data) => containerHandlers.saveSession(data))
 ipcMain.handle('container:getLines',     (_, voyageNumber) => containerHandlers.getLines(voyageNumber))
@@ -76,14 +80,57 @@ ipcMain.handle('receipt:getAll',    () => receiptHandlers.getAll())
 ipcMain.handle('receipt:delete',    (_, id, userId) => receiptHandlers.softDelete(id, userId))
 
 // PDF Export — uses printToPDF on the calling window's webContents
+ipcMain.handle('dialog:openDocuments', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const opts = {
+      filters: [{ name: 'Documents', extensions: ['jpg', 'jpeg', 'png', 'pdf'] }],
+      properties: ['openFile', 'multiSelections'],
+    }
+    if (lastDocumentDir) opts.defaultPath = lastDocumentDir
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, opts)
+    if (canceled || filePaths.length === 0) return { success: false, canceled: true }
+    lastDocumentDir = path.dirname(filePaths[0])
+    const files = []
+    for (const fp of filePaths) {
+      const bytes    = await fs.promises.readFile(fp)
+      const stat     = await fs.promises.stat(fp)
+      const ext      = path.extname(fp).toLowerCase()
+      const mimeType = ext === '.pdf' ? 'application/pdf' : (ext === '.png' ? 'image/png' : 'image/jpeg')
+      files.push({ filename: path.basename(fp), data: bytes.toString('base64'), mimeType, size: bytes.length, mtimeMs: stat.mtimeMs })
+    }
+    return { success: true, files }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
 ipcMain.handle('receipt:exportPDF', async (event, { defaultFilename }) => {
   try {
     const win = BrowserWindow.fromWebContents(event.sender)
+    const defaultPath = lastReceiptDir ? path.join(lastReceiptDir, defaultFilename) : defaultFilename
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      defaultPath: defaultFilename,
+      defaultPath,
       filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
     })
     if (canceled || !filePath) return { success: false, canceled: true }
+    lastReceiptDir = path.dirname(filePath)
+    const pdfData = await event.sender.printToPDF({
+      pageSize: 'A4',
+      printBackground: true,
+      margins: { marginType: 'printableArea' },
+    })
+    await fs.promises.writeFile(filePath, pdfData)
+    return { success: true, filePath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// Batch PDF export — no dialog, writes directly to the computed path, creates folder if needed
+ipcMain.handle('receipt:exportPDFBatch', async (event, { filePath }) => {
+  try {
+    await fs.promises.mkdir(path.dirname(filePath), { recursive: true })
     const pdfData = await event.sender.printToPDF({
       pageSize: 'A4',
       printBackground: true,

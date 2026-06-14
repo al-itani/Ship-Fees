@@ -1,0 +1,54 @@
+Add a new "Batch Import" feature to the Automation module.
+
+## CONTEXT
+Currently the automation flow processes one document at a time: import → check errors → insert. Users photograph paper receipts with a phone (Samsung default filenames like 20260612_091530.jpg = date_time). Some receipts span 2+ pages, photographed seconds apart. The existing automation engine already supports multi-page documents — do NOT modify the extraction engine itself. This feature is a UI + queueing wrapper around it.
+
+## FLOW
+
+### Step 1 — File Selection
+- Add a "Batch Import" button to the Automation module screen (alongside the existing single import)
+- Opens a screen with a large drop zone + a "Browse Files" button (multi-select)
+- Accepts .jpg, .jpeg, .png, .pdf
+- Show count of files added
+
+### Step 2 — Auto-Grouping
+- Parse the timestamp from each filename (Samsung format: YYYYMMDD_HHMMSS.jpg)
+- Sort files chronologically
+- Group files: if a file's timestamp is within 12 SECONDS of the previous file, it belongs to the same group (same receipt). A gap larger than 12 seconds starts a new group.
+- Make the 12-second threshold a named constant at the top of the file (BATCH_GROUP_THRESHOLD_SECONDS = 12) so it's easy to adjust later
+- If a filename doesn't match the timestamp pattern, fall back to file modified date. If that's also unusable, put the file in its own group of 1.
+
+### Step 3 — Review Screen
+- Show all groups as cards, each card = one receipt
+- Each card shows: thumbnails of its pages in order, page count, and the timestamps
+- Manual corrections must be possible:
+  - Drag a page from one group to another
+  - Split: remove a page into its own new group
+  - Merge: combine two groups into one
+  - Reorder pages within a group
+- A "Start Processing" button at the bottom, showing total count: e.g. "Process 7 receipts (11 pages)"
+
+### Step 4 — Sequential Processing Queue
+- On confirm, process groups one at a time through the EXISTING automation pipeline (same code path as single import — each group is one multi-page submission to the extraction API)
+- Show a progress view: list of groups with status per group: Waiting / Processing / Done / Error
+- Progress bar: "3 of 7 processed"
+- If a group fails, mark it Error with the error message, and CONTINUE with the next group — never stop the whole queue on one failure
+- The existing per-document error-check screen logic applies: if extraction returns errors that normally require user review, hold that group in a "Needs Review" state instead of auto-inserting
+
+### Step 5 — Results Summary
+- When the queue finishes, show a summary screen:
+  - X inserted successfully
+  - X need review (clickable — opens the existing error-check/review screen for that document)
+  - X failed (with reasons)
+- Buttons: "Review Pending" / "New Batch" / "Done"
+
+## RULES
+- Do not change the existing single-document automation flow — it stays as-is
+- Reuse the existing extraction + insertion code; do not duplicate the pipeline
+- Image compression (sharp, under 5MB) applies to every image as it already does
+- All new UI strings in BOTH English and Arabic translation files, full RTL support in Arabic mode
+- Plain-language error messages, large click targets — consistent with the rest of the app
+- Audit log entries on insertions work exactly as they do in the single flow
+
+## TESTING
+After building, walk me through a manual test plan: what files to prepare, what groupings to expect, and how to verify the queue handles one failing group without stopping.

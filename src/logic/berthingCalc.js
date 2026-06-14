@@ -22,6 +22,16 @@ export function calcMaintenanceFee(maintenance, days, loa) {
 
 export function calcBerthingFee({ loa, days, position, vesselCategory, maintenance, rates, minimums, categories }) {
   const lIndex = getLIndex(loa)
+
+  if (position === 'Congestion') {
+    return {
+      lIndex,
+      d1Days: 0, d2Days: 0, d3Days: 0,
+      rawFee: 0, discountFactor: 1.0, feeAfterDiscount: 0,
+      minFee: 0, maintenanceFee: 0, finalFee: 0,
+    }
+  }
+
   const { d1, d2, d3 } = splitDayBlocks(days)
 
   let rawFee

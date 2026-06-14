@@ -60,7 +60,7 @@ function SummaryRow({ label, value, highlight, border }) {
   )
 }
 
-export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
+export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoExportPath, onAutoExportDone }) {
   const { t } = useTranslation()
   const { session } = useSession()
 
@@ -87,9 +87,25 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose }) {
       const d = res.data
       setRawData(d)
       setCalc(calculateReceipt(d))
-      if (d.existingReceipt && !readOnly) setShowRegenConfirm(true)
+      if (d.existingReceipt && !readOnly && !autoExportPath) setShowRegenConfirm(true)
     })
   }, [voyageNumber, readOnly])
+
+  // Auto-export PDF for batch flow — fires once data is loaded and rendered
+  useEffect(() => {
+    if (!autoExportPath || !rawData || !calc || loading || error) return
+    let cancelled = false
+    async function doExport() {
+      await new Promise(r => setTimeout(r, 300))
+      if (cancelled) return
+      const res = await window.api.receiptExportPDFBatch({ filePath: autoExportPath })
+      if (!cancelled && onAutoExportDone) {
+        onAutoExportDone(res.success ? null : (res.error || 'Export failed'), res.filePath || null)
+      }
+    }
+    doExport()
+    return () => { cancelled = true }
+  }, [autoExportPath, rawData, calc, loading, error])
 
   // Enter/Escape for regen confirm
   useEffect(() => {

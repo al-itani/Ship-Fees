@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   deleteBerthing:     (id, userId) => ipcRenderer.invoke('berthing:delete', id, userId),
 
   containerLookupVoyage: (voyageNumber) => ipcRenderer.invoke('container:lookupVoyage', voyageNumber),
+  containerListVoyages:  () => ipcRenderer.invoke('container:listVoyages'),
   containerGetCodes:     () => ipcRenderer.invoke('container:getCodes'),
   containerSaveSession:  (data) => ipcRenderer.invoke('container:saveSession', data),
   containerGetLines:     (voyageNumber) => ipcRenderer.invoke('container:getLines', voyageNumber),
@@ -27,7 +28,8 @@ contextBridge.exposeInMainWorld('api', {
   receiptSave:     (data) => ipcRenderer.invoke('receipt:save', data),
   receiptGetAll:   () => ipcRenderer.invoke('receipt:getAll'),
   receiptDelete:   (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
-  receiptExportPDF: (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
+  receiptExportPDF:      (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
+  receiptExportPDFBatch: (opts) => ipcRenderer.invoke('receipt:exportPDFBatch', opts),
 
   usersGetAll:         ()                              => ipcRenderer.invoke('users:getAll'),
   usersCreate:         (data)                          => ipcRenderer.invoke('users:create', data),
@@ -41,6 +43,8 @@ contextBridge.exposeInMainWorld('api', {
 
   settingsLoad: ()       => ipcRenderer.invoke('settings:load'),
   settingsSave: (data)   => ipcRenderer.invoke('settings:save', data),
+
+  openDocuments:    () => ipcRenderer.invoke('dialog:openDocuments'),
 
   aiExtract:        (images) => ipcRenderer.invoke('ai:extract', images),
   aiTestConnection: ()       => ipcRenderer.invoke('ai:testConnection'),

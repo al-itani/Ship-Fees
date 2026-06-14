@@ -30,21 +30,15 @@ export function compressToJpeg(base64, srcMediaType) {
   })
 }
 
-// Rasterise each page of a PDF (up to 4) into separate JPEG images.
-// Returns an array of { data: base64, mediaType } — one entry per page.
-// Each page is rendered at full quality; Claude receives them as separate images.
-export async function pdfToImages(file) {
+async function _renderPdf(data) {
   const { getDocument, GlobalWorkerOptions } = await import('pdfjs-dist')
   if (!GlobalWorkerOptions.workerSrc) {
     const { default: workerUrl } = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')
     GlobalWorkerOptions.workerSrc = workerUrl
   }
-
-  const arrayBuffer = await file.arrayBuffer()
-  const pdf      = await getDocument({ data: arrayBuffer }).promise
-  const numPages = Math.min(pdf.numPages, 4)
+  const pdf      = await getDocument({ data }).promise
+  const numPages = Math.min(pdf.numPages, 20)
   const results  = []
-
   for (let i = 1; i <= numPages; i++) {
     const page = await pdf.getPage(i)
     const vp   = page.getViewport({ scale: 1.5 })
@@ -52,8 +46,6 @@ export async function pdfToImages(file) {
     c.width    = vp.width
     c.height   = vp.height
     await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise
-
-    // Scale down if this page exceeds MAX_DIM (preserves aspect ratio)
     let w = c.width, h = c.height
     if (w > MAX_DIM || h > MAX_DIM) {
       const ratio = Math.min(MAX_DIM / w, MAX_DIM / h)
@@ -68,8 +60,18 @@ export async function pdfToImages(file) {
       results.push({ data: c.toDataURL('image/jpeg', JPEG_QUALITY).split(',')[1], mediaType: 'image/jpeg' })
     }
   }
-
   return results
+}
+
+export async function pdfToImages(file) {
+  return _renderPdf(await file.arrayBuffer())
+}
+
+export async function pdfToImagesFromBase64(base64) {
+  const bin   = atob(base64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return _renderPdf(bytes)
 }
 
 export default function DocumentImport({ onExtracted, disabled }) {

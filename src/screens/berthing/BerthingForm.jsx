@@ -8,7 +8,7 @@ import FeePreview from '../../components/FeePreview.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import { COUNTRIES } from '../../data/countries.js'
 
-const POSITIONS = ['Quay', 'P2', 'En Rade']
+const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
 const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
@@ -81,7 +81,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
   useEffect(() => {
     if (!ratesData) return
     const loa  = parseFloat(form.loa)
-    const days = parseInt(form.days)
+    const days = Math.ceil(Number(form.days))
     if (!loa || loa <= 0 || !days || days <= 0 || !form.position) {
       setBreakdown(null)
       return
@@ -125,7 +125,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
     if (!form.ata)                 e.ata           = true
     if (!form.atd)                 e.atd           = true
     if (!form.loa || parseFloat(form.loa) <= 0) e.loa = true
-    if (!form.days || parseInt(form.days) <= 0) e.days = true
+    if (!form.days || Math.ceil(Number(form.days)) <= 0) e.days = true
     if (!form.position)            e.position      = true
     setErrors(e)
     return Object.keys(e).length === 0
@@ -140,7 +140,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
   async function handleConfirm() {
     setSaving(true)
     setShowConfirm(false)
-    const days = parseInt(form.days)
+    const days = Math.ceil(Number(form.days))
     const payload = {
       voyage_number:      form.voyageNumber.trim(),
       bill_number:        form.voyageNumber.trim(),
@@ -249,7 +249,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
         const matched = POSITIONS.find(p => p.toLowerCase() === raw.toLowerCase())
         return matched ? { position: matched } : {}
       })()),
-      ...(fields.berthing?.[0]?.days     != null && { days:     String(fields.berthing[0].days) }),
+      ...(fields.berthing?.[0]?.days     != null && { days:     String(Math.ceil(Number(fields.berthing[0].days))) }),
     }))
 
     if (uncertain) setUncertainFields(uncertain)

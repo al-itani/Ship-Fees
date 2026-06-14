@@ -118,8 +118,9 @@ try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DE
 
 - LOA → L_index (1–4)
 - Tiered daily rates: D1 (days 1–3), D2 (days 4–10), D3 (days 11+)
-- Positions: **Quay** (D1/D2/D3 rates), **P2** (single flat rate), **En Rade** (single flat rate)
+- Positions: **Quay** (D1/D2/D3 rates), **P2** (single flat rate), **En Rade** (single flat rate), **Congestion** ($0 fee, saved as a record)
 - **Pos 3 / P3** = free anchorage, no fee — filtered out entirely at Automate import, never saved as a berthing record
+- **Congestion** = "En Rade Free" read by AI — saved as a berthing record with $0 fees
 - Vessel category discounts (Lebanese 50%, Military 0%, etc.)
 - Optional maintenance surcharge
 
@@ -196,10 +197,11 @@ finalPrice        = Math.ceil(freshAmount)   [any decimal → round up; whole nu
 
 ### POSITION_MAP (alias normalization)
 ```
-QUAY / POS1 / POS_1 / P1  →  Quay
-P2 / POS2 / POS_2          →  P2
-EN RADE / ENRADE / EN-RADE →  En Rade
-P3 / POS3 / POS_3          →  FREE (filtered out, not a paying position)
+QUAY / POS1 / POS_1 / P1                          →  Quay
+P2 / POS2 / POS_2                                  →  P2
+EN RADE / ENRADE / EN-RADE                         →  En Rade
+EN RADE FREE / ENRADE FREE / EN-RADE FREE / EN RADE LIBRE / CONGESTION / CONG  →  Congestion ($0 fee, saved)
+P3 / POS3 / POS_3                                  →  FREE (filtered out, not a paying position)
 ```
 
 ---

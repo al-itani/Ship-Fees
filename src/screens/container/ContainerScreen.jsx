@@ -28,6 +28,10 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
 
   const [voyageInfo, setVoyageInfo] = useState(null)
   const [codes, setCodes] = useState([])
+  const [voyageSuggestions, setVoyageSuggestions] = useState([])
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestIdx, setSuggestIdx] = useState(-1)
+  const suggestRef = useRef(null)
 
   const [line, setLine] = useState(EMPTY_LINE)
   const [lineError, setLineError] = useState('')
@@ -46,6 +50,24 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
     window.api.containerGetCodes().then(res => {
       if (res.success) setCodes(res.data)
     })
+  }, [])
+
+  // Load voyage suggestions once
+  useEffect(() => {
+    window.api.containerListVoyages().then(res => {
+      if (res.success) setVoyageSuggestions(res.data)
+    })
+  }, [])
+
+  // Close voyage dropdown on outside click
+  useEffect(() => {
+    function onOutside(e) {
+      if (suggestRef.current && !suggestRef.current.contains(e.target)) {
+        setSuggestOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onOutside)
+    return () => document.removeEventListener('mousedown', onOutside)
   }, [])
 
   // Auto-lookup when navigated from Berthing with a voyage number
@@ -123,9 +145,22 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   }
 
 
-  async function handleLookup() {
-    const vn = voyageInput.trim()
+  const filteredSuggestions = voyageSuggestions
+    .filter(v => !voyageInput.trim() || v.voyage_number.toLowerCase().includes(voyageInput.trim().toLowerCase()))
+    .slice(0, 8)
+
+  function selectSuggestion(suggestion) {
+    setVoyageInput(suggestion.voyage_number)
+    setVoyageError('')
+    setSuggestOpen(false)
+    setSuggestIdx(-1)
+    handleLookup(suggestion.voyage_number)
+  }
+
+  async function handleLookup(overrideVn) {
+    const vn = (overrideVn !== undefined ? overrideVn : voyageInput).trim()
     if (!vn) return
+    setSuggestOpen(false)
     setVoyageError('')
     setLooking(true)
     try {
@@ -273,16 +308,45 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
           </div>
           <label style={labelStyle}>{t('voyage_number')}</label>
           <div style={{ display: 'flex', gap: 10 }}>
-            <input
-              style={{ ...fieldStyle, flex: 1 }}
-              value={voyageInput}
-              onChange={e => { setVoyageInput(e.target.value); setVoyageError('') }}
-              onKeyDown={e => { if (e.key === 'Enter') handleLookup() }}
-              placeholder={t('voyage_number')}
-              autoFocus
-            />
+            <div ref={suggestRef} style={{ position: 'relative', flex: 1 }}>
+              <input
+                style={{ ...fieldStyle, width: '100%' }}
+                value={voyageInput}
+                onChange={e => { setVoyageInput(e.target.value); setVoyageError(''); setSuggestOpen(true); setSuggestIdx(-1) }}
+                onFocus={() => setSuggestOpen(true)}
+                onKeyDown={e => {
+                  if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestOpen(true); setSuggestIdx(i => Math.min(i + 1, filteredSuggestions.length - 1)) }
+                  else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestIdx(i => Math.max(i - 1, 0)) }
+                  else if (e.key === 'Escape') { setSuggestOpen(false) }
+                  else if (e.key === 'Enter') {
+                    if (suggestOpen && suggestIdx >= 0 && filteredSuggestions[suggestIdx]) selectSuggestion(filteredSuggestions[suggestIdx])
+                    else handleLookup()
+                  }
+                }}
+                placeholder={t('voyage_number')}
+                autoFocus
+              />
+              {suggestOpen && filteredSuggestions.length > 0 && (
+                <div className="searchable-select-dropdown" style={{ width: '100%' }}>
+                  {filteredSuggestions.map((v, i) => (
+                    <div
+                      key={v.voyage_number}
+                      className={`searchable-select-option${i === suggestIdx ? ' active' : ''}`}
+                      onMouseDown={() => selectSuggestion(v)}
+                    >
+                      <span style={{ fontWeight: 600 }}>{v.voyage_number}</span>
+                      {v.vessel_name && (
+                        <span style={{ color: 'var(--color-text-muted)', marginInlineStart: 10 }}>
+                          {v.vessel_name}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
-              onClick={handleLookup}
+              onClick={() => handleLookup()}
               disabled={looking || !voyageInput.trim()}
               style={{
                 padding: '0 24px', height: 44, borderRadius: 6, border: 'none',

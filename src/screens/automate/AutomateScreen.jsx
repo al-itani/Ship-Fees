@@ -1,34 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
-import { calcBerthingFee } from '../../logic/berthingCalc.js'
-import { compressToJpeg, pdfToImages } from '../../components/DocumentImport.jsx'
+import { compressToJpeg, pdfToImagesFromBase64 } from '../../components/DocumentImport.jsx'
 import SearchableSelect from '../../components/SearchableSelect.jsx'
+import BatchImport from './BatchImport.jsx'
 import { COUNTRIES } from '../../data/countries.js'
-
-const POSITIONS = ['Quay', 'P2', 'En Rade']
-
-const POSITION_MAP = {
-  'QUAY':     'Quay',
-  'POS_1':    'Quay',
-  'POS1':     'Quay',
-  'P1':       'Quay',
-  'P2':       'P2',
-  'POS_2':    'P2',
-  'POS2':     'P2',
-  'EN RADE':  'En Rade',
-  'ENRADE':   'En Rade',
-  'EN-RADE':  'En Rade',
-}
-
-// Pos 3 / P3 is a free anchorage — no berthing fee, excluded from billing entirely
-const FREE_POSITION_KEYS = new Set(['P3', 'POS3', 'POS_3'])
-
-function normalizePosition(raw) {
-  if (!raw) return ''
-  const key = String(raw).toUpperCase().trim()
-  return POSITION_MAP[key] ?? (POSITIONS.includes(raw) ? raw : '')
-}
+import {
+  POSITIONS, buildReviewState, computeBreakdowns,
+  validateReviewData, insertVoyage,
+} from './automateImport.js'
 const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
@@ -41,13 +21,6 @@ const EMPTY_FORM = {
   loa: '', vesselCategory: '', maintenance: 'No',
 }
 const EMPTY_ROW = { position: '', days: '' }
-
-function toDateInput(ddmmyyyy) {
-  if (!ddmmyyyy) return ''
-  const p = String(ddmmyyyy).split('/')
-  if (p.length !== 3) return ''
-  return `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}T00:00`
-}
 
 function fmt(n) {
   if (n === null || n === undefined) return '—'
@@ -85,8 +58,13 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const [queueProgress, setQueueProgress]   = useState(0)
   const [queueMsg, setQueueMsg]             = useState('')
   const [dupWarning, setDupWarning]         = useState(null)
-  const pageInputRef    = useRef(null)
   const queueIntervalRef = useRef(null)
+
+  // Batch import state — BatchImport stays mounted (hidden) while one of its
+  // groups is open in the review phase, so the queue state survives the handoff
+  const [batchActive, setBatchActive]               = useState(false)
+  const [batchReviewGroupId, setBatchReviewGroupId] = useState(null)
+  const batchRef = useRef(null)
 
   useEffect(() => {
     window.api.containerGetCodes().then(r => { if (r.success) setContainerCodes(r.data) })
@@ -109,23 +87,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   // Live fee calc — one breakdown per berthing row
   useEffect(() => {
     if (!ratesData) return
-    const loa = parseFloat(form.loa)
-    const newBreakdowns = berthingRows.map(row => {
-      const days = parseInt(row.days)
-      if (!loa || loa <= 0 || !days || days <= 0 || !row.position) return null
-      try {
-        return calcBerthingFee({
-          loa, days,
-          position:       row.position,
-          vesselCategory: form.vesselCategory || null,
-          maintenance:    form.maintenance,
-          rates:          ratesData.rates,
-          minimums:       ratesData.minimums,
-          categories:     ratesData.categories,
-        })
-      } catch { return null }
-    })
-    setBreakdowns(newBreakdowns)
+    setBreakdowns(computeBreakdowns(berthingRows, form, ratesData))
   }, [berthingRows, form.loa, form.vesselCategory, form.maintenance, ratesData])
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
@@ -154,170 +116,34 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     if (error) { showToast(error, 'error'); return }
     if (!fields) return
 
-    const vesselType  = fields.vessel_type || ''
-    const isContainer = vesselType.toLowerCase().includes('container')
-
-    setForm({
-      voyageNumber:   String(fields.voyage_number || ''),
-      vesselName:     String(fields.vessel_name || ''),
-      vesselType,
-      flag:           fields.flag ? String(fields.flag) : 'Lebanon',
-      shippingAgent:  String(fields.shipping_agent || ''),
-      ata:            toDateInput(fields.ata),
-      atd:            toDateInput(fields.atd),
-      loa:            fields.loa != null ? String(fields.loa) : '',
-      vesselCategory: '',
-      maintenance:    'No',
-    })
-
-    const rawRows = (fields.berthing || [])
-      .filter(b => !FREE_POSITION_KEYS.has(String(b.position || '').toUpperCase().trim()))
-      .map(b => ({
-        position: normalizePosition(b.position),
-        days:     b.days != null ? String(b.days) : '',
-      }))
-    setBerthingRows(rawRows.length > 0 ? rawRows : [{ ...EMPTY_ROW }])
-    setBreakdowns(rawRows.map(() => null))
-
-    const servicesAfterRSFilter = (fields.services || [])
-      .filter(s => s.code)
-      .filter(s => !String(s.code).toUpperCase().startsWith('RS'))
-
-    const importedLines = servicesAfterRSFilter.map(s => {
-      if (isContainer) {
-        const mc    = containerCodes.find(c => c.code.toLowerCase() === String(s.code).toLowerCase())
-        const qty   = Number(s.quantity) || 1
-        const ctype = s.container_size || null
-        const defaultRate = ctype === '40ft' && mc?.default_rate_40 != null
-          ? mc.default_rate_40
-          : (mc?.default_rate_20 ?? 0)
-        // Strip currency symbols/spaces before converting — Claude occasionally returns "$26.54"
-        const rawPrice = parseFloat(String(s.price_per_unit ?? '').replace(/[$,\s]/g, ''))
-        const price    = isFinite(rawPrice) ? rawPrice : defaultRate
-        return {
-          _type:          'container',
-          service_code:   mc?.code || String(s.code).toUpperCase(),
-          description:    mc?.description || '',
-          container_type: ctype || '20ft',
-          quantity:       qty,
-          price_per_unit: price,
-          line_total:     qty * price,
-          is_taxable:     mc?.is_taxable || 0,
-          _uncertain:     uncertain?.has('services') || !mc || !ctype,
-        }
-      } else {
-        const mc      = gcCodes.find(c => c.code.toLowerCase() === String(s.code).toLowerCase())
-        const qty     = Number(s.quantity) || 1
-        const rawRate = parseFloat(String(s.price_per_unit ?? '').replace(/[$,\s]/g, ''))
-        const rate    = isFinite(rawRate) ? rawRate : (mc?.rate ?? 0)
-        const min   = mc?.minimum || 0
-        const total = min > 0 ? Math.max(qty * rate, min) : qty * rate
-        return {
-          _type:           'gc',
-          service_code:    mc?.code || String(s.code).toUpperCase(),
-          description:     mc?.description || '',
-          unit:            mc?.unit || '',
-          quantity:        qty,
-          rate,
-          minimum:         min,
-          line_total:      total,
-          minimum_applied: min > 0 && qty * rate < min ? 1 : 0,
-          is_taxable:      mc?.is_taxable || 0,
-          _uncertain:      uncertain?.has('services') || !mc,
-        }
-      }
-    })
-
-    const finalUncertain = uncertain ? new Set(uncertain) : new Set()
-    if (!fields.flag) finalUncertain.delete('flag')
-
-    setServiceLines(importedLines)
-    if (uncertain) setUncertainFields(finalUncertain)
+    const built = buildReviewState(fields, uncertain, containerCodes, gcCodes)
+    setForm(built.form)
+    setBerthingRows(built.berthingRows)
+    setBreakdowns(built.berthingRows.map(() => null))
+    setServiceLines(built.serviceLines)
+    if (uncertain) setUncertainFields(built.uncertainFields)
     setErrors({})
     setPhase('review')
   }
 
   async function handleInsertAll() {
-    const e = {}
-    if (!form.voyageNumber.trim()) e.voyageNumber = true
-    if (!form.vesselName.trim())   e.vesselName   = true
-    if (!form.shippingAgent)       e.shippingAgent = true
-    if (!form.ata)                 e.ata           = true
-    if (!form.atd)                 e.atd           = true
-    if (!form.loa || parseFloat(form.loa) <= 0) e.loa = true
-
-    const validRows = berthingRows
-      .map((row, i) => ({ row, bd: breakdowns[i] }))
-      .filter(({ row, bd }) => row.position && bd)
-    if (validRows.length === 0) e.berthing = true
-
+    const { errors: e, validRows } = validateReviewData(form, berthingRows, breakdowns)
     setErrors(e)
     if (Object.keys(e).length > 0) return
 
     setSaving(true)
     try {
-      const voyageNumber = form.voyageNumber.trim()
-      const commonPayload = {
-        voyage_number:   voyageNumber,
-        bill_number:     voyageNumber,
-        vessel_name:     form.vesselName.trim(),
-        vessel_type:     form.vesselType || null,
-        flag:            form.flag || null,
-        shipping_agent:  form.shippingAgent,
-        ata:             form.ata,
-        atd:             form.atd,
-        loa:             parseFloat(form.loa),
-        vessel_category: form.vesselCategory || null,
-        maintenance:     form.maintenance,
+      const result = await insertVoyage({ form, validRows, serviceLines, manualLines, userId: session.id })
+
+      if (batchReviewGroupId) {
+        // Group came from Batch Import — mark it inserted and return to the batch summary
+        batchRef.current?.resolveGroup(batchReviewGroupId, result)
+        setBatchReviewGroupId(null)
+        setPhase('batch')
+      } else {
+        setDoneInfo(result)
+        setPhase('done')
       }
-
-      const allBerthing = await window.api.getBerthingRecords()
-      const existingRecords = allBerthing.success
-        ? allBerthing.data.filter(r => r.voyage_number === voyageNumber && !r.is_deleted)
-        : []
-
-      let totalFee = 0
-      for (let i = 0; i < validRows.length; i++) {
-        const { row, bd } = validRows[i]
-        const payload = {
-          ...commonPayload,
-          days:               parseInt(row.days),
-          position:           row.position,
-          l_index:            bd.lIndex,
-          d1_days:            bd.d1Days,
-          d2_days:            bd.d2Days,
-          d3_days:            bd.d3Days,
-          raw_fee:            bd.rawFee,
-          discount_factor:    bd.discountFactor,
-          fee_after_discount: bd.feeAfterDiscount,
-          min_fee:            bd.minFee,
-          late_fee:           0,
-          maintenance_fee:    bd.maintenanceFee,
-          final_fee:          bd.finalFee,
-        }
-        totalFee += bd.finalFee
-
-        const bRes = existingRecords[i]
-          ? await window.api.updateBerthing(existingRecords[i].id, { ...payload, updated_by: session.id })
-          : await window.api.saveBerthing({ ...payload, created_by: session.id })
-        if (!bRes.success) { showToast(bRes.error || 'Error saving berthing', 'error'); return }
-      }
-
-      const validManualLines = manualLines.filter(l => l.service_code)
-      const allServiceLines = [...serviceLines, ...validManualLines]
-      let servicesSaved = 0
-      if (allServiceLines.length > 0) {
-        const isContainer = allServiceLines[0]._type === 'container'
-        const svc = { voyageNumber, vesselName: form.vesselName.trim(), vesselType: form.vesselType || null, lines: allServiceLines, created_by: session.id, replaceUserLines: true }
-        const sRes = isContainer
-          ? await window.api.containerSaveSession(svc)
-          : await window.api.gcSaveSession(svc)
-        if (!sRes.success) { showToast(sRes.error || 'Error saving services', 'error'); return }
-        servicesSaved = allServiceLines.length
-      }
-
-      setDoneInfo({ voyageNumber, servicesSaved, berthingFee: totalFee })
-      setPhase('done')
     } catch (err) {
       showToast(err.message || 'Error', 'error')
     } finally {
@@ -325,52 +151,44 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     }
   }
 
-  async function handleAddPage(e) {
-    const files = Array.from(e.target.files || [])
-    if (pageInputRef.current) pageInputRef.current.value = ''
-    if (files.length === 0) return
-
-    const MAX_BYTES = 8 * 1024 * 1024
+  async function handleAddPage() {
     setQueueProcessing(true)
+    setQueueMsg(t('import_document_loading'))
+    try {
+      const result = await window.api.openDocuments()
+      if (!result.success || result.canceled) return
 
-    const newEntries = []
-    let dupFound = null
+      const MAX_BYTES = 8 * 1024 * 1024
+      const newEntries = []
+      let dupFound = null
 
-    for (const file of files) {
-      if (file.size > MAX_BYTES) { showToast(`${file.name}: ${t('import_error_file_size')}`, 'error'); continue }
+      for (const file of result.files) {
+        if (file.size > MAX_BYTES) { showToast(`${file.filename}: ${t('import_error_file_size')}`, 'error'); continue }
 
-      const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-      const isImg = /image\/(jpeg|png|jpg)/.test(file.type)
-      if (!isPDF && !isImg) { showToast(t('import_error_file_size'), 'error'); continue }
+        const isPDF = file.mimeType === 'application/pdf'
+        setQueueMsg(isPDF ? t('import_processing_pdf') : t('import_document_loading'))
 
-      setQueueMsg(isPDF ? t('import_processing_pdf') : t('import_document_loading'))
-
-      try {
-        let images
-        if (isPDF) {
-          images = await pdfToImages(file)
-        } else {
-          const srcBase64 = await new Promise((resolve, reject) => {
-            const reader = new FileReader()
-            reader.onload  = ev => resolve(ev.target.result.split(',')[1])
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
-          const srcType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
-          const data = await compressToJpeg(srcBase64, srcType)
-          images = [{ data, mediaType: 'image/jpeg' }]
+        try {
+          let images
+          if (isPDF) {
+            images = await pdfToImagesFromBase64(file.data)
+          } else {
+            const data = await compressToJpeg(file.data, file.mimeType)
+            images = [{ data, mediaType: 'image/jpeg' }]
+          }
+          newEntries.push({ filename: file.filename, images })
+          if (pageQueue.some(p => p.filename === file.filename)) dupFound = file.filename
+        } catch (err) {
+          showToast(err.message || 'Error processing file', 'error')
         }
-        newEntries.push({ filename: file.name, images })
-        if (pageQueue.some(p => p.filename === file.name)) dupFound = file.name
-      } catch (err) {
-        showToast(err.message || 'Error processing file', 'error')
       }
-    }
 
-    if (newEntries.length > 0) setPageQueue(prev => [...prev, ...newEntries])
-    if (dupFound) setDupWarning(dupFound)
-    setQueueProcessing(false)
-    setQueueMsg('')
+      if (newEntries.length > 0) setPageQueue(prev => [...prev, ...newEntries])
+      if (dupFound) setDupWarning(dupFound)
+    } finally {
+      setQueueProcessing(false)
+      setQueueMsg('')
+    }
   }
 
   async function handleProcessAll() {
@@ -433,6 +251,31 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setDoneInfo(null)
     setPageQueue([])
     setDupWarning(null)
+    setBatchReviewGroupId(null)
+  }
+
+  function exitBatch() {
+    setBatchActive(false)
+    handleStartOver()
+  }
+
+  // A batch group held in "Needs Review" opens in the regular review phase
+  function openBatchGroupReview(group) {
+    if (!group?.review) return
+    setBatchReviewGroupId(group.id)
+    setForm(group.review.form)
+    setBerthingRows(group.review.berthingRows)
+    setBreakdowns(group.review.berthingRows.map(() => null))
+    setServiceLines(group.review.serviceLines)
+    setManualLines([])
+    setUncertainFields(new Set(group.review.uncertainFields))
+    setErrors({})
+    setPhase('review')
+  }
+
+  function backToBatch() {
+    setBatchReviewGroupId(null)
+    setPhase('batch')
   }
 
   function showToast(msg, type) {
@@ -512,16 +355,6 @@ export default function AutomateScreen({ onGenerateReceipt }) {
       {phase === 'upload' && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 360 }}>
 
-          {/* Hidden file input */}
-          <input
-            ref={pageInputRef}
-            type="file"
-            accept=".jpg,.jpeg,.png,.pdf"
-            multiple
-            style={{ display: 'none' }}
-            onChange={handleAddPage}
-          />
-
           {/* Full-screen processing overlay (API call only) */}
           {queueProcessing && queueProgress > 0 && (
             <div style={{
@@ -567,7 +400,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
             <button
               type="button"
               disabled={queueProcessing}
-              onClick={() => pageInputRef.current?.click()}
+              onClick={handleAddPage}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '9px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600,
@@ -647,7 +480,42 @@ export default function AutomateScreen({ onGenerateReceipt }) {
             >
               {t('queue_process_all')}
             </button>
+
+            {/* Batch Import entry */}
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--color-border)', textAlign: 'center' }}>
+              <button
+                type="button"
+                disabled={queueProcessing}
+                onClick={() => { setBatchActive(true); setPhase('batch') }}
+                style={{
+                  width: '100%', padding: '11px 0', borderRadius: 6,
+                  border: '1px solid var(--color-primary)', background: 'white',
+                  color: 'var(--color-primary)', fontSize: 14, fontWeight: 700,
+                  cursor: queueProcessing ? 'not-allowed' : 'pointer',
+                  opacity: queueProcessing ? 0.6 : 1,
+                }}
+              >
+                🗂 {t('batch_import')}
+              </button>
+              <div style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 8, lineHeight: 1.6 }}>
+                {t('batch_import_hint')}
+              </div>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* ── BATCH IMPORT ── kept mounted while a group is open in review, so queue state survives */}
+      {batchActive && (
+        <div style={{ display: phase === 'batch' ? 'block' : 'none' }}>
+          <BatchImport
+            ref={batchRef}
+            containerCodes={containerCodes}
+            gcCodes={gcCodes}
+            onExit={exitBatch}
+            onReviewGroup={openBatchGroupReview}
+            onViewReceipt={onGenerateReceipt}
+          />
         </div>
       )}
 
@@ -892,25 +760,33 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                 ))}
                 {manualLines.map((l, i) => {
                   const inpStyle = { height: 30, padding: '0 6px', border: '1px solid #BFDBFE', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white' }
-                  const codeOptions = (isContainerSession ? containerCodes : gcCodes)
-                    .filter(c => c.is_active && !c.is_fixed)
-                    .map(c => c.code)
+                  const codeList = (isContainerSession ? containerCodes : gcCodes).map(c => c.code)
+                  const listId = `code-list-${i}`
+                  function applyCode(code) {
+                    const upper = code.toUpperCase().trim()
+                    const mc = (isContainerSession ? containerCodes : gcCodes).find(c => c.code.toUpperCase() === upper)
+                    if (isContainerSession) {
+                      const rate = l.container_type === '40ft' && mc?.default_rate_40 != null ? mc.default_rate_40 : (mc?.default_rate_20 ?? (mc ? 0 : l.price_per_unit))
+                      updateManualLine(i, { service_code: mc?.code || code.trim(), description: mc?.description || '', is_taxable: mc?.is_taxable || 0, price_per_unit: rate })
+                    } else {
+                      const rate = mc?.rate ?? l.rate; const min = mc?.minimum ?? 0
+                      updateManualLine(i, { service_code: mc?.code || code.trim(), description: mc?.description || '', unit: mc?.unit || '', is_taxable: mc?.is_taxable || 0, rate, minimum: min })
+                    }
+                  }
                   return (
                     <tr key={`m${i}`} style={{ borderBottom: '1px solid #DBEAFE', background: '#EFF6FF' }}>
                       <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5, minWidth: 180 }}>
-                        <SearchableSelect
-                          options={codeOptions}
+                        <datalist id={listId}>
+                          {codeList.map(c => <option key={c} value={c} />)}
+                        </datalist>
+                        <input
+                          type="text"
+                          list={listId}
                           value={l.service_code}
-                          onChange={code => {
-                            const mc = (isContainerSession ? containerCodes : gcCodes).find(c => c.code === code)
-                            if (isContainerSession) {
-                              const rate = l.container_type === '40ft' && mc?.default_rate_40 != null ? mc.default_rate_40 : (mc?.default_rate_20 ?? 0)
-                              updateManualLine(i, { service_code: code, description: mc?.description || '', is_taxable: mc?.is_taxable || 0, price_per_unit: rate })
-                            } else {
-                              const rate = mc?.rate ?? 0; const min = mc?.minimum ?? 0
-                              updateManualLine(i, { service_code: code, description: mc?.description || '', unit: mc?.unit || '', is_taxable: mc?.is_taxable || 0, rate, minimum: min })
-                            }
-                          }}
+                          placeholder="Code"
+                          onChange={e => updateManualLine(i, { service_code: e.target.value })}
+                          onBlur={e => applyCode(e.target.value)}
+                          style={{ ...inpStyle, width: '100%', textTransform: 'uppercase' }}
                         />
                       </td>
                       {isContainerSession && (
@@ -937,6 +813,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                       <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
                         <input type="number" step="0.01" value={isContainerSession ? l.price_per_unit : l.rate}
                           onChange={e => updateManualLine(i, { [isContainerSession ? 'price_per_unit' : 'rate']: Number(e.target.value) })}
+                          onFocus={e => e.target.select()}
                           style={{ ...inpStyle, width: 90, textAlign: 'end' }} />
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'end', fontWeight: 600 }}>
@@ -976,10 +853,10 @@ export default function AutomateScreen({ onGenerateReceipt }) {
               {saving ? '...' : t('automate_insert_all')}
             </button>
             <button
-              onClick={handleStartOver}
+              onClick={batchReviewGroupId ? backToBatch : handleStartOver}
               style={{ padding: '12px 24px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', fontSize: 14, cursor: 'pointer' }}
             >
-              {t('automate_start_over')}
+              {batchReviewGroupId ? t('batch_back_to_batch') : t('automate_start_over')}
             </button>
           </div>
         </>

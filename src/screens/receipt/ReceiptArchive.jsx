@@ -11,10 +11,11 @@ function fmtDate(s) {
   return s.slice(0, 16).replace('T', ' ')
 }
 
-const thStyle = {
-  padding: '9px 14px', textAlign: 'start', fontWeight: 600,
+const thBase = {
+  padding: '9px 14px', fontWeight: 600,
   fontSize: 12, color: 'var(--color-text-muted)',
   textTransform: 'uppercase', letterSpacing: '0.03em',
+  userSelect: 'none',
 }
 const tdStyle = { padding: '10px 14px', fontSize: 13, verticalAlign: 'middle' }
 
@@ -28,6 +29,8 @@ export default function ReceiptArchive({ onViewReceipt }) {
   const [monthFilter, setMonthFilter] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast]           = useState(null)
+  const [sortCol, setSortCol]       = useState('generated_at')
+  const [sortDir, setSortDir]       = useState('desc')
 
   function showToast(msg, type) {
     setToast({ msg, type })
@@ -85,6 +88,27 @@ export default function ReceiptArchive({ onViewReceipt }) {
       (r.vessel_name   || '').toLowerCase().includes(q) ||
       (r.shipping_agent|| '').toLowerCase().includes(q)
     )
+  })
+
+  function toggleSort(col) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
+  }
+
+  const sorted = [...filtered].sort((a, b) => {
+    let av = a[sortCol]
+    let bv = b[sortCol]
+    if (av == null && bv == null) return 0
+    if (av == null) return 1
+    if (bv == null) return -1
+    const cmp = sortCol === 'final_price'
+      ? av - bv
+      : String(av).localeCompare(String(bv))
+    return sortDir === 'asc' ? cmp : -cmp
   })
 
   return (
@@ -162,18 +186,33 @@ export default function ReceiptArchive({ onViewReceipt }) {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F8FAFF' }}>
-                <th style={thStyle}>{t('bill_number')}</th>
-                <th style={thStyle}>{t('vessel_name')}</th>
-                <th style={thStyle}>{t('shipping_agent')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('ata_short')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('atd_short')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('final_price')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('generated_at')}</th>
-                <th style={{ ...thStyle, width: 80 }}></th>
+                {[
+                  { col: 'bill_number',    label: t('bill_number'),    align: 'start' },
+                  { col: 'vessel_name',    label: t('vessel_name'),    align: 'start' },
+                  { col: 'shipping_agent', label: t('shipping_agent'), align: 'start' },
+                  { col: 'ata',            label: t('ata_short'),      align: 'end'   },
+                  { col: 'atd',            label: t('atd_short'),      align: 'end'   },
+                  { col: 'final_price',    label: t('final_price'),    align: 'end'   },
+                  { col: 'generated_at',   label: t('generated_at'),   align: 'end'   },
+                ].map(({ col, label, align }) => (
+                  <th
+                    key={col}
+                    onClick={() => toggleSort(col)}
+                    style={{ ...thBase, textAlign: align, cursor: 'pointer' }}
+                  >
+                    {label}
+                    {sortCol === col && (
+                      <span style={{ marginInlineStart: 4, fontSize: 11 }}>
+                        {sortDir === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </th>
+                ))}
+                <th style={{ ...thBase, width: 80 }}></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
+              {sorted.map(r => (
                 <tr
                   key={r.id}
                   style={{ borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }}
