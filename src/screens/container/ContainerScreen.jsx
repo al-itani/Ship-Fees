@@ -22,16 +22,16 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   const { session } = useSession()
 
   const [phase, setPhase] = useState('lookup')
-  const [voyageInput, setVoyageInput] = useState('')
   const [voyageError, setVoyageError] = useState('')
   const [looking, setLooking] = useState(false)
+  const [openingVoyage, setOpeningVoyage] = useState(null)
 
   const [voyageInfo, setVoyageInfo] = useState(null)
   const [codes, setCodes] = useState([])
   const [voyageSuggestions, setVoyageSuggestions] = useState([])
-  const [suggestOpen, setSuggestOpen] = useState(false)
-  const [suggestIdx, setSuggestIdx] = useState(-1)
-  const suggestRef = useRef(null)
+  const [listSearch, setListSearch] = useState('')
+  const [sortCol, setSortCol] = useState(null)
+  const [sortDir, setSortDir] = useState('asc')
 
   const [line, setLine] = useState(EMPTY_LINE)
   const [lineError, setLineError] = useState('')
@@ -44,6 +44,7 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   const [toast, setToast] = useState(null)
 
   const codeInputRef = useRef(null)
+  const listSearchRef = useRef(null)
 
   // Load codes once
   useEffect(() => {
@@ -59,26 +60,16 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
     })
   }, [])
 
-  // Close voyage dropdown on outside click
-  useEffect(() => {
-    function onOutside(e) {
-      if (suggestRef.current && !suggestRef.current.contains(e.target)) {
-        setSuggestOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onOutside)
-    return () => document.removeEventListener('mousedown', onOutside)
-  }, [])
-
   // Auto-lookup when navigated from Berthing with a voyage number
   useEffect(() => {
     if (!initialVoyage) return
     onVoyageConsumed?.()
-    setVoyageInput(initialVoyage)
     setVoyageError('')
     setLooking(true)
+    setOpeningVoyage(initialVoyage)
     window.api.containerLookupVoyage(initialVoyage).then(res => {
       setLooking(false)
+      setOpeningVoyage(null)
       if (!res.success) {
         const msg = res.error === 'voyage_not_found' ? t('voyage_not_found')
           : res.error === 'voyage_is_gc' ? t('voyage_is_gc')
@@ -145,24 +136,37 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   }
 
 
-  const filteredSuggestions = voyageSuggestions
-    .filter(v => !voyageInput.trim() || v.voyage_number.toLowerCase().includes(voyageInput.trim().toLowerCase()))
-    .slice(0, 8)
-
-  function selectSuggestion(suggestion) {
-    setVoyageInput(suggestion.voyage_number)
-    setVoyageError('')
-    setSuggestOpen(false)
-    setSuggestIdx(-1)
-    handleLookup(suggestion.voyage_number)
+  function handleSortCol(col) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
+    }
   }
 
-  async function handleLookup(overrideVn) {
-    const vn = (overrideVn !== undefined ? overrideVn : voyageInput).trim()
+  const searchLower = listSearch.trim().toLowerCase()
+  const filteredVoyages = voyageSuggestions.filter(v => {
+    if (!searchLower) return true
+    return (
+      v.voyage_number?.toLowerCase().includes(searchLower) ||
+      v.vessel_name?.toLowerCase().includes(searchLower) ||
+      v.shipping_agent?.toLowerCase().includes(searchLower)
+    )
+  })
+  const sortedVoyages = sortCol
+    ? [...filteredVoyages].sort((a, b) => {
+        const av = (a[sortCol] || '').toLowerCase()
+        const bv = (b[sortCol] || '').toLowerCase()
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
+      })
+    : filteredVoyages
+
+  async function handleLookup(vn) {
     if (!vn) return
-    setSuggestOpen(false)
     setVoyageError('')
     setLooking(true)
+    setOpeningVoyage(vn)
     try {
       const res = await window.api.containerLookupVoyage(vn)
       if (!res.success) {
@@ -180,6 +184,7 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
       }
     } finally {
       setLooking(false)
+      setOpeningVoyage(null)
     }
   }
 
@@ -255,6 +260,12 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
     setPendingLines([])
     setLine(EMPTY_LINE)
     setLineError('')
+    setVoyageError('')
+    // Re-fetch list in case new voyages were added
+    window.api.containerListVoyages().then(res => {
+      if (res.success) setVoyageSuggestions(res.data)
+    })
+    setTimeout(() => listSearchRef.current?.focus(), 50)
   }
 
   function showToast(msg, type) {
@@ -299,72 +310,92 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
 
       {/* ── LOOKUP ── */}
       {phase === 'lookup' && (
-        <div style={{
-          background: 'white', borderRadius: 8, padding: 28,
-          border: '1px solid var(--color-border)', maxWidth: 480,
-        }}>
-          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-text)', marginBottom: 20 }}>
-            {t('open_voyage')}
+        <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)' }}>
+          {/* Search bar */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #F0F0F0', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input
+              ref={listSearchRef}
+              style={{ ...fieldStyle, flex: 1, maxWidth: 360 }}
+              value={listSearch}
+              onChange={e => setListSearch(e.target.value)}
+              placeholder={t('search')}
+              autoFocus
+            />
+            {voyageError && (
+              <div style={{
+                flex: 1, padding: '8px 14px', borderRadius: 6,
+                background: '#FEF2F2', color: 'var(--color-danger)', fontSize: 13,
+              }}>
+                {voyageError}
+              </div>
+            )}
           </div>
-          <label style={labelStyle}>{t('voyage_number')}</label>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div ref={suggestRef} style={{ position: 'relative', flex: 1 }}>
-              <input
-                style={{ ...fieldStyle, width: '100%' }}
-                value={voyageInput}
-                onChange={e => { setVoyageInput(e.target.value); setVoyageError(''); setSuggestOpen(true); setSuggestIdx(-1) }}
-                onFocus={() => setSuggestOpen(true)}
-                onKeyDown={e => {
-                  if (e.key === 'ArrowDown') { e.preventDefault(); setSuggestOpen(true); setSuggestIdx(i => Math.min(i + 1, filteredSuggestions.length - 1)) }
-                  else if (e.key === 'ArrowUp') { e.preventDefault(); setSuggestIdx(i => Math.max(i - 1, 0)) }
-                  else if (e.key === 'Escape') { setSuggestOpen(false) }
-                  else if (e.key === 'Enter') {
-                    if (suggestOpen && suggestIdx >= 0 && filteredSuggestions[suggestIdx]) selectSuggestion(filteredSuggestions[suggestIdx])
-                    else handleLookup()
-                  }
-                }}
-                placeholder={t('voyage_number')}
-                autoFocus
-              />
-              {suggestOpen && filteredSuggestions.length > 0 && (
-                <div className="searchable-select-dropdown" style={{ width: '100%' }}>
-                  {filteredSuggestions.map((v, i) => (
-                    <div
-                      key={v.voyage_number}
-                      className={`searchable-select-option${i === suggestIdx ? ' active' : ''}`}
-                      onMouseDown={() => selectSuggestion(v)}
+
+          {/* Table */}
+          {sortedVoyages.length === 0 ? (
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
+              {listSearch.trim() ? t('no_results') : t('no_container_voyages')}
+            </div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#F8FAFF' }}>
+                  {[
+                    { key: 'voyage_number', label: t('voyage_number') },
+                    { key: 'vessel_name',   label: t('vessel_name') },
+                    { key: 'shipping_agent', label: t('shipping_agent') },
+                    { key: 'ata',           label: t('ata_short') },
+                  ].map(col => (
+                    <th
+                      key={col.key}
+                      onClick={() => handleSortCol(col.key)}
+                      style={{
+                        ...thStyle, cursor: 'pointer', userSelect: 'none',
+                        whiteSpace: 'nowrap',
+                      }}
                     >
-                      <span style={{ fontWeight: 600 }}>{v.voyage_number}</span>
-                      {v.vessel_name && (
-                        <span style={{ color: 'var(--color-text-muted)', marginInlineStart: 10 }}>
-                          {v.vessel_name}
-                        </span>
-                      )}
-                    </div>
+                      {col.label}
+                      {sortCol === col.key
+                        ? (sortDir === 'asc' ? ' ▲' : ' ▼')
+                        : <span style={{ opacity: 0.3 }}> ⇅</span>}
+                    </th>
                   ))}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={() => handleLookup()}
-              disabled={looking || !voyageInput.trim()}
-              style={{
-                padding: '0 24px', height: 44, borderRadius: 6, border: 'none',
-                background: voyageInput.trim() ? 'var(--color-primary)' : '#B0BEC5',
-                color: 'white', fontWeight: 600, fontSize: 14,
-                cursor: voyageInput.trim() ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {looking ? '...' : t('lookup')}
-            </button>
-          </div>
-          {voyageError && (
-            <div style={{
-              marginTop: 12, padding: '10px 14px', borderRadius: 6,
-              background: '#FEF2F2', color: 'var(--color-danger)', fontSize: 13,
-            }}>
-              {voyageError}
-            </div>
+                  <th style={{ ...thStyle, width: 80 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedVoyages.map(v => (
+                  <tr
+                    key={v.voyage_number}
+                    style={{ borderBottom: '1px solid #F5F5F5' }}
+                    onDoubleClick={() => !looking && handleLookup(v.voyage_number)}
+                  >
+                    <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--color-primary)' }}>
+                      {v.voyage_number}
+                    </td>
+                    <td style={tdStyle}>{v.vessel_name || '—'}</td>
+                    <td style={tdStyle}>{v.shipping_agent || '—'}</td>
+                    <td style={{ ...tdStyle, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                      {v.ata ? v.ata.slice(0, 10) : '—'}
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: 'end' }}>
+                      <button
+                        onClick={() => handleLookup(v.voyage_number)}
+                        disabled={looking}
+                        style={{
+                          padding: '6px 16px', borderRadius: 6, border: 'none',
+                          background: openingVoyage === v.voyage_number ? '#B0BEC5' : 'var(--color-primary)',
+                          color: 'white', fontWeight: 600, fontSize: 13,
+                          cursor: looking ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {openingVoyage === v.voyage_number ? '...' : t('open')}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
       )}

@@ -170,7 +170,11 @@ function deleteLine(id, userId) {
 function listVoyages() {
   try {
     const rows = db.prepare(`
-      SELECT voyage_number, vessel_name
+      SELECT
+        voyage_number,
+        MAX(vessel_name)     AS vessel_name,
+        MAX(shipping_agent)  AS shipping_agent,
+        MIN(ata)             AS ata
       FROM berthing_records
       WHERE is_deleted = 0
       GROUP BY voyage_number

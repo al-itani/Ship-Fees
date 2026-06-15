@@ -5,10 +5,17 @@ import { compressToJpeg, pdfToImagesFromBase64 } from '../../components/Document
 import SearchableSelect from '../../components/SearchableSelect.jsx'
 import BatchImport from './BatchImport.jsx'
 import { COUNTRIES } from '../../data/countries.js'
+import ReceiptPreview from '../receipt/ReceiptPreview.jsx'
 import {
   POSITIONS, buildReviewState, computeBreakdowns,
-  validateReviewData, insertVoyage,
+  validateReviewData, insertVoyage, autoSaveReceipt,
 } from './automateImport.js'
+
+function buildPdfPath(voyageNumber, vesselName) {
+  const sanitize = s => String(s || '').replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').slice(0, 40)
+  const today = new Date().toISOString().split('T')[0]
+  return `C:\\ShipFees\\receipts\\${sanitize(voyageNumber)}_${sanitize(vesselName)}_${today}.pdf`
+}
 const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
@@ -50,6 +57,9 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const [saving, setSaving]             = useState(false)
   const [toast, setToast]               = useState(null)
   const [doneInfo, setDoneInfo]         = useState(null)
+  const [donePdf, setDonePdf]           = useState(null) // { path, error, skipped }
+  const [pdfExportItem, setPdfExportItem] = useState(null)
+  const pdfResolveRef = useRef(null)
   const [manualLines, setManualLines]   = useState([])
 
   // Page queue state (upload phase)
@@ -143,6 +153,19 @@ export default function AutomateScreen({ onGenerateReceipt }) {
       } else {
         setDoneInfo(result)
         setPhase('done')
+        // Auto-generate receipt + PDF
+        const receiptResult = await autoSaveReceipt(result.voyageNumber, session.username)
+        if (!receiptResult.success) {
+          setDonePdf({ skipped: receiptResult.skip || false, error: receiptResult.error || null })
+        } else {
+          const filePath = buildPdfPath(result.voyageNumber, receiptResult.rawData.header.vessel_name)
+          const pdfResult = await new Promise(resolve => {
+            pdfResolveRef.current = resolve
+            setPdfExportItem({ voyageNumber: result.voyageNumber, filePath })
+          })
+          setPdfExportItem(null)
+          setDonePdf({ path: pdfResult.error ? null : (pdfResult.path || null), error: pdfResult.error || null })
+        }
       }
     } catch (err) {
       showToast(err.message || 'Error', 'error')
@@ -249,6 +272,8 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setUncertainFields(new Set())
     setErrors({})
     setDoneInfo(null)
+    setDonePdf(null)
+    setPdfExportItem(null)
     setPageQueue([])
     setDupWarning(null)
     setBatchReviewGroupId(null)
@@ -875,14 +900,27 @@ export default function AutomateScreen({ onGenerateReceipt }) {
               <div style={{ fontWeight: 600, color: 'var(--color-primary)', fontSize: 15 }}>{doneInfo.voyageNumber}</div>
               <div>{t('automate_berthing_saved')} — <span className="num-ltr">{fmt(doneInfo.berthingFee)}</span></div>
               {doneInfo.servicesSaved > 0 && <div>{doneInfo.servicesSaved} {t('automate_services_saved')}</div>}
+              {/* PDF status */}
+              {!donePdf && (
+                <div style={{ marginTop: 8, color: 'var(--color-text-muted)' }}>🔄 {t('loading')}…</div>
+              )}
+              {donePdf?.path && (
+                <div style={{ marginTop: 8, color: '#27ae60', fontSize: 12 }}>📄 {t('batch_pdf_saved')} — {donePdf.path}</div>
+              )}
+              {donePdf?.error && !donePdf?.skipped && (
+                <div style={{ marginTop: 8, color: 'var(--color-danger)', fontSize: 12 }}>{t('batch_pdf_failed')}</div>
+              )}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-              <button
-                onClick={() => onGenerateReceipt(doneInfo.voyageNumber)}
-                style={{ width: '100%', padding: '13px 0', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
-              >
-                🧾 {t('generate_receipt')}
-              </button>
+              {/* Show manual receipt button only if PDF was skipped or failed */}
+              {donePdf && (!donePdf.path) && (
+                <button
+                  onClick={() => onGenerateReceipt(doneInfo.voyageNumber)}
+                  style={{ width: '100%', padding: '13px 0', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  🧾 {t('generate_receipt')}
+                </button>
+              )}
               <button
                 onClick={handleStartOver}
                 style={{ width: '100%', padding: '10px 0', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', color: 'var(--color-text-muted)', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
@@ -892,6 +930,22 @@ export default function AutomateScreen({ onGenerateReceipt }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Silent PDF export overlay for single automate flow */}
+      {pdfExportItem && (
+        <ReceiptPreview
+          voyageNumber={pdfExportItem.voyageNumber}
+          readOnly={true}
+          autoExportPath={pdfExportItem.filePath}
+          onAutoExportDone={(error, path) => {
+            if (pdfResolveRef.current) {
+              pdfResolveRef.current({ error, path })
+              pdfResolveRef.current = null
+            }
+          }}
+          onClose={() => {}}
+        />
       )}
     </div>
   )
