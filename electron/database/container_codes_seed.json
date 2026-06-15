@@ -378,6 +378,15 @@
     "is_active": 1
   },
   {
+    "code": "ELCT2",
+    "description": "ELCT2",
+    "default_rate_20": 50.0,
+    "default_rate_40": 60.0,
+    "is_taxable": 0,
+    "is_fixed": 0,
+    "is_active": 1
+  },
+  {
     "code": "A-MSC",
     "description": "A-MSC",
     "default_rate_20": 36.0,

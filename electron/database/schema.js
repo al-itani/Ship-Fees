@@ -195,11 +195,12 @@ module.exports = function initSchema(db) {
       ON CONFLICT(code) DO NOTHING
     `)
     for (const [code, r20, r40] of [
-      ['C6',  14.54, 19.39],
-      ['FRP', 19.91, 27.33],
-      ['FRV', 10.20, 13.76],
-      ['FCP', 27.87, 38.26],
-      ['FCV', 14.27, 19.26],
+      ['C6',    14.54, 19.39],
+      ['FRP',   19.91, 27.33],
+      ['FRV',   10.20, 13.76],
+      ['FCP',   27.87, 38.26],
+      ['FCV',   14.27, 19.26],
+      ['ELCT2', 50.00, 60.00],
     ]) ensureCode.run(code, code, r20, r40)
   } catch {}
 
