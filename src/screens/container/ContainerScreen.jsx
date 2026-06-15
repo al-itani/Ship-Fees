@@ -8,6 +8,14 @@ function fmt(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function fmtDateProcessed(s) {
+  if (!s) return '—'
+  const [datePart = '', timePart = ''] = s.split(' ')
+  const [y, m, d] = datePart.split('-')
+  if (!y || !m || !d) return s
+  return `${d}-${m}-${y} ${timePart.slice(0, 5)}`
+}
+
 const EMPTY_LINE = { codeObj: null, type: '', qty: '', price: '' }
 
 const thStyle = {
@@ -341,10 +349,10 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
               <thead>
                 <tr style={{ background: '#F8FAFF' }}>
                   {[
-                    { key: 'voyage_number', label: t('voyage_number') },
-                    { key: 'vessel_name',   label: t('vessel_name') },
+                    { key: 'voyage_number',  label: t('voyage_number') },
+                    { key: 'vessel_name',    label: t('vessel_name') },
                     { key: 'shipping_agent', label: t('shipping_agent') },
-                    { key: 'ata',           label: t('ata_short') },
+                    { key: 'date_processed', label: t('date_processed') },
                   ].map(col => (
                     <th
                       key={col.key}
@@ -376,7 +384,7 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
                     <td style={tdStyle}>{v.vessel_name || '—'}</td>
                     <td style={tdStyle}>{v.shipping_agent || '—'}</td>
                     <td style={{ ...tdStyle, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
-                      {v.ata ? v.ata.slice(0, 10) : '—'}
+                      {fmtDateProcessed(v.date_processed)}
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'end' }}>
                       <button

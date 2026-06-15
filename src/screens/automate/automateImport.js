@@ -2,7 +2,7 @@
 // extraction-result mapping, fee breakdowns, validation, and insertion.
 // All DB access still goes through window.api (IPC) — audit logging happens in the handlers.
 
-import { calcBerthingFee } from '../../logic/berthingCalc.js'
+import { calcBerthingFee, getLIndex } from '../../logic/berthingCalc.js'
 import { calculateReceipt } from '../../logic/receiptCalc.js'
 
 export const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
@@ -142,7 +142,9 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
 export function computeBreakdowns(berthingRows, form, ratesData) {
   if (!ratesData) return berthingRows.map(() => null)
   const loa = parseFloat(form.loa)
-  return berthingRows.map(row => {
+
+  // Step 1: compute per-row fees (calcBerthingFee applies per-row minimum internally)
+  const rawBreakdowns = berthingRows.map(row => {
     const days = parseInt(row.days)
     if (!loa || loa <= 0 || !days || days <= 0 || !row.position) return null
     try {
@@ -156,6 +158,33 @@ export function computeBreakdowns(berthingRows, form, ratesData) {
         categories:     ratesData.categories,
       })
     } catch { return null }
+  })
+
+  // Step 2: apply Quay minimum to the combined total (not per-row)
+  const validIndices = rawBreakdowns.reduce((acc, bd, i) => { if (bd) acc.push(i); return acc }, [])
+  if (validIndices.length === 0) return rawBreakdowns
+
+  // Sum fees WITHOUT per-row minimum (feeAfterDiscount + maintenanceFee per row)
+  const r2 = v => Math.round(v * 100) / 100
+  const rawSum = validIndices.reduce((s, i) => s + rawBreakdowns[i].feeAfterDiscount + rawBreakdowns[i].maintenanceFee, 0)
+  const quayMin = ratesData.minimums['Quay'][getLIndex(loa)]
+  const correctedTotal = Math.max(rawSum, quayMin)
+
+  if (correctedTotal === rawSum) {
+    // No bump needed — strip the per-row minimum that calcBerthingFee applied
+    return rawBreakdowns.map(bd => {
+      if (!bd) return null
+      const correctedFinalFee = r2(bd.feeAfterDiscount + bd.maintenanceFee)
+      return { ...bd, appliedFee: bd.feeAfterDiscount, finalFee: correctedFinalFee }
+    })
+  }
+
+  // Bump needed — distribute proportionally across valid rows
+  const scaleFactor = correctedTotal / rawSum
+  return rawBreakdowns.map(bd => {
+    if (!bd) return null
+    const correctedFinalFee = r2((bd.feeAfterDiscount + bd.maintenanceFee) * scaleFactor)
+    return { ...bd, appliedFee: bd.feeAfterDiscount, finalFee: correctedFinalFee }
   })
 }
 

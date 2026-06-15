@@ -77,6 +77,7 @@
   "storage_description": "Cargo storage fees",
 
   "open_voyage": "Open Voyage",
+  "date_processed": "Date Processed",
   "open": "Open",
   "no_container_voyages": "No berthing records found. Create a Berthing record first.",
   "lookup": "Look Up",

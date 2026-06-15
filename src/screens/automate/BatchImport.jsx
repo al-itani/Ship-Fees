@@ -213,8 +213,9 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
         const breakdowns = computeBreakdowns(built.berthingRows, built.form, ratesData)
         const { errors, validRows } = validateReviewData(built.form, built.berthingRows, breakdowns)
 
+        const FORM_UNCERTAIN_KEYS = new Set(['voyage_number','vessel_name','vessel_type','flag','shipping_agent','ata','atd','loa'])
         const needsReview =
-          built.uncertainFields.size > 0 ||
+          [...built.uncertainFields].some(f => FORM_UNCERTAIN_KEYS.has(f)) ||
           built.serviceLines.some(l => l._uncertain) ||
           Object.keys(errors).length > 0
 

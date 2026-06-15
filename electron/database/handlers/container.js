@@ -162,14 +162,16 @@ function listVoyages() {
   try {
     const rows = db.prepare(`
       SELECT
-        voyage_number,
-        MAX(vessel_name)     AS vessel_name,
-        MAX(shipping_agent)  AS shipping_agent,
-        MIN(ata)             AS ata
-      FROM berthing_records
-      WHERE is_deleted = 0
-      GROUP BY voyage_number
-      ORDER BY MAX(rowid) DESC
+        br.voyage_number,
+        MAX(br.vessel_name)    AS vessel_name,
+        MAX(br.shipping_agent) AS shipping_agent,
+        MIN(cs.created_at)     AS date_processed
+      FROM berthing_records br
+      LEFT JOIN container_services cs
+        ON cs.voyage_number = br.voyage_number AND cs.is_deleted = 0
+      WHERE br.is_deleted = 0
+      GROUP BY br.voyage_number
+      ORDER BY MAX(br.rowid) DESC
     `).all()
     return { success: true, data: rows }
   } catch (err) {
