@@ -142,7 +142,7 @@ Entry point: `calculateReceipt({ berthingRows, serviceRows, moduleType })`
 | STAMP treatment | Taxable (in taxableSubtotal) | Fixed (in fixedTotal) |
 | fixedTotal | AUTOM + BILLF | AUTOM + BILLF + all STAMP lines |
 | Container Tax | — | $0.22 added to freshAmount |
-| STAMP auto lines | 1 line: qty=1, $2.00 | 2 lines: qty=1 $2.00 + qty=3 $6.00 = $8.00 total |
+| STAMP auto lines | 1 line: qty=1, $2.00 | 1 line: qty=4, $8.00 |
 
 ### Formulas
 ```
@@ -167,13 +167,12 @@ finalPrice        = Math.ceil(freshAmount)   [any decimal → round up; whole nu
 | BILLF | 1 | $1.00 | $1.00 | 1 | 0 |
 | STAMP | 1 | $2.00 | $2.00 | 0 | 1 |
 
-### Container (two separate guards)
+### Container (single guard)
 | Code | Qty | Rate | Total | Guard |
 |---|---|---|---|---|
 | AUTOM | 1 | $1.00 | $1.00 | `hasAutoLines` |
 | BILLF | 1 | $1.00 | $1.00 | `hasAutoLines` |
-| STAMP | 1 | $2.00 | $2.00 | `hasAutoLines` |
-| STAMP | 3 | $2.00 | $6.00 | `hasExtraStamp` (separate — backfills existing voyages) |
+| STAMP | 4 | $2.00 | $8.00 | `hasAutoLines` |
 
 ---
 

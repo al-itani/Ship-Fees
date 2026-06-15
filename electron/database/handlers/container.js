@@ -96,26 +96,17 @@ function saveSession(data) {
         writeAudit('container_services', r.lastInsertRowid, 'INSERT', null, l, created_by)
       }
 
-      // AUTOM, BILLF, STAMP(x1) — insert once per voyage only
+      // AUTOM, BILLF, STAMP(x4) — insert once per voyage only
       const hasAutoLines = db.prepare(
         `SELECT COUNT(*) as c FROM container_services WHERE voyage_number = ? AND (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0`
       ).get(voyageNumber).c > 0
       if (!hasAutoLines) {
         const autom = insertLine.run(voyageNumber, 'AUTOM', 'Automation fee',   '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
         const billf = insertLine.run(voyageNumber, 'BILLF', 'Billing fee',      '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
-        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 1, 2.00, 2.00, 0, 0, 1, created_by)
+        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 4, 2.00, 8.00, 0, 0, 1, created_by)
         writeAudit('container_services', autom.lastInsertRowid, 'INSERT', null, { code: 'AUTOM' }, created_by)
         writeAudit('container_services', billf.lastInsertRowid, 'INSERT', null, { code: 'BILLF' }, created_by)
-        writeAudit('container_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 1, is_auto: 1 }, created_by)
-      }
-
-      // Extra container STAMP(x3) — separate guard so it applies to existing voyages too
-      const hasExtraStamp = db.prepare(
-        `SELECT COUNT(*) as c FROM container_services WHERE voyage_number = ? AND service_code = 'STAMP' AND quantity = 3 AND is_auto = 1 AND is_deleted = 0`
-      ).get(voyageNumber).c > 0
-      if (!hasExtraStamp) {
-        const stampExtra = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 3, 2.00, 6.00, 0, 0, 1, created_by)
-        writeAudit('container_services', stampExtra.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 3, is_auto: 1 }, created_by)
+        writeAudit('container_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 4, is_auto: 1 }, created_by)
       }
 
       // Upsert voyages

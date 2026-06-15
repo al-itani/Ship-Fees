@@ -8,7 +8,7 @@ function r2(v) {
  * RS-prefixed lines excluded from every total and display.
  * Overtime lines (OT/OVERT or code ends -E) always treated as regular lines.
  * For GC voyages: STAMP is taxable (included in taxableSubtotal with QUAIT).
- * For Container voyages: no tax block; STAMP (qty 3, $6.00) goes into fixedTotal.
+ * For Container voyages: no tax block; STAMP (qty 4, $8.00) goes into fixedTotal.
  * Fundable cap ($450): when hit, Rehabilitation Fee excluded from freshAmount.
  * Container voyages add $0.22 container tax to freshAmount before rounding.
  * Rounding rule: any decimal > 0 → ceiling; whole numbers unchanged.

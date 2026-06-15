@@ -187,6 +187,32 @@ module.exports = function initSchema(db) {
   // Fix PQ1 rate to $60 if it was stored incorrectly
   try { db.prepare(`UPDATE gc_codes SET rate = 60 WHERE code = 'PQ1' AND rate != 60`).run() } catch {}
 
+  // Migrate container STAMP from two lines (qty=1 + qty=3) to one line (qty=4)
+  try {
+    const voyagesWithOldStamp = db.prepare(`
+      SELECT DISTINCT voyage_number FROM container_services
+      WHERE service_code = 'STAMP' AND is_auto = 1 AND quantity != 4 AND is_deleted = 0
+    `).all()
+    for (const { voyage_number } of voyagesWithOldStamp) {
+      // Soft-delete old STAMP auto lines
+      db.prepare(`
+        UPDATE container_services SET is_deleted = 1
+        WHERE voyage_number = ? AND service_code = 'STAMP' AND is_auto = 1 AND quantity != 4 AND is_deleted = 0
+      `).run(voyage_number)
+      // Insert single STAMP(qty=4) if not already present
+      const already = db.prepare(`
+        SELECT COUNT(*) as c FROM container_services
+        WHERE voyage_number = ? AND service_code = 'STAMP' AND is_auto = 1 AND quantity = 4 AND is_deleted = 0
+      `).get(voyage_number).c
+      if (!already) {
+        db.prepare(`
+          INSERT INTO container_services (voyage_number, service_code, description, container_type, quantity, price_per_unit, line_total, is_taxable, is_fixed, is_auto, created_by)
+          VALUES (?, 'STAMP', 'Government stamp', '20ft', 4, 2.00, 8.00, 0, 0, 1, 'migration')
+        `).run(voyage_number)
+      }
+    }
+  } catch {}
+
   // Ensure these codes exist (may be missing from databases seeded before they were added)
   try {
     const ensureCode = db.prepare(`
