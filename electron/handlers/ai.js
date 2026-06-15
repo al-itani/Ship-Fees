@@ -90,6 +90,12 @@ Field notes:
   - PA-BC and QU-BC are critical service codes that appear in a dedicated separate section (not the main table). They MUST be extracted as service lines with their exact codes.
   - Do not include any service line where the code begins with "RS" (e.g. RS1, RS-20, RSHIP, RS, etc.). These are silently dropped.
   - Some codes may appear split across two lines due to column width (e.g. "TRST" on one line and "D" on the next). Reconstruct them as a single code (e.g. "TRSTD").
+  - The service column is narrow and codes may wrap across two lines. Always rejoin wrapped text within the same cell before reading the code.
+  - Apply these corrections for known misreads caused by column wrapping or adjacent text bleed:
+    - "CH-CMA" → "H-CMA"
+    - "CS-CMA" → "S-CMA"
+    - "CFH-CMA" → "FH-CMA"
+  - More generally, if a code starts with a leading "C" that is not part of the known code, and removing it produces a valid known code, remove it.
 
 - container_size:
   - "20ft", "20'", "20_FT", "FT_20", "FT20", "TEU" → "20ft"
