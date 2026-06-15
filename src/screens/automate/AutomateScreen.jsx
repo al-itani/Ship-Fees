@@ -348,6 +348,13 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     ? <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 5, fontSize: 13 }}>⚠</span>
     : null
 
+  // Only show the blocking banner when there are actually visible amber indicators
+  const FORM_UNCERTAIN_KEYS = new Set(['voyage_number','vessel_name','vessel_type','flag','shipping_agent','ata','atd','loa'])
+  const hasVisibleUncertain = (
+    [...uncertainFields].some(f => FORM_UNCERTAIN_KEYS.has(f)) ||
+    serviceLines.some(l => l._uncertain)
+  )
+
   const ataDate = form.ata ? form.ata.split('T')[0] : ''
   const ataTime = form.ata ? (form.ata.split('T')[1] || '').slice(0, 5) : ''
   const atdDate = form.atd ? form.atd.split('T')[0] : ''
@@ -551,7 +558,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
           <div style={{ background: 'white', borderRadius: 8, padding: 24, border: '1px solid var(--color-border)', marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 20, color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span>⚓ {t('berthing')}</span>
-              {uncertainFields.size > 0 && (
+              {hasVisibleUncertain && (
                 <span style={{ fontSize: 12, color: '#D97706', fontWeight: 500 }}>
                   ⚠ {t('import_uncertain_fields_blocking')}
                 </span>
