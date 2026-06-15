@@ -58,13 +58,35 @@ Field notes:
 - ata / atd: arrival and departure dates. May be labeled "ATA", "ATD", "Arrival Date", "Departure Date", "تاريخ وصول الباخرة", "تاريخ مغادرة الباخرة". Format all dates as DD/MM/YYYY. Ignore time portions.
 
 - berthing: may appear under sections labeled "berth", "Berthing Fees", "رسوم على السفن", or similar.
-  - "position" comes from either the "berth name" column (e.g. "Quay 16: bollard 00, level 1") or a "Code" column (e.g. "QUAY", "POS_2", "En Rade"). Return the raw value exactly as it appears — do not interpret or translate it.
+  - "position": Do NOT look for a field literally labeled "position" — it does not exist as a standalone label. Infer it using the following rules:
+
+    FORMAT A (CAMALI-style documents with a berth table containing a "berth name" column):
+    - Look at the "berth name" column for each berthing row.
+    - If the berth name contains "En Rade" (case-insensitive) → position = "En Rade"
+    - If the berth name contains "Quay" (case-insensitive) → position = "Quay"
+    - If the berth name contains "P2", "POS_2", or "POS2" (case-insensitive) → position = "P2"
+    - Also check the top header area for a field labeled "quay:" — use it as a fallback if the berth name is unclear.
+
+    FORMAT B (Port bill with a "Berthing Fees" table containing a "Code" column):
+    - Look at the "Code" column in the Berthing Fees table and apply this mapping (case-insensitive):
+    - "QUAY" → "Quay"
+    - "EN_RADE", "ENRADE", "EN RADE", "EN-RADE" → "En Rade"
+    - "P2", "POS_2", "POS2", "POS 2" → "P2"
+
+    - Return the mapped value ("Quay", "En Rade", or "P2") — NOT the raw string from the document.
+    - Only set position to null and add "position" to uncertain_fields if you genuinely cannot determine it from any of the above rules.
+    - Do NOT add "position" to uncertain_fields if you successfully extracted it using the rules above.
+
   - "days" comes from "nbr of days" or "Days-أيام" or equivalent column.
   - "total" comes from "Amt-$" or equivalent. If no total is present in the berthing section, set to null.
   - If the document has only one berthing line, return an array with one object.
   - If no berthing section exists at all, return [].
 
 - services: extract service lines from EVERY section of the document — the main service table AND any separate sections (port dues, quay charges, overtime, authority fees, or any additional charge tables). Do not skip any section. If a section has a code, quantity, and price, extract each line.
+  - Overtime fees appear in two formats:
+    FORMAT A (CAMALI-style): Look for a column labeled "hours nbr" in the services table. If a line has hours nbr > 0, overtime hours were worked — extract the hours value as the quantity. Do NOT flag as uncertain just because overtime appears as a column rather than a dedicated section.
+    FORMAT B (Port bill): There is a dedicated "Overtime Fees" table with columns Date, Fr, To, Nbr, Site, Amt-$. If this table exists but is empty (no rows with data) → do not extract any overtime line and do NOT flag as uncertain. If it has rows, extract each row's Amt-$ as a service line.
+  - Do NOT add "overtime" to uncertain_fields if: you successfully read the value (even if it is 0 or empty), the overtime table is simply empty, or the hours appear in a column and you read them correctly. Only add "overtime" to uncertain_fields if the value is present but genuinely unreadable (blurry, cut off, ambiguous).
   - PA-BC and QU-BC are critical service codes that appear in a dedicated separate section (not the main table). They MUST be extracted as service lines with their exact codes.
   - Do not include any service line where the code begins with "RS" (e.g. RS1, RS-20, RSHIP, RS, etc.). These are silently dropped.
   - Some codes may appear split across two lines due to column width (e.g. "TRST" on one line and "D" on the next). Reconstruct them as a single code (e.g. "TRSTD").
@@ -87,6 +109,8 @@ Rules for uncertain_fields:
 - Do NOT add a field to uncertain_fields just because you had to infer it.
 - Do NOT mark voyage_number uncertain if you found a number and assigned it.
 - Do NOT mark vessel_type uncertain unless there is truly no indication in the document.
+- Do NOT mark position uncertain if you successfully mapped it to "Quay", "En Rade", or "P2" using the rules above.
+- Do NOT mark overtime uncertain if the overtime table is empty, if the value is 0, or if you read the hours correctly from a column.
 
 Numbers must be plain numbers with no currency symbols, commas, or units.
 Dates must be formatted as DD/MM/YYYY.`
