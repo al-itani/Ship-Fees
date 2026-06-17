@@ -51,9 +51,10 @@ export function calcBerthingFee({ loa, days, position, vesselCategory, maintenan
 
   const feeAfterDiscount = rawFee * discountFactor
   const minFee = minimums[position][lIndex]
-  const appliedFee = Math.max(feeAfterDiscount, minFee)
+  // Minimum is NOT applied here — it is applied at receipt time in receiptCalc.js
+  // against the combined total of all berthing rows for the voyage.
   const maintenanceFee = calcMaintenanceFee(maintenance, days, loa)
-  const finalFee = appliedFee + maintenanceFee
+  const finalFee = feeAfterDiscount + maintenanceFee
 
   return {
     lIndex,
@@ -62,7 +63,6 @@ export function calcBerthingFee({ loa, days, position, vesselCategory, maintenan
     discountFactor,
     feeAfterDiscount,
     minFee,
-    appliedFee,
     maintenanceFee,
     finalFee,
   }

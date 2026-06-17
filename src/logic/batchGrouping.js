@@ -2,7 +2,7 @@
 // Files photographed within BATCH_GROUP_THRESHOLD_SECONDS of the previous
 // file are treated as pages of the same receipt.
 
-export const BATCH_GROUP_THRESHOLD_SECONDS = 12
+export const BATCH_GROUP_THRESHOLD_SECONDS = 6
 
 // Samsung default camera filenames: YYYYMMDD_HHMMSS.jpg (e.g. 20260612_091530.jpg)
 const FILENAME_TS = /^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})/

@@ -19,15 +19,17 @@ contextBridge.exposeInMainWorld('api', {
   containerDeleteLine:   (id, userId) => ipcRenderer.invoke('container:deleteLine', id, userId),
 
   gcLookupVoyage: (voyageNumber) => ipcRenderer.invoke('gc:lookupVoyage', voyageNumber),
+  gcListVoyages:  () => ipcRenderer.invoke('gc:listVoyages'),
   gcGetCodes:     () => ipcRenderer.invoke('gc:getCodes'),
   gcSaveSession:  (data) => ipcRenderer.invoke('gc:saveSession', data),
   gcGetLines:     (voyageNumber) => ipcRenderer.invoke('gc:getLines', voyageNumber),
   gcDeleteLine:   (id, userId) => ipcRenderer.invoke('gc:deleteLine', id, userId),
 
-  receiptGetData:  (voyageNumber) => ipcRenderer.invoke('receipt:getData', voyageNumber),
-  receiptSave:     (data) => ipcRenderer.invoke('receipt:save', data),
-  receiptGetAll:   () => ipcRenderer.invoke('receipt:getAll'),
-  receiptDelete:   (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
+  receiptGetData:              (voyageNumber) => ipcRenderer.invoke('receipt:getData', voyageNumber),
+  receiptSave:                 (data) => ipcRenderer.invoke('receipt:save', data),
+  receiptGetAll:               () => ipcRenderer.invoke('receipt:getAll'),
+  receiptDelete:               (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
+  receiptPrepareBerthingOnly:  (voyageNumber, username) => ipcRenderer.invoke('receipt:prepareBerthingOnly', voyageNumber, username),
   receiptExportPDF:      (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
   receiptExportPDFBatch: (opts) => ipcRenderer.invoke('receipt:exportPDFBatch', opts),
 

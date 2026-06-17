@@ -102,6 +102,16 @@ try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DE
 
 ---
 
+## Reload Guidance — Always Tell the User
+
+After every change, explicitly state which reload is needed:
+- **Force-reload** (`Ctrl+R` in the Electron window) — renderer-only changes: React components, CSS, `src/` logic, i18n strings
+- **Full restart** (`npm run dev` restart) — main process changes: `electron/main.js`, `electron/preload.js`, any `electron/database/` or `electron/handlers/` file
+
+Never assume the user knows — always say it, every time.
+
+---
+
 ## Hard Rules — Always Follow
 
 - **Soft deletes only** — `UPDATE ... SET is_deleted = 1`. Never `DELETE`.

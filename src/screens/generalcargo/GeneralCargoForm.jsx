@@ -1,14 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
-import ContainerCodeSelect from '../../components/ContainerCodeSelect.jsx'
+import GCCodeSelect from '../../components/GCCodeSelect.jsx'
 
 function fmt(n) {
   if (n === null || n === undefined) return '—'
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const EMPTY_LINE = { codeObj: null, type: '', qty: '', price: '' }
+function calcLineTotal(qty, rate, minimum) {
+  if (isNaN(qty) || isNaN(rate) || qty <= 0) return null
+  const raw = qty * rate
+  return minimum > 0 ? Math.max(raw, minimum) : raw
+}
+
+const EMPTY_LINE = { codeObj: null, qty: '', rate: '' }
 
 const thStyle = {
   padding: '9px 16px', textAlign: 'start', fontWeight: 600,
@@ -17,7 +23,7 @@ const thStyle = {
 }
 const tdStyle = { padding: '10px 16px', verticalAlign: 'middle', fontSize: 13 }
 
-export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateReceipt }) {
+export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerateReceipt }) {
   const { t } = useTranslation()
   const { session } = useSession()
 
@@ -34,42 +40,36 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
 
   // Load codes once
   useEffect(() => {
-    window.api.containerGetCodes().then(res => {
+    window.api.gcGetCodes().then(res => {
       if (res.success) setCodes(res.data)
     })
   }, [])
 
-  // Load saved lines whenever voyage changes
+  // Load saved lines when voyage changes
   useEffect(() => {
     if (!voyageInfo) return
-    window.api.containerGetLines(voyageInfo.berthing.voyage_number).then(r => {
-      if (r.success) setSavedLines(r.data)
-    })
+    setPendingLines([])
+    setLine(EMPTY_LINE)
+    setLineError('')
+    loadSavedLines(voyageInfo.berthing.voyage_number)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voyageInfo])
 
-  // Auto-fill price when code or type changes
+  // Auto-fill rate when code changes
   useEffect(() => {
     if (!line.codeObj) return
-    const { codeObj, type } = line
-    // FH-CMA + 40ft is a blocked combination — leave price empty
-    if (codeObj.code === 'FH-CMA' && type === '40ft') {
-      setLine(prev => ({ ...prev, price: '' }))
-      return
-    }
-    if (codeObj.code === 'FCLEAN') {
+    let rate
+    if (line.codeObj.code === 'FCLEAN') {
       const loa = voyageInfo?.berthing?.loa
-      setLine(prev => ({ ...prev, price: loa ? String(3 * loa) : '' }))
-      return
+      rate = loa ? String(3 * loa) : ''
+    } else {
+      rate = line.codeObj.rate !== null && line.codeObj.rate !== undefined
+        ? String(line.codeObj.rate)
+        : ''
     }
-    let price = ''
-    if (type === '20ft' && codeObj.default_rate_20 !== null && codeObj.default_rate_20 !== undefined) {
-      price = String(codeObj.default_rate_20)
-    } else if (type === '40ft' && codeObj.default_rate_40 !== null && codeObj.default_rate_40 !== undefined) {
-      price = String(codeObj.default_rate_40)
-    }
-    setLine(prev => ({ ...prev, price }))
+    setLine(prev => ({ ...prev, rate }))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [line.codeObj, line.type])
+  }, [line.codeObj])
 
   // Enter/Escape for save confirm modal
   useEffect(() => {
@@ -83,41 +83,43 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSaveConfirm])
 
-  const fhCmaError = line.codeObj?.code === 'FH-CMA' && line.type === '40ft'
-    ? t('fh_cma_40ft_error') : ''
-
-  const qtyNum   = parseFloat(line.qty)
-  const priceNum = parseFloat(line.price)
-  const lineTotal = !isNaN(qtyNum) && !isNaN(priceNum) && qtyNum > 0 && priceNum >= 0
-    ? qtyNum * priceNum : null
+  const qtyNum  = parseFloat(line.qty)
+  const rateNum = parseFloat(line.rate)
+  const minimum = line.codeObj?.minimum || 0
+  const lineTotal = !isNaN(qtyNum) && !isNaN(rateNum) && qtyNum > 0
+    ? calcLineTotal(qtyNum, rateNum, minimum)
+    : null
+  const minimumApplied = lineTotal !== null && minimum > 0 && (qtyNum * rateNum) < minimum
 
   const pendingSubtotal = pendingLines.reduce((s, l) => s + l.line_total, 0)
 
   async function loadSavedLines(voyageNumber) {
-    const res = await window.api.containerGetLines(voyageNumber)
+    const res = await window.api.gcGetLines(voyageNumber)
     if (res.success) setSavedLines(res.data)
   }
 
   function handleAddLine() {
     if (!line.codeObj)   { setLineError(t('line_code_required')); return }
-    if (!line.type)      { setLineError(t('line_type_required')); return }
-    if (fhCmaError)      { setLineError(fhCmaError); return }
     if (!line.qty || parseFloat(line.qty) <= 0) { setLineError(t('line_qty_required')); return }
-    if (line.price === '' || isNaN(parseFloat(line.price)) || parseFloat(line.price) < 0) {
-      setLineError(t('line_price_required')); return
-    }
+    if (line.rate === '' || isNaN(parseFloat(line.rate))) { setLineError(t('line_rate_required')); return }
 
     setLineError('')
-    const qty   = parseFloat(line.qty)
-    const price = parseFloat(line.price)
+    const qty  = parseFloat(line.qty)
+    const rate = parseFloat(line.rate)
+    const min  = line.codeObj.minimum || 0
+    const total = calcLineTotal(qty, rate, min)
+    const minApplied = min > 0 && (qty * rate) < min ? 1 : 0
+
     setPendingLines(prev => [...prev, {
-      service_code:  line.codeObj.code,
-      description:   line.codeObj.description,
-      container_type: line.type,
-      quantity:      qty,
-      price_per_unit: price,
-      line_total:    qty * price,
-      is_taxable:    line.codeObj.is_taxable || 0,
+      service_code:    line.codeObj.code,
+      description:     line.codeObj.description,
+      unit:            line.codeObj.unit || '',
+      quantity:        qty,
+      rate,
+      minimum:         min,
+      line_total:      total,
+      minimum_applied: minApplied,
+      is_taxable:      line.codeObj.is_taxable || 0,
     }])
     setLine(EMPTY_LINE)
     setTimeout(() => codeInputRef.current?.focus(), 50)
@@ -128,7 +130,7 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
   }
 
   async function handleDeleteSaved(id) {
-    const res = await window.api.containerDeleteLine(id, session.id)
+    const res = await window.api.gcDeleteLine(id, session.id)
     if (res.success) {
       showToast(t('record_deleted'), 'success')
       await loadSavedLines(voyageInfo.berthing.voyage_number)
@@ -146,7 +148,7 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
     setSaving(true)
     setShowSaveConfirm(false)
     const { berthing } = voyageInfo
-    const res = await window.api.containerSaveSession({
+    const res = await window.api.gcSaveSession({
       voyageNumber: berthing.voyage_number,
       vesselName:   berthing.vessel_name,
       vesselType:   berthing.vessel_type,
@@ -214,10 +216,10 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 28px', fontSize: 13 }}>
             {[
-              [t('vessel_name'),   voyageInfo.berthing.vessel_name],
+              [t('vessel_name'),    voyageInfo.berthing.vessel_name],
               [t('shipping_agent'), voyageInfo.berthing.shipping_agent],
-              [t('ata'),           voyageInfo.berthing.ata?.slice(0, 16) || '—'],
-              [t('atd'),           voyageInfo.berthing.atd?.slice(0, 16) || '—'],
+              [t('ata'),            voyageInfo.berthing.ata?.slice(0, 16) || '—'],
+              [t('atd'),            voyageInfo.berthing.atd?.slice(0, 16) || '—'],
             ].map(([k, v]) => (
               <span key={k}>
                 <span style={{ color: 'var(--color-text-muted)' }}>{k}: </span>
@@ -250,39 +252,37 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '2.4fr 0.75fr 0.75fr 0.9fr 1fr auto',
+          gridTemplateColumns: '2.4fr 0.65fr 0.7fr 0.8fr 0.9fr auto',
           gap: 12, alignItems: 'end',
         }}>
           {/* Code */}
           <div>
             <label style={labelStyle}>{t('service_code')}</label>
-            <ContainerCodeSelect
+            <GCCodeSelect
               ref={codeInputRef}
               codes={codes}
               value={line.codeObj}
-              onChange={codeObj => setLine(prev => ({ ...prev, codeObj, price: '' }))}
+              onChange={codeObj => setLine(prev => ({ ...prev, codeObj, rate: '' }))}
             />
           </div>
 
-          {/* Type */}
+          {/* Unit — read-only */}
           <div>
-            <label style={labelStyle}>{t('container_type')}</label>
-            <select
-              style={{ ...fieldStyle, width: '100%', cursor: 'pointer' }}
-              value={line.type}
-              onChange={e => setLine(prev => ({ ...prev, type: e.target.value }))}
-            >
-              <option value="">—</option>
-              <option value="20ft">20ft</option>
-              <option value="40ft">40ft</option>
-            </select>
+            <label style={labelStyle}>{t('gc_unit')}</label>
+            <div style={{
+              ...fieldStyle, display: 'flex', alignItems: 'center',
+              background: '#F8FAFF', color: 'var(--color-text-muted)',
+              fontSize: 13,
+            }}>
+              {line.codeObj?.unit || '—'}
+            </div>
           </div>
 
           {/* Qty */}
           <div>
             <label style={labelStyle}>{t('quantity')}</label>
             <input
-              type="number" min="0" step="1"
+              type="number" min="0" step="any"
               style={{ ...fieldStyle, width: '100%' }}
               value={line.qty}
               onChange={e => setLine(prev => ({ ...prev, qty: e.target.value }))}
@@ -290,14 +290,14 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
             />
           </div>
 
-          {/* Price/Unit */}
+          {/* Rate */}
           <div>
-            <label style={labelStyle}>{t('price_per_unit')}</label>
+            <label style={labelStyle}>{t('gc_rate')}</label>
             <input
-              type="number" min="0" step="0.01"
+              type="number" step="any"
               style={{ ...fieldStyle, width: '100%' }}
-              value={line.price}
-              onChange={e => setLine(prev => ({ ...prev, price: e.target.value }))}
+              value={line.rate}
+              onChange={e => setLine(prev => ({ ...prev, rate: e.target.value }))}
               onKeyDown={e => { if (e.key === 'Enter') handleAddLine() }}
             />
           </div>
@@ -306,12 +306,21 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
           <div>
             <label style={labelStyle}>{t('line_total')}</label>
             <div style={{
-              ...fieldStyle, display: 'flex', alignItems: 'center',
+              ...fieldStyle, display: 'flex', alignItems: 'center', gap: 6,
               background: '#F8FAFF', color: 'var(--color-primary)', fontWeight: 700,
             }}>
               <span className="num-ltr">
                 {lineTotal !== null ? fmt(lineTotal) : '—'}
               </span>
+              {minimumApplied && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700,
+                  background: 'var(--color-primary)', color: 'white',
+                  borderRadius: 3, padding: '1px 5px', letterSpacing: '0.03em',
+                }}>
+                  {t('gc_min_applied')}
+                </span>
+              )}
             </div>
           </div>
 
@@ -320,12 +329,10 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
             <label style={{ ...labelStyle, visibility: 'hidden' }}>.</label>
             <button
               onClick={handleAddLine}
-              disabled={!!fhCmaError}
               style={{
                 height: 44, padding: '0 20px', borderRadius: 6, border: 'none',
-                background: fhCmaError ? '#B0BEC5' : 'var(--color-primary)', color: 'white',
-                fontWeight: 600, fontSize: 14,
-                cursor: fhCmaError ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',
+                background: 'var(--color-primary)', color: 'white',
+                fontWeight: 600, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap',
               }}
             >
               + {t('add_line')}
@@ -334,12 +341,12 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
         </div>
 
         {/* Inline error */}
-        {(fhCmaError || lineError) && (
+        {lineError && (
           <div style={{
             marginTop: 10, padding: '8px 12px', borderRadius: 6,
             background: '#FEF2F2', color: 'var(--color-danger)', fontSize: 13,
           }}>
-            {fhCmaError || lineError}
+            {lineError}
           </div>
         )}
       </div>
@@ -368,9 +375,10 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
             <thead>
               <tr style={{ background: '#F8FAFF' }}>
                 <th style={thStyle}>{t('service_code')}</th>
-                <th style={thStyle}>{t('container_type')}</th>
+                <th style={thStyle}>{t('gc_unit')}</th>
                 <th style={{ ...thStyle, textAlign: 'end' }}>{t('quantity')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('price_per_unit')}</th>
+                <th style={{ ...thStyle, textAlign: 'end' }}>{t('gc_rate')}</th>
+                <th style={{ ...thStyle, textAlign: 'end' }}>{t('gc_minimum')}</th>
                 <th style={{ ...thStyle, textAlign: 'end' }}>{t('line_total')}</th>
                 <th style={{ ...thStyle, width: 40 }}></th>
               </tr>
@@ -384,15 +392,31 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
                     <span style={{ color: 'var(--color-text-muted)' }}>{l.description}</span>
                     {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4 }}>⚠</span>}
                   </td>
-                  <td style={tdStyle}>{l.container_type}</td>
+                  <td style={{ ...tdStyle, color: 'var(--color-text-muted)' }}>{l.unit || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
                     <span className="num-ltr">{l.quantity}</span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
-                    <span className="num-ltr">{fmt(l.price_per_unit)}</span>
+                    <span className="num-ltr">{fmt(l.rate)}</span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
-                    <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                    <span className="num-ltr" style={{ color: 'var(--color-text-muted)' }}>
+                      {l.minimum > 0 ? fmt(l.minimum) : ''}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'end' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                      {l.minimum_applied ? (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700,
+                          background: 'var(--color-primary)', color: 'white',
+                          borderRadius: 3, padding: '1px 5px',
+                        }}>
+                          {t('gc_min_applied')}
+                        </span>
+                      ) : null}
+                    </span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <button
@@ -438,9 +462,10 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
             <thead>
               <tr style={{ background: '#F8FAFF' }}>
                 <th style={thStyle}>{t('service_code')}</th>
-                <th style={thStyle}>{t('container_type')}</th>
+                <th style={thStyle}>{t('gc_unit')}</th>
                 <th style={{ ...thStyle, textAlign: 'end' }}>{t('quantity')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('price_per_unit')}</th>
+                <th style={{ ...thStyle, textAlign: 'end' }}>{t('gc_rate')}</th>
+                <th style={{ ...thStyle, textAlign: 'end' }}>{t('gc_minimum')}</th>
                 <th style={{ ...thStyle, textAlign: 'end' }}>{t('line_total')}</th>
                 <th style={{ ...thStyle, width: 40 }}></th>
               </tr>
@@ -450,18 +475,32 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
                 <tr key={l.id} style={{ borderBottom: '1px solid #F5F5F5' }}>
                   <td style={tdStyle}>
                     <strong>{l.service_code}</strong>
-                    {' '}
-                    <span style={{ color: 'var(--color-text-muted)' }}>{l.description}</span>
                   </td>
-                  <td style={tdStyle}>{l.container_type}</td>
+                  <td style={{ ...tdStyle, color: 'var(--color-text-muted)' }}>{l.unit || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
                     <span className="num-ltr">{l.quantity}</span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
-                    <span className="num-ltr">{fmt(l.price_per_unit)}</span>
+                    <span className="num-ltr">{fmt(l.rate)}</span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
-                    <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                    <span className="num-ltr" style={{ color: 'var(--color-text-muted)' }}>
+                      {l.minimum > 0 ? fmt(l.minimum) : ''}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: 'end' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
+                      {l.minimum_applied ? (
+                        <span style={{
+                          fontSize: 10, fontWeight: 700,
+                          background: 'var(--color-primary)', color: 'white',
+                          borderRadius: 3, padding: '1px 5px',
+                        }}>
+                          {t('gc_min_applied')}
+                        </span>
+                      ) : null}
+                    </span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <button
@@ -479,7 +518,7 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
               {systemSavedLines.length > 0 && (
                 <>
                   <tr>
-                    <td colSpan={6} style={{
+                    <td colSpan={7} style={{
                       padding: '7px 16px', background: '#F5F5F5',
                       fontSize: 11, color: 'var(--color-text-muted)',
                       fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase',
@@ -491,16 +530,15 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
                     <tr key={l.id} style={{ borderBottom: '1px solid #F5F5F5', opacity: 0.65 }}>
                       <td style={tdStyle}>
                         <strong>{l.service_code}</strong>
-                        {' '}
-                        <span style={{ color: 'var(--color-text-muted)' }}>{l.description}</span>
                       </td>
-                      <td style={tdStyle}>{l.container_type}</td>
+                      <td style={{ ...tdStyle, color: 'var(--color-text-muted)' }}>{l.unit || '—'}</td>
                       <td style={{ ...tdStyle, textAlign: 'end' }}>
                         <span className="num-ltr">{l.quantity}</span>
                       </td>
                       <td style={{ ...tdStyle, textAlign: 'end' }}>
-                        <span className="num-ltr">{fmt(l.price_per_unit)}</span>
+                        <span className="num-ltr">{fmt(l.rate)}</span>
                       </td>
+                      <td style={{ ...tdStyle, textAlign: 'end' }}></td>
                       <td style={{ ...tdStyle, textAlign: 'end' }}>
                         <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
                       </td>

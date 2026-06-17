@@ -15,7 +15,7 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
 function lookupVoyage(voyageNumber) {
   try {
     const berthing = db.prepare(`
-      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent, bill_number
+      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent, bill_number, loa
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at DESC LIMIT 1
@@ -96,17 +96,28 @@ function saveSession(data) {
         writeAudit('container_services', r.lastInsertRowid, 'INSERT', null, l, created_by)
       }
 
-      // AUTOM, BILLF, STAMP(x4) — insert once per voyage only
+      // AUTOM, BILLF, STAMP(qty=1) — insert once per voyage only
       const hasAutoLines = db.prepare(
         `SELECT COUNT(*) as c FROM container_services WHERE voyage_number = ? AND (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0`
       ).get(voyageNumber).c > 0
       if (!hasAutoLines) {
         const autom = insertLine.run(voyageNumber, 'AUTOM', 'Automation fee',   '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
         const billf = insertLine.run(voyageNumber, 'BILLF', 'Billing fee',      '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
-        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 4, 2.00, 8.00, 0, 0, 1, created_by)
+        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 1, 2.00, 2.00, 0, 0, 1, created_by)
         writeAudit('container_services', autom.lastInsertRowid, 'INSERT', null, { code: 'AUTOM' }, created_by)
         writeAudit('container_services', billf.lastInsertRowid, 'INSERT', null, { code: 'BILLF' }, created_by)
-        writeAudit('container_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 4, is_auto: 1 }, created_by)
+        writeAudit('container_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 1, is_auto: 1 }, created_by)
+      }
+
+      // Extra STAMP(qty=3) — separate guard so existing voyages with only qty=1 get backfilled to total qty=4
+      const stampQtyTotal = db.prepare(
+        `SELECT COALESCE(SUM(quantity), 0) as t FROM container_services WHERE voyage_number = ? AND service_code = 'STAMP' AND is_auto = 1 AND is_deleted = 0`
+      ).get(voyageNumber).t
+      if (stampQtyTotal < 4) {
+        const extraQty = 4 - stampQtyTotal
+        const extraAmt = extraQty * 2.00
+        const stamp3 = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', extraQty, 2.00, extraAmt, 0, 0, 1, created_by)
+        writeAudit('container_services', stamp3.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: extraQty, is_auto: 1 }, created_by)
       }
 
       // Upsert voyages

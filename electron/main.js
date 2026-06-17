@@ -17,7 +17,7 @@ const aiHandlers         = require('./handlers/ai')
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-let lastDocumentDir = null
+let lastDocumentDir = 'C:\\Users\\User\\Desktop\\MAIN\\Work\\Port\\Ships\\Automate'
 let lastReceiptDir  = null
 
 const isDev = !app.isPackaged
@@ -68,16 +68,18 @@ ipcMain.handle('container:deleteLine',   (_, id, userId) => containerHandlers.de
 
 // General Cargo
 ipcMain.handle('gc:lookupVoyage', (_, voyageNumber) => gcHandlers.lookupVoyage(voyageNumber))
+ipcMain.handle('gc:listVoyages',  () => gcHandlers.listVoyages())
 ipcMain.handle('gc:getCodes',     () => gcHandlers.getCodes())
 ipcMain.handle('gc:saveSession',  (_, data) => gcHandlers.saveSession(data))
 ipcMain.handle('gc:getLines',     (_, voyageNumber) => gcHandlers.getLines(voyageNumber))
 ipcMain.handle('gc:deleteLine',   (_, id, userId) => gcHandlers.deleteLine(id, userId))
 
 // Receipts
-ipcMain.handle('receipt:getData',   (_, voyageNumber) => receiptHandlers.getDataForReceipt(voyageNumber))
-ipcMain.handle('receipt:save',      (_, data) => receiptHandlers.saveReceipt(data))
-ipcMain.handle('receipt:getAll',    () => receiptHandlers.getAll())
-ipcMain.handle('receipt:delete',    (_, id, userId) => receiptHandlers.softDelete(id, userId))
+ipcMain.handle('receipt:getData',              (_, voyageNumber) => receiptHandlers.getDataForReceipt(voyageNumber))
+ipcMain.handle('receipt:save',                 (_, data) => receiptHandlers.saveReceipt(data))
+ipcMain.handle('receipt:getAll',               () => receiptHandlers.getAll())
+ipcMain.handle('receipt:delete',               (_, id, userId) => receiptHandlers.softDelete(id, userId))
+ipcMain.handle('receipt:prepareBerthingOnly',  (_, voyageNumber, username) => receiptHandlers.prepareBerthingOnly(voyageNumber, username))
 
 // PDF Export — uses printToPDF on the calling window's webContents
 ipcMain.handle('dialog:openDocuments', async (event) => {

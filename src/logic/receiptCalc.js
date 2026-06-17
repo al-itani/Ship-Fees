@@ -2,6 +2,11 @@ function r2(v) {
   return Math.round(v * 100) / 100
 }
 
+function isRoRoType(type) {
+  if (!type) return false
+  return type.toLowerCase().replace(/[-\s]/g, '') === 'roro'
+}
+
 /**
  * Pure calculation engine for receipt generation.
  *
@@ -11,10 +16,12 @@ function r2(v) {
  * For Container voyages: no tax block; STAMP (qty 4, $8.00) goes into fixedTotal.
  * Fundable cap ($450): when hit, Rehabilitation Fee excluded from freshAmount.
  * Container voyages add $0.22 container tax to freshAmount before rounding.
+ * RoRo vessels: 35% discount applied to berthing total after minimum check.
  * Rounding rule: any decimal > 0 → ceiling; whole numbers unchanged.
  */
-export function calculateReceipt({ berthingRows, serviceRows, moduleType }) {
-  const isGC = moduleType === 'GC'
+export function calculateReceipt({ berthingRows, serviceRows, moduleType, vesselType }) {
+  const isGC   = moduleType === 'GC'
+  const isRoRo = isRoRoType(vesselType)
 
   // Fix 2: Exclude RS-prefixed lines entirely from receipt
   const rows = serviceRows.filter(r => !r.service_code.toUpperCase().startsWith('RS'))
@@ -23,7 +30,18 @@ export function calculateReceipt({ berthingRows, serviceRows, moduleType }) {
   const isOT = r => /-E$/i.test(r.service_code) || /OT|OVERT/i.test(r.service_code)
 
   // ── Berthing ──────────────────────────────────────────────────────────────
-  const berthingTotal = r2(berthingRows.reduce((s, r) => s + r.final_fee, 0))
+  // Sum all row fees across the voyage; apply the minimum once to the combined total.
+  // Congestion rows are always $0 and carry no minimum, so exclude them.
+  // When a Quay row is present (Quay-only or Quay+P2/En Rade), use its minimum.
+  // For single-position non-Quay voyages, use that position's minimum.
+  const payingRows = berthingRows.filter(r => r.position !== 'Congestion')
+  const combinedFee = r2(payingRows.reduce((s, r) => s + (r.fee_after_discount || 0) + (r.maintenance_fee || 0), 0))
+  const quayRow = payingRows.find(r => (r.position || 'Quay') === 'Quay')
+  const refRow = quayRow || payingRows[0]
+  const applicableMin = refRow ? (refRow.min_fee || 0) : 0
+  const rawBerthingTotal = r2(Math.max(combinedFee, applicableMin))
+  const roroDiscount  = isRoRo ? r2(rawBerthingTotal * 0.35) : 0
+  const berthingTotal = r2(rawBerthingTotal - roroDiscount)
 
   // ── Categorise service lines ───────────────────────────────────────────────
   const fixedLines    = rows.filter(r => r.is_fixed === 1)                             // AUTOM, BILLF
@@ -58,12 +76,12 @@ export function calculateReceipt({ berthingRows, serviceRows, moduleType }) {
   // Fix 3: Container voyages add $0.22 tax before rounding; GC gets $0
   const containerTax = isGC ? 0 : 0.22
 
-  const freshAmount = r2(price + fundable + fixedTotal + taxableSubtotal + totalTax + containerTax)
-
-  const finalPrice = Math.ceil(freshAmount)
-
   // Rehab exclusion when Fundable hit the $450 cap
   const rehabFee = fundableCapped ? 0 : rehabFeeRaw
+
+  const freshAmount = r2(price + fundable + rehabFee + fixedTotal + taxableSubtotal + totalTax + containerTax)
+
+  const finalPrice = Math.ceil(freshAmount)
 
   // ── Display helpers ────────────────────────────────────────────────────────
   const servicesSubtotal   = r2(rows.reduce((s, r) => s + r.line_total, 0))
@@ -71,6 +89,8 @@ export function calculateReceipt({ berthingRows, serviceRows, moduleType }) {
   const systemServiceLines = rows.filter(r => r.is_fixed || r.is_auto)
 
   return {
+    rawBerthingTotal,
+    roroDiscount,
     berthingTotal,
     servicesSubtotal,
     taxableSubtotal,
@@ -86,5 +106,6 @@ export function calculateReceipt({ berthingRows, serviceRows, moduleType }) {
     userServiceLines,
     systemServiceLines,
     isGC,
+    isRoRo,
   }
 }

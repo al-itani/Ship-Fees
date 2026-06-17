@@ -12,7 +12,7 @@ export default function FeePreview({ breakdown }) {
 
   const {
     lIndex, rawFee, discountFactor, feeAfterDiscount,
-    minFee, appliedFee, maintenanceFee, finalFee,
+    minFee, maintenanceFee, finalFee,
   } = breakdown
 
   const discountPct = discountFactor < 1
@@ -24,7 +24,6 @@ export default function FeePreview({ breakdown }) {
     { label: `${t('discount')}${discountPct}`, value: discountFactor < 1 ? `-${fmt(rawFee - feeAfterDiscount)}` : '—' },
     { label: t('after_discount'), value: fmt(feeAfterDiscount) },
     { label: t('minimum_fee'), value: fmt(minFee) },
-    { label: t('applied_fee'), value: fmt(appliedFee) },
     { label: t('maintenance_fee'), value: fmt(maintenanceFee) },
   ]
 

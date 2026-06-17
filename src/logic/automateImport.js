@@ -2,7 +2,7 @@
 // extraction-result mapping, fee breakdowns, validation, and insertion.
 // All DB access still goes through window.api (IPC) — audit logging happens in the handlers.
 
-import { calcBerthingFee, getLIndex } from './berthingCalc.js'
+import { calcBerthingFee } from './berthingCalc.js'
 import { calculateReceipt } from './receiptCalc.js'
 
 export const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
@@ -160,39 +160,9 @@ export function computeBreakdowns(berthingRows, form, ratesData) {
     } catch { return null }
   })
 
-  // Step 2: apply Quay minimum to the combined total — only when the voyage includes a Quay row
-  // with a valid (non-null) breakdown. Congestion rows always return $0 and must not be the
-  // only "valid" row when Quay has empty days, which would cause rawSum=0 → Infinity scaling.
-  const hasValidQuay = rawBreakdowns.some((bd, i) => bd !== null && berthingRows[i].position === 'Quay')
-  if (!hasValidQuay) return rawBreakdowns
-
-  const validIndices = rawBreakdowns.reduce((acc, bd, i) => { if (bd) acc.push(i); return acc }, [])
-  if (validIndices.length === 0) return rawBreakdowns
-
-  // Sum fees WITHOUT per-row minimum (feeAfterDiscount + maintenanceFee per row)
-  const r2 = v => Math.round(v * 100) / 100
-  const rawSum = validIndices.reduce((s, i) => s + rawBreakdowns[i].feeAfterDiscount + rawBreakdowns[i].maintenanceFee, 0)
-  // If rawSum is 0 (e.g. 100%-discount category like Military), skip minimum — the fee is already $0.
-  if (rawSum === 0) return rawBreakdowns
-  const quayMin = ratesData.minimums['Quay'][getLIndex(loa)]
-  const correctedTotal = Math.max(rawSum, quayMin)
-
-  if (correctedTotal === rawSum) {
-    // No bump needed — strip the per-row minimum that calcBerthingFee applied
-    return rawBreakdowns.map(bd => {
-      if (!bd) return null
-      const correctedFinalFee = r2(bd.feeAfterDiscount + bd.maintenanceFee)
-      return { ...bd, appliedFee: bd.feeAfterDiscount, finalFee: correctedFinalFee }
-    })
-  }
-
-  // Bump needed — distribute proportionally across valid rows
-  const scaleFactor = correctedTotal / rawSum
-  return rawBreakdowns.map(bd => {
-    if (!bd) return null
-    const correctedFinalFee = r2((bd.feeAfterDiscount + bd.maintenanceFee) * scaleFactor)
-    return { ...bd, appliedFee: bd.feeAfterDiscount, finalFee: correctedFinalFee }
-  })
+  // Minimum is applied at receipt generation time in receiptCalc.js against the combined
+  // total of all rows — not per row or per position group here.
+  return rawBreakdowns
 }
 
 // Same required-field rules the review screen enforces before Insert All.

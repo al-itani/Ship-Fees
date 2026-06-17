@@ -15,7 +15,7 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
 function lookupVoyage(voyageNumber) {
   try {
     const berthing = db.prepare(`
-      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent
+      SELECT voyage_number, vessel_name, vessel_type, ata, atd, shipping_agent, loa
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at DESC LIMIT 1
@@ -142,4 +142,25 @@ function deleteLine(id, userId) {
   }
 }
 
-module.exports = { lookupVoyage, getCodes, saveSession, getLines, deleteLine }
+function listVoyages() {
+  try {
+    const rows = db.prepare(`
+      SELECT
+        br.voyage_number,
+        MAX(br.vessel_name)    AS vessel_name,
+        MAX(br.shipping_agent) AS shipping_agent,
+        MIN(gs.created_at)     AS date_processed
+      FROM berthing_records br
+      LEFT JOIN gc_services gs
+        ON gs.voyage_number = br.voyage_number AND gs.is_deleted = 0
+      WHERE br.is_deleted = 0
+      GROUP BY br.voyage_number
+      ORDER BY MAX(br.rowid) DESC
+    `).all()
+    return { success: true, data: rows }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { lookupVoyage, getCodes, saveSession, getLines, deleteLine, listVoyages }

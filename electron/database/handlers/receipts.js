@@ -31,7 +31,7 @@ function getDataForReceipt(voyageNumber) {
     if (!header) return { success: false, error: 'no_berthing_records' }
 
     const berthingRows = db.prepare(`
-      SELECT id, position, loa, days, final_fee
+      SELECT id, position, loa, days, fee_after_discount, maintenance_fee, min_fee, final_fee
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at ASC

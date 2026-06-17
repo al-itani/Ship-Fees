@@ -20,7 +20,7 @@ Extract the following fields. If a field is not found, set its value to null.
 {
   "voyage_number": string or null,
   "vessel_name": string or null,
-  "vessel_type": "General Cargo" | "Container" | null,
+  "vessel_type": "General Cargo" | "Container" | "RoRo" | null,
   "flag": string or null,
   "shipping_agent": string or null,
   "loa": number or null,
@@ -49,7 +49,7 @@ Field notes:
 
 - voyage_number: appears as a large number near the top, often labeled "Voyage", "رحلة", "Viaje", or similar. If a bill number is present with no separate voyage number, use it as voyage_number.
 
-- vessel_type: if the document mentions containers, TEUs, 20ft, 40ft → set to "Container". If it mentions tons, cargo, general → set to "General Cargo". Only mark uncertain if there is truly no indication of vessel type in the document.
+- vessel_type: if the document mentions containers, TEUs, 20ft, 40ft → set to "Container". If it mentions tons, cargo, general → set to "General Cargo". If the document mentions "RoRo", "Ro-Ro", "Roll-on/Roll-off", or similar → set to "RoRo". Only mark uncertain if there is truly no indication of vessel type in the document.
 
 - flag: may be labeled "vessel flag", "flag", "علم", or similar.
 
