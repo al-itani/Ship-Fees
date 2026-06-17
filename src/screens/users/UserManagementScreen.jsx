@@ -123,6 +123,7 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
           <label style={labelStyle}>{t('role')}</label>
           <select style={selectStyle} value={role} onChange={e => setRole(e.target.value)} disabled={isOwnAccount}>
             <option value="user">{t('role_user')}</option>
+            <option value="manager">{t('role_manager')}</option>
             <option value="admin">{t('role_admin')}</option>
           </select>
         </div>
@@ -351,16 +352,18 @@ export default function UserManagementScreen() {
             {t('users_count', { total: totalCount, active: activeCount })}
           </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(v => !v)}
-          style={{ ...btnStyle('primary'), padding: '9px 18px', fontSize: 13 }}
-        >
-          + {t('add_user')}
-        </button>
+        {session?.role === 'admin' && (
+          <button
+            onClick={() => setShowAddForm(v => !v)}
+            style={{ ...btnStyle('primary'), padding: '9px 18px', fontSize: 13 }}
+          >
+            + {t('add_user')}
+          </button>
+        )}
       </div>
 
-      {/* Add User Form */}
-      {showAddForm && (
+      {/* Add User Form — admin only */}
+      {showAddForm && session?.role === 'admin' && (
         <div style={{ ...card, padding: 24, marginBottom: 24 }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700, color: '#1B2A4A' }}>{t('add_user')}</h3>
           <form onSubmit={handleAddUser}>
@@ -381,6 +384,7 @@ export default function UserManagementScreen() {
                 <label style={labelStyle}>{t('role')}</label>
                 <select style={selectStyle} value={newRole} onChange={e => setNewRole(e.target.value)}>
                   <option value="user">{t('role_user')}</option>
+                  <option value="manager">{t('role_manager')}</option>
                   <option value="admin">{t('role_admin')}</option>
                 </select>
               </div>
@@ -442,7 +446,7 @@ export default function UserManagementScreen() {
                       {label}{sortArrow(key)}
                     </th>
                   ))}
-                  <th style={{ ...TH, cursor: 'default' }}>Actions</th>
+                  {session?.role === 'admin' && <th style={{ ...TH, cursor: 'default' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -459,8 +463,8 @@ export default function UserManagementScreen() {
                       <td style={TD}>
                         <span style={{
                           padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
-                          background: user.role === 'admin' ? '#1B2A4A' : '#F0F4FF',
-                          color: user.role === 'admin' ? 'white' : '#1B2A4A',
+                          background: user.role === 'admin' ? '#1B2A4A' : user.role === 'manager' ? '#7C3AED' : '#F0F4FF',
+                          color: user.role === 'admin' || user.role === 'manager' ? 'white' : '#1B2A4A',
                         }}>
                           {t(`role_${user.role}`)}
                         </span>
@@ -476,32 +480,34 @@ export default function UserManagementScreen() {
                       </td>
                       <td style={TD}>{user.language === 'ar' ? t('lang_ar') : t('lang_en')}</td>
                       <td style={{ ...TD, color: 'var(--color-text-muted)' }} className="num-ltr">{fmtDate(user.last_login)}</td>
-                      <td style={{ ...TD, whiteSpace: 'nowrap' }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button style={btnStyle()} onClick={() => setEditUser(user)} title={t('edit')}>
-                            ✏️
-                          </button>
-                          <button style={btnStyle('warning')} onClick={() => setResetUser(user)} title={t('reset_password')}>
-                            🔑
-                          </button>
-                          <button
-                            style={{ ...btnStyle(isActive ? 'danger' : 'primary'), opacity: isSelf ? 0.4 : 1 }}
-                            disabled={isSelf}
-                            onClick={() => !isSelf && handleToggleActive(user)}
-                            title={isSelf ? t('cannot_self_disable') : (isActive ? t('disable_user') : t('enable_user'))}
-                          >
-                            {isActive ? t('disable_user') : t('enable_user')}
-                          </button>
-                          <button
-                            style={{ ...btnStyle('danger'), opacity: isSelf ? 0.4 : 1 }}
-                            disabled={isSelf}
-                            onClick={() => !isSelf && handleDelete(user)}
-                            title={t('delete')}
-                          >
-                            🗑
-                          </button>
-                        </div>
-                      </td>
+                      {session?.role === 'admin' && (
+                        <td style={{ ...TD, whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button style={btnStyle()} onClick={() => setEditUser(user)} title={t('edit')}>
+                              ✏️
+                            </button>
+                            <button style={btnStyle('warning')} onClick={() => setResetUser(user)} title={t('reset_password')}>
+                              🔑
+                            </button>
+                            <button
+                              style={{ ...btnStyle(isActive ? 'danger' : 'primary'), opacity: isSelf ? 0.4 : 1 }}
+                              disabled={isSelf}
+                              onClick={() => !isSelf && handleToggleActive(user)}
+                              title={isSelf ? t('cannot_self_disable') : (isActive ? t('disable_user') : t('enable_user'))}
+                            >
+                              {isActive ? t('disable_user') : t('enable_user')}
+                            </button>
+                            <button
+                              style={{ ...btnStyle('danger'), opacity: isSelf ? 0.4 : 1 }}
+                              disabled={isSelf}
+                              onClick={() => !isSelf && handleDelete(user)}
+                              title={t('delete')}
+                            >
+                              🗑
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -511,15 +517,15 @@ export default function UserManagementScreen() {
         )}
       </div>
 
-      {/* Dialogs */}
-      {editUser && (
+      {/* Dialogs — admin only */}
+      {session?.role === 'admin' && editUser && (
         <EditUserDialog
           user={editUser} t={t} session={session}
           onClose={() => setEditUser(null)}
           onSaved={msg => { setEditUser(null); showToast(msg); load() }}
         />
       )}
-      {resetUser && (
+      {session?.role === 'admin' && resetUser && (
         <ResetPasswordDialog
           user={resetUser} t={t} session={session}
           onClose={() => setResetUser(null)}

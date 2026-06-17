@@ -11,8 +11,11 @@ import SettingsScreen from './settings/SettingsScreen.jsx'
 import AutomateScreen from './automate/AutomateScreen.jsx'
 import CMAScreen from './cma/CMAScreen.jsx'
 import UserManagementScreen from './users/UserManagementScreen.jsx'
+import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
+import { useSession } from '../context/SessionContext.jsx'
 
 export default function MainApp() {
+  const { session } = useSession()
   const [currentScreen, setCurrentScreen]     = useState('home')
   const [containerVoyage, setContainerVoyage] = useState(null)
   const [gcVoyage, setGcVoyage]               = useState(null)
@@ -43,6 +46,8 @@ export default function MainApp() {
 
   function renderScreen() {
     switch (currentScreen) {
+      case 'voyage_services':
+        return <VoyageServicesScreen onGenerateReceipt={handleGenerateReceipt} />
       case 'berthing':
         return <BerthingScreen onGoToContainers={handleGoToContainers} onGoToGeneralCargo={handleGoToGeneralCargo} onGenerateReceipt={handleGenerateReceipt} />
       case 'containers':
@@ -64,6 +69,7 @@ export default function MainApp() {
       case 'receipts_archive':
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':
+        if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
         return <AutomateScreen onGenerateReceipt={handleGenerateReceipt} />
       case 'cma':
         return <CMAScreen />

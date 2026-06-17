@@ -2,9 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 
 const modules = [
-  { key: 'berthing',         icon: '⚓', labelKey: 'berthing',         descKey: 'berthing_description',          active: true  },
-  { key: 'containers',       icon: '📦', labelKey: 'containers',       descKey: 'containers_description',        active: true  },
-  { key: 'general_cargo',    icon: '📋', labelKey: 'general_cargo',    descKey: 'general_cargo_description',     active: true  },
+  { key: 'voyage_services',  icon: '🚢', labelKey: 'voyage_services',  descKey: 'voyage_services_description',   active: true  },
   { key: 'storage',          icon: '🏪', labelKey: 'storage',          descKey: 'storage_description',           active: false },
   { key: 'receipts_archive', icon: '🗂', labelKey: 'receipts_archive', descKey: 'receipts_archive_description',  active: true  },
 ]

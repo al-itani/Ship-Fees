@@ -5,10 +5,8 @@ const VERSION = '1.0.1'
 
 const navItems = [
   { key: 'home',            icon: '🏠', label: 'home',            active: true  },
-  { key: 'automate',        icon: '🤖', label: 'automate',        active: true  },
-  { key: 'berthing',        icon: '⚓', label: 'berthing',        active: true  },
-  { key: 'containers',      icon: '📦', label: 'containers',      active: true  },
-  { key: 'general_cargo',   icon: '📋', label: 'general_cargo',   active: true  },
+  { key: 'automate',        icon: '🤖', label: 'automate',        active: true, adminOnly: true },
+  { key: 'voyage_services',  icon: '🚢', label: 'voyage_services',  active: true  },
   { key: 'storage',         icon: '🏪', label: 'storage',         active: false },
   { key: 'receipts_archive',icon: '🗂', label: 'receipts_archive',active: true  },
   { key: 'cma',             icon: '📊', label: 'cma_receipt',     active: true, permissionGated: true },
@@ -17,6 +15,10 @@ const navItems = [
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
   { key: 'settings',        icon: '⚙️', label: 'settings' },
+]
+
+const managerNavItems = [
+  { key: 'user_management', icon: '👥', label: 'user_management' },
 ]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {
@@ -43,6 +45,7 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 0' }}>
         {navItems.map(item => {
+          if (item.adminOnly && session?.role !== 'admin') return null
           // CMA is visible to admin always, or to users with the permission
           if (item.permissionGated && session?.role !== 'admin') {
             if (!session?.permissions?.includes('generate_cma_receipt')) return null
@@ -87,10 +90,10 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
         })}
       </nav>
 
-      {/* Admin nav items */}
-      {session?.role === 'admin' && (
+      {/* Admin / Manager nav items */}
+      {(session?.role === 'admin' || session?.role === 'manager') && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
-          {adminNavItems.map(item => {
+          {(session.role === 'admin' ? adminNavItems : managerNavItems).map(item => {
             const isSelected = currentScreen === item.key
             return (
               <div

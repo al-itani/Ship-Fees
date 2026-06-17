@@ -3,6 +3,51 @@ const containerCodesSeed = require('./container_codes_seed.json')
 const gcCodesSeed = require('./gc_codes_seed.json')
 
 module.exports = function initSchema(db) {
+  // ── Emergency recovery ──────────────────────────────────────────────────────
+  // A previous failed migration renamed users → users_pre_manager and then
+  // crashed. SQLite 3.26+ auto-updates every FK reference in other tables to
+  // point to the new name, so container_services/berthing_records/etc now say
+  // REFERENCES users_pre_manager. Fix everything before any other code runs.
+  try {
+    const hasBackup = db.prepare(
+      `SELECT name FROM sqlite_master WHERE type='table' AND name='users_pre_manager'`
+    ).get()
+    if (hasBackup) {
+      db.pragma('foreign_keys = OFF')
+      // Drop the empty users shell the failed migration left behind (if any)
+      const hasUsers = db.prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='users'`
+      ).get()
+      if (hasUsers) {
+        const count = db.prepare('SELECT COUNT(*) as c FROM users').get().c
+        if (count === 0) db.exec(`DROP TABLE users`)
+      }
+      const stillHasUsers = db.prepare(
+        `SELECT name FROM sqlite_master WHERE type='table' AND name='users'`
+      ).get()
+      if (!stillHasUsers) {
+        db.exec(`ALTER TABLE users_pre_manager RENAME TO users`)
+        // Fix every table whose FK was auto-rewritten to reference users_pre_manager
+        db.pragma('writable_schema = ON')
+        const affected = db.prepare(
+          `SELECT name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%users_pre_manager%'`
+        ).all()
+        for (const t of affected) {
+          const fixed = t.sql.replace(/users_pre_manager/g, 'users')
+          db.prepare(`UPDATE sqlite_master SET sql=? WHERE type='table' AND name=?`).run(fixed, t.name)
+        }
+        db.pragma('writable_schema = OFF')
+        const ver = db.pragma('schema_version', { simple: true })
+        db.pragma(`schema_version = ${ver + 1}`)
+      } else {
+        // users has data — backup is stale, just drop it
+        db.exec(`DROP TABLE users_pre_manager`)
+      }
+      db.pragma('foreign_keys = ON')
+    }
+  } catch (err) { console.error('[recovery] users_pre_manager fix failed:', err) }
+  // ────────────────────────────────────────────────────────────────────────────
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -279,6 +324,36 @@ module.exports = function initSchema(db) {
     })()
   }
 
+  // Migration: expand users role CHECK to allow 'manager', and fix any stale FK references
+  // left by a previous failed table-rename migration (SQLite auto-rewrites FK refs on rename).
+  try {
+    // 1. Patch users CHECK constraint if needed
+    const usersRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='users'`).get()
+    if (usersRow && !usersRow.sql.includes("'manager'")) {
+      const newSql = usersRow.sql.replace("role IN ('admin', 'user')", "role IN ('admin', 'user', 'manager')")
+      db.pragma('writable_schema = ON')
+      db.prepare(`UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = 'users'`).run(newSql)
+      db.pragma('writable_schema = OFF')
+      const ver = db.pragma('schema_version', { simple: true })
+      db.pragma(`schema_version = ${ver + 1}`)
+    }
+
+    // 2. Fix any table whose FK was auto-rewritten to REFERENCES users_pre_manager
+    const stale = db.prepare(
+      `SELECT name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%users_pre_manager%'`
+    ).all()
+    if (stale.length > 0) {
+      db.pragma('writable_schema = ON')
+      for (const t of stale) {
+        const fixed = t.sql.replace(/users_pre_manager/g, 'users')
+        db.prepare(`UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = ?`).run(fixed, t.name)
+      }
+      db.pragma('writable_schema = OFF')
+      const ver2 = db.pragma('schema_version', { simple: true })
+      db.pragma(`schema_version = ${ver2 + 1}`)
+    }
+  } catch (err) { console.error('[migration] users role/FK fix failed:', err) }
+
   // Migration: expand berthing_records CHECK to allow 'Congestion' position
   try {
     const schemaRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='berthing_records'`).get()
@@ -351,25 +426,32 @@ module.exports = function initSchema(db) {
   } catch {}
 
   // Remove any duplicate auto/fixed service lines per voyage (keep oldest row per code)
-  db.exec(`
-    DELETE FROM container_services
-    WHERE (is_fixed = 1 OR is_auto = 1)
-      AND is_deleted = 0
-      AND id NOT IN (
-        SELECT MIN(id) FROM container_services
-        WHERE (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0
-        GROUP BY voyage_number, service_code
-      );
+  // FK enforcement disabled here: stale sqlite_master FK refs (users_pre_manager) from a
+  // previous failed migration won't cause "no such table" until the connection is recycled.
+  db.pragma('foreign_keys = OFF')
+  try {
+    db.exec(`
+      DELETE FROM container_services
+      WHERE (is_fixed = 1 OR is_auto = 1)
+        AND is_deleted = 0
+        AND id NOT IN (
+          SELECT MIN(id) FROM container_services
+          WHERE (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0
+          GROUP BY voyage_number, service_code
+        );
 
-    DELETE FROM gc_services
-    WHERE (is_fixed = 1 OR is_auto = 1)
-      AND is_deleted = 0
-      AND id NOT IN (
-        SELECT MIN(id) FROM gc_services
-        WHERE (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0
-        GROUP BY voyage_number, service_code
-      );
-  `)
+      DELETE FROM gc_services
+      WHERE (is_fixed = 1 OR is_auto = 1)
+        AND is_deleted = 0
+        AND id NOT IN (
+          SELECT MIN(id) FROM gc_services
+          WHERE (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0
+          GROUP BY voyage_number, service_code
+        );
+    `)
+  } finally {
+    db.pragma('foreign_keys = ON')
+  }
 
   // Seed berthing_rates
   const rateCount = db.prepare('SELECT COUNT(*) as c FROM berthing_rates').get().c

@@ -38,7 +38,7 @@ const EMPTY = {
   loa: '', days: '', position: '', vesselCategory: '', maintenance: 'No',
 }
 
-export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoToContainers, onGoToGeneralCargo }) {
+export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoToContainers, onGoToGeneralCargo, initialVoyageNumber }) {
   const { t } = useTranslation()
   const { session, ratesData, agents } = useSession()
 
@@ -73,11 +73,11 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
         maintenance:    editRecord.maintenance,
       })
     } else {
-      setForm(EMPTY)
+      setForm({ ...EMPTY, voyageNumber: initialVoyageNumber || '' })
     }
     setErrors({})
     setBreakdown(null)
-  }, [editRecord])
+  }, [editRecord, initialVoyageNumber])
 
   // Live fee calc — triggered by LOA, Days, Position, Category, Maintenance
   useEffect(() => {
