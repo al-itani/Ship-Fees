@@ -86,7 +86,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
       if (!res.success) { setError(res.error); return }
       const d = res.data
       setRawData(d)
-      setCalc(calculateReceipt(d))
+      setCalc(calculateReceipt({ ...d, vesselType: d.header?.vessel_type }))
       if (d.existingReceipt && !readOnly && !autoExportPath) setShowRegenConfirm(true)
     })
   }, [voyageNumber, readOnly])
@@ -326,7 +326,12 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
               <tbody>
                 <InfoRow label={`${t('voyage_number')} / ${t('bill_number')}`} value={voyageNumber} />
                 <InfoRow label={t('vessel_name')} value={rawData.header.vessel_name} />
-                <InfoRow label={t('vessel_type')} value={rawData.header.vessel_type} />
+                <InfoRow
+                  label={t('vessel_type')}
+                  value={rawData.header.vessel_type
+                    ? rawData.header.vessel_type + (rawData.header.roro_cargo_type ? ` — ${rawData.header.roro_cargo_type}` : '')
+                    : null}
+                />
                 <InfoRow label={t('flag')} value={rawData.header.flag} />
               </tbody>
             </table>
@@ -371,7 +376,11 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
                     <span className="num-ltr">{row.days}</span>
                   </td>
                   <td style={{ ...T_CELL, textAlign: 'right', fontWeight: 600 }}>
-                    <span className="num-ltr">{fmt(row.final_fee)}</span>
+                    <span className="num-ltr">
+                      {calc.isRoRo && calc.rawBerthingTotal > 0
+                        ? fmt(row.final_fee * calc.berthingTotal / calc.rawBerthingTotal)
+                        : fmt(row.final_fee)}
+                    </span>
                   </td>
                 </tr>
               ))}

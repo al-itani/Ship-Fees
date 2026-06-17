@@ -6,6 +6,7 @@ const berthingSchema = z.object({
   bill_number:      z.string().min(1),
   vessel_name:      z.string().min(1),
   vessel_type:      z.string().optional().nullable(),
+  roro_cargo_type:  z.string().optional().nullable(),
   flag:             z.string().optional().nullable(),
   shipping_agent:   z.string().min(1),
   ata:              z.string().min(1),
@@ -86,19 +87,19 @@ function save(data) {
     const d = parsed.data
     const stmt = db.prepare(`
       INSERT INTO berthing_records (
-        voyage_number, bill_number, vessel_name, vessel_type, flag, shipping_agent,
+        voyage_number, bill_number, vessel_name, vessel_type, roro_cargo_type, flag, shipping_agent,
         ata, atd, loa, days, position, vessel_category, maintenance,
         l_index, d1_days, d2_days, d3_days,
         raw_fee, discount_factor, fee_after_discount, min_fee,
         late_fee, maintenance_fee, final_fee, created_by
       ) VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
       )
     `)
     const result = stmt.run(
-      d.voyage_number, d.bill_number, d.vessel_name, d.vessel_type || null, d.flag || null,
-      d.shipping_agent, d.ata, d.atd, d.loa, d.days, d.position,
+      d.voyage_number, d.bill_number, d.vessel_name, d.vessel_type || null, d.roro_cargo_type || null,
+      d.flag || null, d.shipping_agent, d.ata, d.atd, d.loa, d.days, d.position,
       d.vessel_category || null, d.maintenance,
       d.l_index, d.d1_days, d.d2_days, d.d3_days,
       d.raw_fee, d.discount_factor, d.fee_after_discount, d.min_fee,
@@ -141,7 +142,7 @@ function update(id, data) {
 
     db.prepare(`
       UPDATE berthing_records SET
-        voyage_number=?, bill_number=?, vessel_name=?, vessel_type=?, flag=?,
+        voyage_number=?, bill_number=?, vessel_name=?, vessel_type=?, roro_cargo_type=?, flag=?,
         shipping_agent=?, ata=?, atd=?, loa=?, days=?, position=?,
         vessel_category=?, maintenance=?,
         l_index=?, d1_days=?, d2_days=?, d3_days=?,
@@ -150,8 +151,8 @@ function update(id, data) {
         updated_by=?, updated_at=datetime('now')
       WHERE id=?
     `).run(
-      d.voyage_number, d.bill_number, d.vessel_name, d.vessel_type || null, d.flag || null,
-      d.shipping_agent, d.ata, d.atd, d.loa, d.days, d.position,
+      d.voyage_number, d.bill_number, d.vessel_name, d.vessel_type || null, d.roro_cargo_type || null,
+      d.flag || null, d.shipping_agent, d.ata, d.atd, d.loa, d.days, d.position,
       d.vessel_category || null, d.maintenance,
       d.l_index, d.d1_days, d.d2_days, d.d3_days,
       d.raw_fee, d.discount_factor, d.fee_after_discount, d.min_fee,

@@ -14,7 +14,7 @@ function fmtMoney(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function BerthingRecords({ onEdit }) {
+export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
   const { t } = useTranslation()
   const { session } = useSession()
   const [records, setRecords] = useState([])
@@ -22,6 +22,7 @@ export default function BerthingRecords({ onEdit }) {
   const [search, setSearch]   = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast]     = useState(null)
+  const [preparingReceipt, setPreparingReceipt] = useState(null)
 
   useEffect(() => {
     loadRecords()
@@ -58,6 +59,20 @@ export default function BerthingRecords({ onEdit }) {
   function showToast(msg, type) {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  async function handleGenerateReceipt(voyageNumber) {
+    if (!onGenerateReceipt) return
+    setPreparingReceipt(voyageNumber)
+    try {
+      const res = await window.api.receiptPrepareBerthingOnly(voyageNumber, session.username)
+      if (!res.success) { showToast(res.error || 'Error', 'error'); return }
+      onGenerateReceipt(voyageNumber)
+    } catch (err) {
+      showToast(err.message || 'Error', 'error')
+    } finally {
+      setPreparingReceipt(null)
+    }
   }
 
   const filtered = records.filter(r => {
@@ -148,7 +163,7 @@ export default function BerthingRecords({ onEdit }) {
                 <th style={thStyle}>{t('ata')}</th>
                 <th style={thStyle}>{t('atd')}</th>
                 <th style={thStyle}>{t('entered_by')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', width: 120 }}></th>
+                <th style={{ ...thStyle, textAlign: 'center', width: 260 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -158,7 +173,14 @@ export default function BerthingRecords({ onEdit }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
                   <td style={tdStyle}><span className="num-ltr">{r.voyage_number}</span></td>
-                  <td style={tdStyle}>{r.vessel_name}</td>
+                  <td style={tdStyle}>
+                    {r.vessel_name}
+                    {r.vessel_type === 'RoRo' && r.roro_cargo_type && (
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        RoRo — {r.roro_cargo_type}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ ...tdStyle, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {r.shipping_agent}
                   </td>
@@ -178,30 +200,47 @@ export default function BerthingRecords({ onEdit }) {
                     {r.created_by_name || '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    {canEdit(r) && (
-                      <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      {onGenerateReceipt && (
                         <button
-                          onClick={() => onEdit(r)}
+                          onClick={() => handleGenerateReceipt(r.voyage_number)}
+                          disabled={preparingReceipt === r.voyage_number}
                           style={{
-                            padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-primary)',
-                            background: 'white', color: 'var(--color-primary)',
-                            fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                            padding: '5px 12px', borderRadius: 5,
+                            border: '1px solid var(--color-success)',
+                            background: 'white', color: 'var(--color-success)',
+                            fontSize: 12, cursor: preparingReceipt === r.voyage_number ? 'not-allowed' : 'pointer',
+                            fontWeight: 500, opacity: preparingReceipt === r.voyage_number ? 0.6 : 1,
                           }}
                         >
-                          {t('edit')}
+                          🧾 {t('generate_receipt')}
                         </button>
-                        <button
-                          onClick={() => setDeleteTarget(r)}
-                          style={{
-                            padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-danger)',
-                            background: 'white', color: 'var(--color-danger)',
-                            fontSize: 12, cursor: 'pointer', fontWeight: 500,
-                          }}
-                        >
-                          {t('delete')}
-                        </button>
-                      </div>
-                    )}
+                      )}
+                      {canEdit(r) && (
+                        <>
+                          <button
+                            onClick={() => onEdit(r)}
+                            style={{
+                              padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-primary)',
+                              background: 'white', color: 'var(--color-primary)',
+                              fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                            }}
+                          >
+                            {t('edit')}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(r)}
+                            style={{
+                              padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-danger)',
+                              background: 'white', color: 'var(--color-danger)',
+                              fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                            }}
+                          >
+                            {t('delete')}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

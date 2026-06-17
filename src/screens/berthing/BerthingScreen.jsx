@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import BerthingForm from './BerthingForm.jsx'
 import BerthingRecords from './BerthingRecords.jsx'
 
-export default function BerthingScreen({ onGoToContainers }) {
+export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, onGenerateReceipt }) {
   const { t } = useTranslation()
   const [activeTab, setActiveTab]   = useState('new-entry')
   const [editRecord, setEditRecord] = useState(null)
@@ -71,12 +71,14 @@ export default function BerthingScreen({ onGoToContainers }) {
           onSaved={handleSaved}
           onCancelEdit={handleCancelEdit}
           onGoToContainers={onGoToContainers}
+          onGoToGeneralCargo={onGoToGeneralCargo}
         />
       )}
       {activeTab === 'records' && (
         <BerthingRecords
           key={refreshKey}
           onEdit={handleEdit}
+          onGenerateReceipt={onGenerateReceipt}
         />
       )}
     </div>

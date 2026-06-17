@@ -183,6 +183,7 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE gc_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE berthing_records ADD COLUMN roro_cargo_type TEXT`) } catch {}
 
   // Fix PQ1 rate to $60 if it was stored incorrectly
   try { db.prepare(`UPDATE gc_codes SET rate = 60 WHERE code = 'PQ1' AND rate != 60`).run() } catch {}
@@ -322,6 +323,29 @@ module.exports = function initSchema(db) {
         `)
         db.exec(`INSERT INTO berthing_records SELECT * FROM berthing_records_pre_cong`)
         db.exec(`DROP TABLE berthing_records_pre_cong`)
+      })()
+    }
+  } catch {}
+
+  // Migration: drop vessel_type CHECK on voyages so any vessel type (e.g. Petrolien) is allowed
+  try {
+    const vRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='voyages'`).get()
+    if (vRow && vRow.sql.includes('vessel_type IN (')) {
+      db.transaction(() => {
+        db.exec(`ALTER TABLE voyages RENAME TO voyages_pre_vtype`)
+        db.exec(`
+          CREATE TABLE voyages (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            voyage_number TEXT NOT NULL UNIQUE,
+            vessel_name   TEXT,
+            vessel_type   TEXT,
+            module_type   TEXT CHECK(module_type IN ('Container', 'GC')),
+            is_deleted    INTEGER DEFAULT 0,
+            created_at    TEXT DEFAULT (datetime('now'))
+          )
+        `)
+        db.exec(`INSERT INTO voyages SELECT * FROM voyages_pre_vtype`)
+        db.exec(`DROP TABLE voyages_pre_vtype`)
       })()
     }
   } catch {}

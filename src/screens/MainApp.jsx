@@ -15,12 +15,18 @@ import UserManagementScreen from './users/UserManagementScreen.jsx'
 export default function MainApp() {
   const [currentScreen, setCurrentScreen]     = useState('home')
   const [containerVoyage, setContainerVoyage] = useState(null)
+  const [gcVoyage, setGcVoyage]               = useState(null)
   // { voyageNumber, readOnly }
   const [receiptState, setReceiptState]       = useState(null)
 
   function handleGoToContainers(voyageNumber) {
     setContainerVoyage(voyageNumber)
     setCurrentScreen('containers')
+  }
+
+  function handleGoToGeneralCargo(voyageNumber) {
+    setGcVoyage(voyageNumber)
+    setCurrentScreen('general_cargo')
   }
 
   function handleGenerateReceipt(voyageNumber) {
@@ -38,7 +44,7 @@ export default function MainApp() {
   function renderScreen() {
     switch (currentScreen) {
       case 'berthing':
-        return <BerthingScreen onGoToContainers={handleGoToContainers} />
+        return <BerthingScreen onGoToContainers={handleGoToContainers} onGoToGeneralCargo={handleGoToGeneralCargo} onGenerateReceipt={handleGenerateReceipt} />
       case 'containers':
         return (
           <ContainerScreen
@@ -48,7 +54,13 @@ export default function MainApp() {
           />
         )
       case 'general_cargo':
-        return <GeneralCargoScreen onGenerateReceipt={handleGenerateReceipt} />
+        return (
+          <GeneralCargoScreen
+            initialVoyage={gcVoyage}
+            onVoyageConsumed={() => setGcVoyage(null)}
+            onGenerateReceipt={handleGenerateReceipt}
+          />
+        )
       case 'receipts_archive':
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':

@@ -23,7 +23,7 @@ const thStyle = {
 }
 const tdStyle = { padding: '10px 16px', verticalAlign: 'middle', fontSize: 13 }
 
-export default function GeneralCargoScreen({ onGenerateReceipt }) {
+export default function GeneralCargoScreen({ initialVoyage, onVoyageConsumed, onGenerateReceipt }) {
   const { t } = useTranslation()
   const { session } = useSession()
 
@@ -53,6 +53,15 @@ export default function GeneralCargoScreen({ onGenerateReceipt }) {
       if (res.success) setCodes(res.data)
     })
   }, [])
+
+  // Auto-lookup when navigated from Berthing with a voyage number
+  useEffect(() => {
+    if (!initialVoyage) return
+    onVoyageConsumed?.()
+    setVoyageInput(initialVoyage)
+    handleLookup(initialVoyage)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialVoyage])
 
   // Auto-fill rate when code changes
   useEffect(() => {
@@ -127,8 +136,8 @@ export default function GeneralCargoScreen({ onGenerateReceipt }) {
     showToast(t('import_applied'), 'success')
   }
 
-  async function handleLookup() {
-    const vn = voyageInput.trim()
+  async function handleLookup(vnOverride) {
+    const vn = (vnOverride || voyageInput).trim()
     if (!vn) return
     setVoyageError('')
     setLooking(true)

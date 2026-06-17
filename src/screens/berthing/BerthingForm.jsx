@@ -13,7 +13,7 @@ const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
 ]
-const VESSEL_TYPES = ['Container', 'General Cargo']
+const VESSEL_TYPES = ['Container', 'General Cargo', 'RoRo', 'Petrolien']
 
 function toDatetimeLocal(isoStr) {
   if (!isoStr) return ''
@@ -33,12 +33,12 @@ function expandDateYear(v) {
 }
 
 const EMPTY = {
-  voyageNumber: '', vesselName: '', vesselType: '',
+  voyageNumber: '', vesselName: '', vesselType: '', roroCargotype: '',
   flag: '', shippingAgent: '', ata: '', atd: '',
   loa: '', days: '', position: '', vesselCategory: '', maintenance: 'No',
 }
 
-export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoToContainers }) {
+export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoToContainers, onGoToGeneralCargo }) {
   const { t } = useTranslation()
   const { session, ratesData, agents } = useSession()
 
@@ -47,7 +47,8 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
   const [errors, setErrors]           = useState({})
   const [showConfirm, setShowConfirm]           = useState(false)
   const [showClearConfirm, setShowClearConfirm] = useState(false)
-  const [postSaveVoyage, setPostSaveVoyage]     = useState(null)
+  const [postSaveVoyage, setPostSaveVoyage]         = useState(null)
+  const [postSaveVesselType, setPostSaveVesselType] = useState(null)
   const [saving, setSaving]                     = useState(false)
   const [toast, setToast]                       = useState(null)
   const [uncertainFields, setUncertainFields]   = useState(new Set())
@@ -60,6 +61,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
         voyageNumber:   editRecord.voyage_number,
         vesselName:     editRecord.vessel_name,
         vesselType:     editRecord.vessel_type || '',
+        roroCargotype:  editRecord.roro_cargo_type || '',
         flag:           editRecord.flag || '',
         shippingAgent:  editRecord.shipping_agent,
         ata:            toDatetimeLocal(editRecord.ata),
@@ -127,6 +129,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
     if (!form.loa || parseFloat(form.loa) <= 0) e.loa = true
     if (!form.days || Math.ceil(Number(form.days)) <= 0) e.days = true
     if (!form.position)            e.position      = true
+    if (form.vesselType === 'RoRo' && !form.roroCargotype) e.roroCargotype = true
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -146,6 +149,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
       bill_number:        form.voyageNumber.trim(),
       vessel_name:        form.vesselName.trim(),
       vessel_type:        form.vesselType || null,
+      roro_cargo_type:    form.vesselType === 'RoRo' ? (form.roroCargotype || null) : null,
       flag:               form.flag || null,
       shipping_agent:     form.shippingAgent,
       ata:                form.ata,
@@ -180,6 +184,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
           onSaved()
         } else {
           setPostSaveVoyage(form.voyageNumber.trim())
+          setPostSaveVesselType(form.vesselType)
         }
       } else {
         showToast(res.error || 'Error', 'error')
@@ -325,13 +330,33 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
         <div style={groupStyle}>
           <label style={labelStyle}>{t('vessel_type')} <UncWarn field="vessel_type" /></label>
           <select style={{ ...fieldStyle(false, uncertainFields.has('vessel_type')), cursor: 'pointer' }}
-            value={form.vesselType} onChange={e => set('vesselType', e.target.value)}
-            {...uf('vessel_type')}>
+            value={form.vesselType}
+            onChange={e => {
+              const v = e.target.value
+              setForm(prev => ({ ...prev, vesselType: v, ...(v !== 'RoRo' && { roroCargotype: '' }) }))
+              clearUncertain('vessel_type')
+            }}>
             <option value="">—</option>
             {VESSEL_TYPES.map(vt => <option key={vt} value={vt}>{vt}</option>)}
           </select>
         </div>
       </div>
+
+      {/* RoRo Cargo Type — shown only when vessel type is RoRo */}
+      {form.vesselType === 'RoRo' && (
+        <div style={groupStyle}>
+          <label style={labelStyle}>{t('roro_cargo_type')} *</label>
+          <select
+            style={{ ...fieldStyle(errors.roroCargotype, false), cursor: 'pointer', maxWidth: 320 }}
+            value={form.roroCargotype}
+            onChange={e => set('roroCargotype', e.target.value)}
+          >
+            <option value="">—</option>
+            <option value="General Cargo">{t('general_cargo')}</option>
+            <option value="Containers">{t('containers')}</option>
+          </select>
+        </div>
+      )}
 
       {/* Row 3: Flag and Shipping Agent */}
       <div style={twoCol}>
@@ -516,6 +541,8 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
                   [t('position'),        form.position],
                   [t('vessel_category'), form.vesselCategory || t('none')],
                   [t('maintenance'),     t(form.maintenance === 'Yes' ? 'yes' : 'no')],
+                  ...(form.vesselType === 'RoRo' && form.roroCargotype
+                    ? [[t('roro_cargo_type'), form.roroCargotype]] : []),
                 ].map(([k, v]) => (
                   <div key={k} style={{
                     display: 'flex', justifyContent: 'space-between',
@@ -566,7 +593,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
         </div>
       )}
 
-      {/* Post-save: offer to open Container Services */}
+      {/* Post-save: offer to open the relevant cargo services */}
       {postSaveVoyage && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
@@ -582,7 +609,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
                 {t('record_saved')}
               </h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                {t('open_containers_prompt')}
+                {postSaveVesselType === 'General Cargo' ? t('open_gc_prompt') : t('open_containers_prompt')}
                 {' '}
                 <strong style={{ color: 'var(--color-primary)' }}>{postSaveVoyage}</strong>?
               </p>
@@ -593,7 +620,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
               borderTop: '1px solid #F0F0F0',
             }}>
               <button
-                onClick={() => { setPostSaveVoyage(null); setForm(EMPTY); setBreakdown(null); setErrors({}) }}
+                onClick={() => { setPostSaveVoyage(null); setPostSaveVesselType(null); setForm(EMPTY); setBreakdown(null); setErrors({}) }}
                 style={{
                   padding: '10px 20px', borderRadius: 6, fontSize: 14,
                   border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer',
@@ -601,16 +628,29 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
               >
                 + {t('new_entry')}
               </button>
-              <button
-                onClick={() => { const vn = postSaveVoyage; setPostSaveVoyage(null); onGoToContainers?.(vn) }}
-                style={{
-                  padding: '10px 24px', borderRadius: 6, border: 'none', fontSize: 14,
-                  background: 'var(--color-primary)', color: 'white',
-                  fontWeight: 600, cursor: 'pointer',
-                }}
-              >
-                📦 {t('open_container_services')}
-              </button>
+              {postSaveVesselType === 'General Cargo' ? (
+                <button
+                  onClick={() => { const vn = postSaveVoyage; setPostSaveVoyage(null); setPostSaveVesselType(null); onGoToGeneralCargo?.(vn) }}
+                  style={{
+                    padding: '10px 24px', borderRadius: 6, border: 'none', fontSize: 14,
+                    background: 'var(--color-primary)', color: 'white',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  🚢 {t('open_gc_services')}
+                </button>
+              ) : (
+                <button
+                  onClick={() => { const vn = postSaveVoyage; setPostSaveVoyage(null); setPostSaveVesselType(null); onGoToContainers?.(vn) }}
+                  style={{
+                    padding: '10px 24px', borderRadius: 6, border: 'none', fontSize: 14,
+                    background: 'var(--color-primary)', color: 'white',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  📦 {t('open_container_services')}
+                </button>
+              )}
             </div>
           </div>
         </div>

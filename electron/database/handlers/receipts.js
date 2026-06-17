@@ -22,7 +22,7 @@ function getDataForReceipt(voyageNumber) {
     if (!voyage.module_type) return { success: false, error: 'no_module_type' }
 
     const header = db.prepare(`
-      SELECT voyage_number, vessel_name, vessel_type, flag, shipping_agent, ata, atd, loa, position
+      SELECT voyage_number, vessel_name, vessel_type, roro_cargo_type, flag, shipping_agent, ata, atd, loa, position
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at DESC LIMIT 1
@@ -151,4 +151,58 @@ function softDelete(id, userId) {
   }
 }
 
-module.exports = { getDataForReceipt, saveReceipt, getAll, softDelete }
+// Ensures a voyage exists as GC and the 3 auto lines are present so a
+// berthing-only receipt can be generated without any Container/GC services.
+// Safe to call on voyages that already have services — it does nothing in that case.
+function prepareBerthingOnly(voyageNumber, username) {
+  try {
+    const br = db.prepare(
+      'SELECT vessel_name, vessel_type FROM berthing_records WHERE voyage_number = ? AND is_deleted = 0 LIMIT 1'
+    ).get(voyageNumber)
+    if (!br) return { success: false, error: 'no_berthing_records' }
+
+    // Upsert voyage with module_type = 'GC'; never overwrite an existing module_type
+    const voyage = db.prepare(
+      'SELECT id, module_type FROM voyages WHERE voyage_number = ? AND is_deleted = 0'
+    ).get(voyageNumber)
+
+    let voyageId
+    if (!voyage) {
+      const ins = db.prepare(
+        "INSERT INTO voyages (voyage_number, vessel_name, module_type) VALUES (?, ?, 'GC')"
+      ).run(voyageNumber, br.vessel_name || '')
+      voyageId = ins.lastInsertRowid
+    } else {
+      voyageId = voyage.id
+      if (!voyage.module_type) {
+        db.prepare("UPDATE voyages SET module_type = 'GC' WHERE id = ?").run(voyageId)
+      }
+    }
+
+    // Only insert auto lines for GC voyages with no existing services
+    const moduleType = db.prepare('SELECT module_type FROM voyages WHERE id = ?').get(voyageId).module_type
+    if (moduleType !== 'GC') return { success: true }
+
+    const hasServices = db.prepare(
+      'SELECT COUNT(*) as c FROM gc_services WHERE voyage_number = ? AND is_deleted = 0'
+    ).get(voyageNumber).c > 0
+    if (hasServices) return { success: true }
+
+    const insertLine = db.prepare(`
+      INSERT INTO gc_services
+        (voyage_number, service_code, unit, quantity, rate, minimum, line_total, is_taxable, is_fixed, is_auto, created_by)
+      VALUES (?, ?, 'unit', 1, ?, 0, ?, 0, ?, ?, ?)
+    `)
+    db.transaction(() => {
+      insertLine.run(voyageNumber, 'AUTOM', 1.00, 1.00, 1, 0, username || 'system')
+      insertLine.run(voyageNumber, 'BILLF', 1.00, 1.00, 1, 0, username || 'system')
+      insertLine.run(voyageNumber, 'STAMP', 2.00, 2.00, 0, 1, username || 'system')
+    })()
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getDataForReceipt, saveReceipt, getAll, softDelete, prepareBerthingOnly }
