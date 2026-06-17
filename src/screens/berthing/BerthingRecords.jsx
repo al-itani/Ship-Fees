@@ -14,19 +14,46 @@ function fmtMoney(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
+const NUMERIC_COLS = new Set(['loa', 'days', 'final_fee', 'id'])
+
+function compareRows(a, b, col, dir) {
+  let av = a[col], bv = b[col]
+  if (NUMERIC_COLS.has(col)) {
+    av = Number(av) || 0
+    bv = Number(bv) || 0
+    return dir === 'asc' ? av - bv : bv - av
+  }
+  av = (av || '').toString().toLowerCase()
+  bv = (bv || '').toString().toLowerCase()
+  const cmp = av.localeCompare(bv)
+  return dir === 'asc' ? cmp : -cmp
+}
+
+const thBase = {
+  padding: '9px 12px', textAlign: 'start', fontSize: 12,
+  fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap',
+  borderBottom: '2px solid var(--color-border)',
+  background: '#F8FAFF', cursor: 'pointer', userSelect: 'none',
+  textTransform: 'uppercase', letterSpacing: '0.03em',
+}
+const tdBase = {
+  padding: '9px 12px', fontSize: 13,
+  borderBottom: '1px solid #F0F2F5', whiteSpace: 'nowrap',
+  color: 'var(--color-text)',
+}
+
+export default function BerthingRecords({ onEdit }) {
   const { t } = useTranslation()
   const { session } = useSession()
-  const [records, setRecords] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch]   = useState('')
+  const [records, setRecords]           = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [search, setSearch]             = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const [toast, setToast]     = useState(null)
-  const [preparingReceipt, setPreparingReceipt] = useState(null)
+  const [toast, setToast]               = useState(null)
+  const [sortCol, setSortCol]           = useState('id')
+  const [sortDir, setSortDir]           = useState('desc')
 
-  useEffect(() => {
-    loadRecords()
-  }, [])
+  useEffect(() => { loadRecords() }, [])
 
   async function loadRecords() {
     setLoading(true)
@@ -61,18 +88,18 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
     setTimeout(() => setToast(null), 3000)
   }
 
-  async function handleGenerateReceipt(voyageNumber) {
-    if (!onGenerateReceipt) return
-    setPreparingReceipt(voyageNumber)
-    try {
-      const res = await window.api.receiptPrepareBerthingOnly(voyageNumber, session.username)
-      if (!res.success) { showToast(res.error || 'Error', 'error'); return }
-      onGenerateReceipt(voyageNumber)
-    } catch (err) {
-      showToast(err.message || 'Error', 'error')
-    } finally {
-      setPreparingReceipt(null)
+  function handleSortCol(col) {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir('asc')
     }
+  }
+
+  function sortIcon(col) {
+    if (sortCol !== col) return <span style={{ opacity: 0.3 }}> ⇅</span>
+    return sortDir === 'asc' ? ' ▲' : ' ▼'
   }
 
   const filtered = records.filter(r => {
@@ -81,20 +108,22 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
     return (
       r.vessel_name?.toLowerCase().includes(q) ||
       r.voyage_number?.toLowerCase().includes(q) ||
+      r.bill_number?.toLowerCase().includes(q) ||
       r.shipping_agent?.toLowerCase().includes(q)
     )
   })
 
-  const thStyle = {
-    padding: '10px 12px', textAlign: 'start', fontSize: 12,
-    fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap',
-    borderBottom: '2px solid var(--color-border)',
-    background: '#F8F9FA',
-  }
-  const tdStyle = {
-    padding: '10px 12px', fontSize: 13,
-    borderBottom: '1px solid #F0F2F5', whiteSpace: 'nowrap',
-    color: 'var(--color-text)',
+  const sorted = [...filtered].sort((a, b) => compareRows(a, b, sortCol, sortDir))
+
+  function th(col, label, extraStyle = {}) {
+    return (
+      <th
+        onClick={() => handleSortCol(col)}
+        style={{ ...thBase, ...extraStyle }}
+      >
+        {label}{sortIcon(col)}
+      </th>
+    )
   }
 
   return (
@@ -150,97 +179,79 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
         </div>
       ) : (
         <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)', overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                <th style={thStyle}>{t('voyage_number')}</th>
-                <th style={thStyle}>{t('vessel_name')}</th>
-                <th style={thStyle}>{t('shipping_agent')}</th>
-                <th style={thStyle}>{t('position')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('loa')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('days')}</th>
-                <th style={{ ...thStyle, textAlign: 'end' }}>{t('total_fee')}</th>
-                <th style={thStyle}>{t('ata')}</th>
-                <th style={thStyle}>{t('atd')}</th>
-                <th style={thStyle}>{t('entered_by')}</th>
-                <th style={{ ...thStyle, textAlign: 'center', width: 260 }}></th>
+                {th('voyage_number', t('voyage_number'))}
+                {th('vessel_name',   t('vessel_name'))}
+                {th('bill_number',   t('bill_number'))}
+                {th('position',      t('position'))}
+                {th('loa',           t('loa'),       { textAlign: 'center' })}
+                {th('days',          t('days'),      { textAlign: 'end' })}
+                {th('final_fee',     t('total_fee'), { textAlign: 'end' })}
+                {th('ata',           t('ata'))}
+                {th('atd',           t('atd'))}
+                <th style={{ ...thBase, cursor: 'default', width: 70 }}></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
-                <tr key={r.id} style={{ transition: 'background 0.1s' }}
+              {sorted.map(r => (
+                <tr
+                  key={r.id}
                   onMouseEnter={e => e.currentTarget.style.background = '#FAFBFF'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  <td style={tdStyle}><span className="num-ltr">{r.voyage_number}</span></td>
-                  <td style={tdStyle}>
-                    {r.vessel_name}
+                  <td style={tdBase}>
+                    <span
+                      className="num-ltr"
+                      onClick={() => canEdit(r) && onEdit(r)}
+                      style={canEdit(r) ? { cursor: 'pointer' } : {}}
+                    >
+                      {r.voyage_number}
+                    </span>
+                  </td>
+                  <td style={tdBase}>
+                    <span
+                      onClick={() => canEdit(r) && onEdit(r)}
+                      style={canEdit(r) ? { cursor: 'pointer' } : {}}
+                    >
+                      {r.vessel_name}
+                    </span>
                     {r.vessel_type === 'RoRo' && r.roro_cargo_type && (
                       <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
                         RoRo — {r.roro_cargo_type}
                       </div>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {r.shipping_agent}
+                  <td style={tdBase}>
+                    <span className="num-ltr">{r.bill_number || '—'}</span>
                   </td>
-                  <td style={tdStyle}>{r.position}</td>
-                  <td style={{ ...tdStyle, textAlign: 'end' }}>
+                  <td style={tdBase}>{r.position}</td>
+                  <td style={{ ...tdBase, textAlign: 'center' }}>
                     <span className="num-ltr">{r.loa}</span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'end' }}>
+                  <td style={{ ...tdBase, textAlign: 'end' }}>
                     <span className="num-ltr">{r.days}</span>
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'end', fontWeight: 600, color: 'var(--color-primary)' }}>
+                  <td style={{ ...tdBase, textAlign: 'end', fontWeight: 600, color: 'var(--color-primary)' }}>
                     <span className="num-ltr">{fmtMoney(r.final_fee)}</span>
                   </td>
-                  <td style={tdStyle}><span className="num-ltr">{fmtDate(r.ata)}</span></td>
-                  <td style={tdStyle}><span className="num-ltr">{fmtDate(r.atd)}</span></td>
-                  <td style={{ ...tdStyle, color: 'var(--color-text-muted)' }}>
-                    {r.created_by_name || '—'}
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
-                      {onGenerateReceipt && (
-                        <button
-                          onClick={() => handleGenerateReceipt(r.voyage_number)}
-                          disabled={preparingReceipt === r.voyage_number}
-                          style={{
-                            padding: '5px 12px', borderRadius: 5,
-                            border: '1px solid var(--color-success)',
-                            background: 'white', color: 'var(--color-success)',
-                            fontSize: 12, cursor: preparingReceipt === r.voyage_number ? 'not-allowed' : 'pointer',
-                            fontWeight: 500, opacity: preparingReceipt === r.voyage_number ? 0.6 : 1,
-                          }}
-                        >
-                          🧾 {t('generate_receipt')}
-                        </button>
-                      )}
-                      {canEdit(r) && (
-                        <>
-                          <button
-                            onClick={() => onEdit(r)}
-                            style={{
-                              padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-primary)',
-                              background: 'white', color: 'var(--color-primary)',
-                              fontSize: 12, cursor: 'pointer', fontWeight: 500,
-                            }}
-                          >
-                            {t('edit')}
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(r)}
-                            style={{
-                              padding: '5px 12px', borderRadius: 5, border: '1px solid var(--color-danger)',
-                              background: 'white', color: 'var(--color-danger)',
-                              fontSize: 12, cursor: 'pointer', fontWeight: 500,
-                            }}
-                          >
-                            {t('delete')}
-                          </button>
-                        </>
-                      )}
-                    </div>
+                  <td style={tdBase}><span className="num-ltr">{fmtDate(r.ata)}</span></td>
+                  <td style={tdBase}><span className="num-ltr">{fmtDate(r.atd)}</span></td>
+                  <td style={{ ...tdBase, textAlign: 'center' }}>
+                    {canEdit(r) && (
+                      <button
+                        onClick={() => setDeleteTarget(r)}
+                        style={{
+                          padding: '5px 12px', borderRadius: 5,
+                          border: '1px solid var(--color-danger)',
+                          background: 'white', color: 'var(--color-danger)',
+                          fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                        }}
+                      >
+                        {t('delete')}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

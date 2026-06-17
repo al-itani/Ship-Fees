@@ -149,7 +149,7 @@ function listVoyages() {
         br.voyage_number,
         MAX(br.vessel_name)    AS vessel_name,
         MAX(br.shipping_agent) AS shipping_agent,
-        MIN(gs.created_at)     AS date_processed
+        COALESCE(MIN(gs.created_at), MIN(br.created_at)) AS date_processed
       FROM berthing_records br
       LEFT JOIN gc_services gs
         ON gs.voyage_number = br.voyage_number AND gs.is_deleted = 0
