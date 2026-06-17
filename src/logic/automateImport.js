@@ -2,8 +2,8 @@
 // extraction-result mapping, fee breakdowns, validation, and insertion.
 // All DB access still goes through window.api (IPC) — audit logging happens in the handlers.
 
-import { calcBerthingFee, getLIndex } from '../../logic/berthingCalc.js'
-import { calculateReceipt } from '../../logic/receiptCalc.js'
+import { calcBerthingFee, getLIndex } from './berthingCalc.js'
+import { calculateReceipt } from './receiptCalc.js'
 
 export const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
 
@@ -97,7 +97,7 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
         : (mc?.default_rate_20 ?? 0)
       // Strip currency symbols/spaces before converting — Claude occasionally returns "$26.54"
       const rawPrice = parseFloat(String(s.price_per_unit ?? '').replace(/[$,\s]/g, ''))
-      const price    = isFinite(rawPrice) ? rawPrice : defaultRate
+      const price    = isFinite(rawPrice) && rawPrice > 0 ? rawPrice : defaultRate
       return {
         _type:          'container',
         service_code:   mc?.code || String(s.code).toUpperCase(),
@@ -113,7 +113,7 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
       const mc      = gcCodes.find(c => c.code.toLowerCase() === String(s.code).toLowerCase())
       const qty     = Number(s.quantity) || 1
       const rawRate = parseFloat(String(s.price_per_unit ?? '').replace(/[$,\s]/g, ''))
-      const rate    = isFinite(rawRate) ? rawRate : (mc?.rate ?? 0)
+      const rate    = isFinite(rawRate) && rawRate > 0 ? rawRate : (mc?.rate ?? 0)
       const min   = mc?.minimum || 0
       const total = min > 0 ? Math.max(qty * rate, min) : qty * rate
       return {
@@ -160,13 +160,20 @@ export function computeBreakdowns(berthingRows, form, ratesData) {
     } catch { return null }
   })
 
-  // Step 2: apply Quay minimum to the combined total (not per-row)
+  // Step 2: apply Quay minimum to the combined total — only when the voyage includes a Quay row
+  // with a valid (non-null) breakdown. Congestion rows always return $0 and must not be the
+  // only "valid" row when Quay has empty days, which would cause rawSum=0 → Infinity scaling.
+  const hasValidQuay = rawBreakdowns.some((bd, i) => bd !== null && berthingRows[i].position === 'Quay')
+  if (!hasValidQuay) return rawBreakdowns
+
   const validIndices = rawBreakdowns.reduce((acc, bd, i) => { if (bd) acc.push(i); return acc }, [])
   if (validIndices.length === 0) return rawBreakdowns
 
   // Sum fees WITHOUT per-row minimum (feeAfterDiscount + maintenanceFee per row)
   const r2 = v => Math.round(v * 100) / 100
   const rawSum = validIndices.reduce((s, i) => s + rawBreakdowns[i].feeAfterDiscount + rawBreakdowns[i].maintenanceFee, 0)
+  // If rawSum is 0 (e.g. 100%-discount category like Military), skip minimum — the fee is already $0.
+  if (rawSum === 0) return rawBreakdowns
   const quayMin = ratesData.minimums['Quay'][getLIndex(loa)]
   const correctedTotal = Math.max(rawSum, quayMin)
 
@@ -254,6 +261,11 @@ export async function insertVoyage({ form, validRows, serviceLines, manualLines 
       ? await window.api.updateBerthing(existingRecords[i].id, { ...payload, updated_by: userId })
       : await window.api.saveBerthing({ ...payload, created_by: userId })
     if (!bRes.success) throw new Error(bRes.error || 'Error saving berthing')
+  }
+
+  // Soft-delete any surplus existing records not covered by this import
+  for (let i = validRows.length; i < existingRecords.length; i++) {
+    await window.api.deleteBerthing(existingRecords[i].id, userId)
   }
 
   const validManualLines = manualLines.filter(l => l.service_code)

@@ -9,7 +9,7 @@ import ReceiptPreview from '../receipt/ReceiptPreview.jsx'
 import {
   POSITIONS, buildReviewState, computeBreakdowns,
   validateReviewData, insertVoyage, autoSaveReceipt,
-} from './automateImport.js'
+} from '../../logic/automateImport.js'
 
 function buildPdfPath(voyageNumber, vesselName) {
   const sanitize = s => String(s || '').replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').slice(0, 40)
@@ -20,7 +20,13 @@ const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
 ]
-const VESSEL_TYPES = ['Container', 'General Cargo']
+const VESSEL_TYPES = ['Container', 'General Cargo', 'RoRo', 'Petrolien']
+
+function normalizeVesselType(type) {
+  if (!type) return type
+  if (type.toLowerCase().replace(/[-\s]/g, '') === 'roro') return 'Container'
+  return type
+}
 
 const EMPTY_FORM = {
   voyageNumber: '', vesselName: '', vesselType: '',
@@ -333,6 +339,20 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setManualLines(prev => prev.filter((_, idx) => idx !== i))
   }
 
+  function updateServiceLine(i, updates) {
+    setServiceLines(prev => prev.map((l, idx) => {
+      if (idx !== i) return l
+      const u = { ...l, ...updates }
+      if (u._type === 'container') {
+        u.line_total = Number(u.quantity) * Number(u.price_per_unit)
+      } else {
+        const raw = Number(u.quantity) * Number(u.rate)
+        u.line_total = u.minimum > 0 ? Math.max(raw, u.minimum) : raw
+      }
+      return u
+    }))
+  }
+
   const fieldStyle = (err, unc) => ({
     width: '100%', height: 44, padding: '0 12px',
     border: `1px solid ${err ? 'var(--color-danger)' : unc ? '#F59E0B' : 'var(--color-border)'}`,
@@ -360,7 +380,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const atdDate = form.atd ? form.atd.split('T')[0] : ''
   const atdTime = form.atd ? (form.atd.split('T')[1] || '').slice(0, 5) : ''
 
-  const sessionType        = serviceLines.length > 0 ? serviceLines[0]._type : (form.vesselType === 'Container' ? 'container' : 'gc')
+  const sessionType        = serviceLines.length > 0 ? serviceLines[0]._type : (normalizeVesselType(form.vesselType) === 'Container' ? 'container' : 'gc')
   const isContainerSession = sessionType === 'container'
   const hasAnyBreakdown    = breakdowns.some(Boolean)
   const totalBerthingFee   = breakdowns.reduce((sum, bd) => sum + (bd?.finalFee || 0), 0)
@@ -764,7 +784,9 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                 </tr>
               </thead>
               <tbody>
-                {serviceLines.map((l, i) => (
+                {serviceLines.map((l, i) => {
+                  const inpStyle = { height: 30, padding: '0 6px', border: '1px solid var(--color-border)', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white', textAlign: 'end' }
+                  return (
                   <tr key={`p${i}`} style={{ borderBottom: '1px solid #F5F5F5', background: l._uncertain ? '#FFFBEB' : 'transparent' }}>
                     <td style={tdStyle}>
                       <strong>{l.service_code}</strong>
@@ -773,11 +795,25 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                       {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4 }}>⚠</span>}
                     </td>
                     {isContainerSession && <td style={tdStyle}>{l.container_type}</td>}
-                    <td style={{ ...tdStyle, textAlign: 'end' }}>
-                      <span className="num-ltr">{l.quantity}</span>
+                    <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
+                      <input
+                        type="number" min="1" step="1"
+                        value={l.quantity}
+                        onChange={e => updateServiceLine(i, { quantity: Number(e.target.value) })}
+                        onFocus={e => e.target.select()}
+                        className="num-ltr"
+                        style={{ ...inpStyle, width: 70 }}
+                      />
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'end' }}>
-                      <span className="num-ltr">{fmt(l._type === 'container' ? l.price_per_unit : l.rate)}</span>
+                    <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
+                      <input
+                        type="number" step="0.01" min="0"
+                        value={l._type === 'container' ? l.price_per_unit : l.rate}
+                        onChange={e => updateServiceLine(i, { [l._type === 'container' ? 'price_per_unit' : 'rate']: Number(e.target.value) })}
+                        onFocus={e => e.target.select()}
+                        className="num-ltr"
+                        style={{ ...inpStyle, width: 90 }}
+                      />
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'end' }}>
                       <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
@@ -789,7 +825,8 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                       >×</button>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
                 {manualLines.map((l, i) => {
                   const inpStyle = { height: 30, padding: '0 6px', border: '1px solid #BFDBFE', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white' }
                   const codeList = (isContainerSession ? containerCodes : gcCodes).map(c => c.code)

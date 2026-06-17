@@ -9,7 +9,7 @@ import {
 import {
   buildReviewState, computeBreakdowns, validateReviewData,
   insertVoyage, autoSaveReceipt, EXTRACT_ERROR_KEYS,
-} from './automateImport.js'
+} from '../../logic/automateImport.js'
 import ReceiptPreview from '../receipt/ReceiptPreview.jsx'
 
 const MAX_BYTES = 8 * 1024 * 1024

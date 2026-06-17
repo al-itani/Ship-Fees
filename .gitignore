@@ -48,5 +48,10 @@ Thumbs.db
 # Scanned port documents — local test files, not source
 Receipts/
 
+# Root-level scratch files
+prompt.txt
+/*.html
+!index.html
+
 # App config/secrets
 C:/ShipFees/
