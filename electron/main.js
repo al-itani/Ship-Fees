@@ -15,9 +15,10 @@ const usersHandlers      = require('./database/handlers/users')
 const auditHandlers      = require('./database/handlers/audit')
 const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
+const { getConfig }      = require('./configStore')
 
-// Start the local HTTP API server (port 3001) for external integrations
-require('./server').startServer()
+const appConfig = getConfig()
+if (appConfig.mode !== 'client') require('./server').startServer()
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -256,6 +257,8 @@ ipcMain.handle('settings:save', (_, data) => settingsHandlers.save(data))
 // AI document extraction
 ipcMain.handle('ai:extract',        (_, images) => aiHandlers.extract(images))
 ipcMain.handle('ai:testConnection', () => aiHandlers.testConnection())
+
+ipcMain.handle('app:getConfig', () => ({ mode: appConfig.mode, serverUrl: appConfig.serverUrl, token: appConfig.token }))
 
 app.whenReady().then(() => {
   createWindow()

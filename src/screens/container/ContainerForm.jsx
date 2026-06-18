@@ -56,7 +56,7 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
       setLine(prev => ({ ...prev, price: '' }))
       return
     }
-    if (codeObj.code === 'FCLEAN') {
+    if (codeObj.code?.trim().toUpperCase() === 'FCLEAN') {
       const loa = voyageInfo?.berthing?.loa
       setLine(prev => ({ ...prev, price: loa ? String(3 * loa) : '' }))
       return

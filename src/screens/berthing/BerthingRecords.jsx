@@ -42,7 +42,7 @@ const tdBase = {
   color: 'var(--color-text)',
 }
 
-export default function BerthingRecords({ onEdit }) {
+export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
   const { t } = useTranslation()
   const { session } = useSession()
   const [records, setRecords]           = useState([])
@@ -52,6 +52,7 @@ export default function BerthingRecords({ onEdit }) {
   const [toast, setToast]               = useState(null)
   const [sortCol, setSortCol]           = useState('id')
   const [sortDir, setSortDir]           = useState('desc')
+  const [preparingReceipt, setPreparingReceipt] = useState(null)
 
   useEffect(() => { loadRecords() }, [])
 
@@ -86,6 +87,14 @@ export default function BerthingRecords({ onEdit }) {
   function showToast(msg, type) {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
+  }
+
+  async function handleGenerateReceipt(voyageNumber) {
+    setPreparingReceipt(voyageNumber)
+    const res = await window.api.receiptPrepareBerthingOnly(voyageNumber, session.username)
+    setPreparingReceipt(null)
+    if (!res.success) { showToast(res.error || 'Error', 'error'); return }
+    onGenerateReceipt(voyageNumber)
   }
 
   function handleSortCol(col) {
@@ -239,19 +248,36 @@ export default function BerthingRecords({ onEdit }) {
                   <td style={tdBase}><span className="num-ltr">{fmtDate(r.ata)}</span></td>
                   <td style={tdBase}><span className="num-ltr">{fmtDate(r.atd)}</span></td>
                   <td style={{ ...tdBase, textAlign: 'center' }}>
-                    {canEdit(r) && (
-                      <button
-                        onClick={() => setDeleteTarget(r)}
-                        style={{
-                          padding: '5px 12px', borderRadius: 5,
-                          border: '1px solid var(--color-danger)',
-                          background: 'white', color: 'var(--color-danger)',
-                          fontSize: 12, cursor: 'pointer', fontWeight: 500,
-                        }}
-                      >
-                        {t('delete')}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                      {onGenerateReceipt && (
+                        <button
+                          onClick={() => handleGenerateReceipt(r.voyage_number)}
+                          disabled={preparingReceipt === r.voyage_number}
+                          style={{
+                            padding: '5px 12px', borderRadius: 5,
+                            border: '1px solid var(--color-primary)',
+                            background: 'white', color: 'var(--color-primary)',
+                            fontSize: 12, cursor: preparingReceipt === r.voyage_number ? 'default' : 'pointer',
+                            fontWeight: 500, opacity: preparingReceipt === r.voyage_number ? 0.6 : 1,
+                          }}
+                        >
+                          {preparingReceipt === r.voyage_number ? '...' : t('generate_receipt')}
+                        </button>
+                      )}
+                      {canEdit(r) && (
+                        <button
+                          onClick={() => setDeleteTarget(r)}
+                          style={{
+                            padding: '5px 12px', borderRadius: 5,
+                            border: '1px solid var(--color-danger)',
+                            background: 'white', color: 'var(--color-danger)',
+                            fontSize: 12, cursor: 'pointer', fontWeight: 500,
+                          }}
+                        >
+                          {t('delete')}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -49,9 +49,17 @@ function handle(res, fn) {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────
+// Login is unwrapped manually so `data` contains the user object directly,
+// not the handler's { success, user } envelope.
 app.post('/api/auth/login', (req, res) => {
   const { username, password } = req.body
-  handle(res, () => authHandlers.login(username, password))
+  try {
+    const result = authHandlers.login(username, password)
+    if (!result.success) return res.json({ success: false, error: result.error })
+    res.json({ success: true, data: result.user })
+  } catch (err) {
+    res.json({ success: false, error: err.message })
+  }
 })
 // Real signature is changePassword(userId, newPassword) — no current-password check.
 app.post('/api/auth/changePassword', (req, res) => {

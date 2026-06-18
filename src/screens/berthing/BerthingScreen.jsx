@@ -79,6 +79,7 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
         <BerthingRecords
           key={refreshKey}
           onEdit={handleEdit}
+          onGenerateReceipt={onGenerateReceipt}
         />
       )}
     </div>

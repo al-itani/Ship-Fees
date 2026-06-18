@@ -59,7 +59,7 @@ export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerat
   useEffect(() => {
     if (!line.codeObj) return
     let rate
-    if (line.codeObj.code === 'FCLEAN') {
+    if (line.codeObj.code?.trim().toUpperCase() === 'FCLEAN') {
       const loa = voyageInfo?.berthing?.loa
       rate = loa ? String(3 * loa) : ''
     } else {
