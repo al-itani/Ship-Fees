@@ -10,7 +10,7 @@ function login(username, password) {
     const valid = bcrypt.compareSync(password, user.password_hash)
     if (!valid) return { success: false, error: 'invalid_login' }
 
-    db.prepare("UPDATE users SET last_login = datetime('now') WHERE id = ?").run(user.id)
+    db.prepare("UPDATE users SET last_login = datetime('now'), is_online = 1, last_seen = datetime('now') WHERE id = ?").run(user.id)
 
     const permissions = db.prepare('SELECT permission_key FROM user_permissions WHERE user_id = ?')
       .all(user.id).map(r => r.permission_key)
@@ -42,4 +42,13 @@ function changePassword(userId, newPassword) {
   }
 }
 
-module.exports = { login, changePassword }
+function logout(userId) {
+  try {
+    db.prepare("UPDATE users SET is_online = 0 WHERE id = ?").run(userId)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { login, changePassword, logout }

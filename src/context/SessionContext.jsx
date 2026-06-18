@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import i18n from '../i18n/index.js'
 
 const SessionContext = createContext(null)
@@ -7,6 +7,7 @@ export function SessionProvider({ children }) {
   const [session, setSession] = useState(null)
   const [ratesData, setRatesData] = useState(null)
   const [agents, setAgents] = useState([])
+  const heartbeatRef = useRef(null)
 
   const login = useCallback((user) => {
     setSession(user)
@@ -14,9 +15,16 @@ export function SessionProvider({ children }) {
     i18n.changeLanguage(lang)
     document.documentElement.dir  = lang === 'ar' ? 'rtl' : 'ltr'
     document.documentElement.lang = lang
+    // Heartbeat every 60s so the server knows this user is still active
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current)
+    heartbeatRef.current = setInterval(() => {
+      window.api.usersHeartbeat(user.id)
+    }, 60000)
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback((userId) => {
+    if (heartbeatRef.current) { clearInterval(heartbeatRef.current); heartbeatRef.current = null }
+    if (userId) window.api.authLogout(userId)
     setSession(null)
     setRatesData(null)
     setAgents([])

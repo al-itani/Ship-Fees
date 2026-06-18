@@ -12,7 +12,7 @@ function getAll() {
   try {
     const users = db.prepare(`
       SELECT id, username, full_name, role, language, is_active, must_change_password,
-             created_at, last_login, created_by
+             created_at, last_login, created_by, is_online, last_seen
       FROM users
       ORDER BY role DESC, username ASC
     `).all()
@@ -24,7 +24,7 @@ function getAll() {
 
 function create({ username, full_name, role, language, temp_password, admin_id }) {
   try {
-    const uname = username.toLowerCase().trim()
+    const uname = username.trim()
     const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(uname)
     if (existing) return { success: false, error: 'username_taken' }
 
@@ -174,4 +174,13 @@ function deleteUser(id, admin_id) {
   }
 }
 
-module.exports = { getAll, create, update, resetPassword, setActive, getPermissions, setPermission, checkHasRecords, deleteUser }
+function heartbeat(userId) {
+  try {
+    db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(userId)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getAll, create, update, resetPassword, setActive, getPermissions, setPermission, checkHasRecords, deleteUser, heartbeat }

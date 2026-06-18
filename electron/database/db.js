@@ -9,10 +9,22 @@ if (!fs.existsSync(DB_DIR)) {
   fs.mkdirSync(DB_DIR, { recursive: true })
 }
 
-const db = new Database(DB_PATH)
+let db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
 
-require('./schema')(db)
+const { needsReopen } = require('./schema')(db)
+
+// SQLite does not reload the in-memory schema for the same connection after a
+// writable_schema patch. If the schema migration patched FK references that were
+// pointing to the stale users_pre_manager table, close and reopen so the next
+// connection reads the corrected sqlite_master fresh — preventing FK check errors
+// like "no such table: main.users_pre_manager" on the first launch after migration.
+if (needsReopen) {
+  db.close()
+  db = new Database(DB_PATH)
+  db.pragma('journal_mode = WAL')
+  db.pragma('foreign_keys = ON')
+}
 
 module.exports = db

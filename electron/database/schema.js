@@ -3,6 +3,12 @@ const containerCodesSeed = require('./container_codes_seed.json')
 const gcCodesSeed = require('./gc_codes_seed.json')
 
 module.exports = function initSchema(db) {
+  // SQLite does not reload the in-memory schema for the current connection after
+  // a writable_schema patch, even if schema_version is incremented. When either
+  // recovery block below patches FK references, db.js must close and reopen the
+  // connection so the fresh sqlite_master is picked up before any INSERT fires.
+  let needsReopen = false
+
   // ── Emergency recovery ──────────────────────────────────────────────────────
   // A previous failed migration renamed users → users_pre_manager and then
   // crashed. SQLite 3.26+ auto-updates every FK reference in other tables to
@@ -27,7 +33,10 @@ module.exports = function initSchema(db) {
       ).get()
       if (!stillHasUsers) {
         db.exec(`ALTER TABLE users_pre_manager RENAME TO users`)
-        // Fix every table whose FK was auto-rewritten to reference users_pre_manager
+        // Fix every table whose FK was auto-rewritten to reference users_pre_manager.
+        // better-sqlite3 enables SQLite defensive mode, which blocks UPDATE sqlite_master
+        // even with writable_schema=ON — unsafeMode(true) lifts that protection.
+        db.unsafeMode(true)
         db.pragma('writable_schema = ON')
         const affected = db.prepare(
           `SELECT name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%users_pre_manager%'`
@@ -37,8 +46,10 @@ module.exports = function initSchema(db) {
           db.prepare(`UPDATE sqlite_master SET sql=? WHERE type='table' AND name=?`).run(fixed, t.name)
         }
         db.pragma('writable_schema = OFF')
+        db.unsafeMode(false)
         const ver = db.pragma('schema_version', { simple: true })
         db.pragma(`schema_version = ${ver + 1}`)
+        needsReopen = true
       } else {
         // users has data — backup is stale, just drop it
         db.exec(`DROP TABLE users_pre_manager`)
@@ -228,7 +239,12 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE gc_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN last_seen TEXT`) } catch {}
   try { db.exec(`ALTER TABLE berthing_records ADD COLUMN roro_cargo_type TEXT`) } catch {}
+
+  // Reset presence on every startup — clears stale is_online from crashes or force-kills
+  try { db.exec(`UPDATE users SET is_online = 0, last_seen = NULL`) } catch {}
 
   // Fix PQ1 rate to $60 if it was stored incorrectly
   try { db.prepare(`UPDATE gc_codes SET rate = 60 WHERE code = 'PQ1' AND rate != 60`).run() } catch {}
@@ -331,11 +347,14 @@ module.exports = function initSchema(db) {
     const usersRow = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='users'`).get()
     if (usersRow && !usersRow.sql.includes("'manager'")) {
       const newSql = usersRow.sql.replace("role IN ('admin', 'user')", "role IN ('admin', 'user', 'manager')")
+      db.unsafeMode(true)
       db.pragma('writable_schema = ON')
       db.prepare(`UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = 'users'`).run(newSql)
       db.pragma('writable_schema = OFF')
+      db.unsafeMode(false)
       const ver = db.pragma('schema_version', { simple: true })
       db.pragma(`schema_version = ${ver + 1}`)
+      needsReopen = true
     }
 
     // 2. Fix any table whose FK was auto-rewritten to REFERENCES users_pre_manager
@@ -343,14 +362,17 @@ module.exports = function initSchema(db) {
       `SELECT name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%users_pre_manager%'`
     ).all()
     if (stale.length > 0) {
+      db.unsafeMode(true)
       db.pragma('writable_schema = ON')
       for (const t of stale) {
         const fixed = t.sql.replace(/users_pre_manager/g, 'users')
         db.prepare(`UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = ?`).run(fixed, t.name)
       }
       db.pragma('writable_schema = OFF')
+      db.unsafeMode(false)
       const ver2 = db.pragma('schema_version', { simple: true })
       db.pragma(`schema_version = ${ver2 + 1}`)
+      needsReopen = true
     }
   } catch (err) { console.error('[migration] users role/FK fix failed:', err) }
 
@@ -591,4 +613,6 @@ module.exports = function initSchema(db) {
       VALUES ('admin', 'Administrator', ?, 'admin', 'en', 1)
     `).run(hash)
   }
+
+  return { needsReopen }
 }

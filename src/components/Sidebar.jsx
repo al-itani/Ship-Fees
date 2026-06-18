@@ -18,7 +18,7 @@ const adminNavItems = [
 ]
 
 const managerNavItems = [
-  { key: 'user_management', icon: '👥', label: 'user_management' },
+  { key: 'staff_view', icon: '👥', label: 'staff_view' },
 ]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {
@@ -124,7 +124,7 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
           {session?.full_name}
         </div>
         <button
-          onClick={logout}
+          onClick={() => logout(session?.id)}
           style={{
             width: '100%',
             padding: '8px 0',

@@ -39,7 +39,8 @@ function createWindow() {
 
   if (isDev) {
     win.loadURL('http://localhost:5173')
-    win.webContents.openDevTools()
+    win.webContents.openDevTools({ mode: 'detach' })
+    win.webContents.on('did-finish-load', () => win.webContents.focus())
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'))
     win.setMenu(null)
@@ -49,6 +50,7 @@ function createWindow() {
 // Auth
 ipcMain.handle('auth:login',          (_, username, password) => authHandlers.login(username, password))
 ipcMain.handle('auth:changePassword', (_, userId, newPassword) => authHandlers.changePassword(userId, newPassword))
+ipcMain.handle('auth:logout',         (_, userId) => authHandlers.logout(userId))
 
 // Berthing
 ipcMain.handle('berthing:getRates',  () => berthingHandlers.getRates())
@@ -236,6 +238,7 @@ ipcMain.handle('users:getPermissions', (_, userId) => usersHandlers.getPermissio
 ipcMain.handle('users:setPermission',  (_, userId, key, grant, adminId) => usersHandlers.setPermission(userId, key, grant, adminId))
 ipcMain.handle('users:checkRecords',   (_, userId) => usersHandlers.checkHasRecords(userId))
 ipcMain.handle('users:delete',         (_, id, adminId) => usersHandlers.deleteUser(id, adminId))
+ipcMain.handle('users:heartbeat',      (_, userId) => usersHandlers.heartbeat(userId))
 
 // Settings
 ipcMain.handle('settings:load', () => settingsHandlers.load())
@@ -254,4 +257,8 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('before-quit', () => {
+  try { require('./database/db').exec('UPDATE users SET is_online = 0') } catch {}
 })

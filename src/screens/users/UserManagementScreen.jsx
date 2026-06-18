@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
 
@@ -8,7 +8,16 @@ const PERMISSIONS = [
   { key: 'access_tariff_editor',  labelKey: 'perm_access_tariff_editor'  },
 ]
 
-const USERNAME_RE = /^[a-z0-9_]{3,30}$/
+const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
+
+function getPresence(user) {
+  if (!user.is_online) return 'offline'
+  if (!user.last_seen) return 'offline'
+  const diffMin = (Date.now() - new Date(user.last_seen + 'Z').getTime()) / 60000
+  if (diffMin < 3) return 'online'
+  if (diffMin < 30) return 'idle'
+  return 'offline'
+}
 
 // ─── Shared styles ────────────────────────────────────────────────
 const card = {
@@ -247,7 +256,11 @@ export default function UserManagementScreen() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, 30000)
+    return () => clearInterval(interval)
+  }, [load])
 
   function showToast(msg) { setToast(msg) }
 
@@ -372,7 +385,7 @@ export default function UserManagementScreen() {
                 <label style={labelStyle}>{t('username')} *</label>
                 <input
                   style={inputStyle} value={newUsername}
-                  onChange={e => setNewUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+                  onChange={e => setNewUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                   placeholder={t('username_hint')}
                 />
               </div>
@@ -438,7 +451,7 @@ export default function UserManagementScreen() {
                     ['username',   t('username')],
                     ['full_name',  t('full_name')],
                     ['role',       t('role')],
-                    ['is_active',  t('status')],
+                    ['is_online',  t('status')],
                     ['language',   t('language')],
                     ['last_login', t('last_login')],
                   ].map(([key, label]) => (
@@ -453,11 +466,23 @@ export default function UserManagementScreen() {
                 {sorted.map(user => {
                   const isSelf    = user.id === session.id
                   const isActive  = !!user.is_active
+                  const presence  = getPresence(user)
+                  const presenceStyle = {
+                    online:  { background: '#ECFDF5', color: '#059669' },
+                    idle:    { background: '#FFFBEB', color: '#D97706' },
+                    offline: { background: '#F3F4F6', color: '#6B7280' },
+                  }[presence]
+                  const presenceLabel = {
+                    online:  t('presence_online'),
+                    idle:    t('presence_idle'),
+                    offline: t('presence_offline'),
+                  }[presence]
                   return (
-                    <tr key={user.id} style={{ background: isActive ? 'white' : '#FAFAFA' }}>
+                    <tr key={user.id} style={{ background: isActive ? 'white' : '#FAFAFA', opacity: isActive ? 1 : 0.55 }}>
                       <td style={TD}>
                         <span style={{ fontWeight: 600 }}>{user.username}</span>
                         {isSelf && <span style={{ marginInlineStart: 6, fontSize: 10, background: '#EDF2FF', color: '#3B5BDB', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>you</span>}
+                        {!isActive && <span style={{ marginInlineStart: 6, fontSize: 10, background: '#FEE2E2', color: '#DC2626', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>{t('disabled')}</span>}
                       </td>
                       <td style={TD}>{user.full_name}</td>
                       <td style={TD}>
@@ -470,12 +495,8 @@ export default function UserManagementScreen() {
                         </span>
                       </td>
                       <td style={TD}>
-                        <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
-                          background: isActive ? '#ECFDF5' : '#FEF2F2',
-                          color: isActive ? '#059669' : '#DC2626',
-                        }}>
-                          {isActive ? t('active') : t('disabled')}
+                        <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, ...presenceStyle }}>
+                          {presenceLabel}
                         </span>
                       </td>
                       <td style={TD}>{user.language === 'ar' ? t('lang_ar') : t('lang_en')}</td>

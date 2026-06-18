@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('api', {
   login:              (username, password) => ipcRenderer.invoke('auth:login', username, password),
   changePassword:     (userId, newPassword) => ipcRenderer.invoke('auth:changePassword', userId, newPassword),
+  authLogout:         (userId) => ipcRenderer.invoke('auth:logout', userId),
 
   getRates:           () => ipcRenderer.invoke('berthing:getRates'),
   getAgents:          () => ipcRenderer.invoke('berthing:getAgents'),
@@ -42,6 +43,7 @@ contextBridge.exposeInMainWorld('api', {
   usersSetPermission:  (userId, key, grant, adminId)   => ipcRenderer.invoke('users:setPermission', userId, key, grant, adminId),
   usersCheckRecords:   (userId)                        => ipcRenderer.invoke('users:checkRecords', userId),
   usersDelete:         (id, adminId)                   => ipcRenderer.invoke('users:delete', id, adminId),
+  usersHeartbeat:      (userId)                        => ipcRenderer.invoke('users:heartbeat', userId),
 
   settingsLoad: ()       => ipcRenderer.invoke('settings:load'),
   settingsSave: (data)   => ipcRenderer.invoke('settings:save', data),
