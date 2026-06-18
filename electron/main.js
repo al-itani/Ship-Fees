@@ -16,6 +16,9 @@ const auditHandlers      = require('./database/handlers/audit')
 const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
 
+// Start the local HTTP API server (port 3001) for external integrations
+require('./server').startServer()
+
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 let lastDocumentDir = 'C:\\Users\\User\\Desktop\\MAIN\\Work\\Port\\Ships\\Automate'

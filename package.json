@@ -12,6 +12,7 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.4.3",
     "date-fns": "^3.6.0",
+    "express": "^5.2.1",
     "i18next": "^23.10.1",
     "pdfjs-dist": "^5.7.284",
     "react": "^18.2.0",
