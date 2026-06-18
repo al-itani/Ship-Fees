@@ -40,6 +40,8 @@ export function calcBerthingFee({ loa, days, position, vesselCategory, maintenan
     const r2 = rates['Quay']['D2'][lIndex]
     const r3 = rates['Quay']['D3'][lIndex]
     rawFee = (d1 * r1 + d2 * r2 + d3 * r3) * loa
+  } else if (position === 'En Rade') {
+    rawFee = days * 1 * loa
   } else {
     const r = rates[position]['ALL'][lIndex]
     rawFee = days * r * loa

@@ -22,6 +22,8 @@ const gcHandlers        = require('./database/handlers/gc')
 const receiptHandlers   = require('./database/handlers/receipts')
 const cmaHandlers       = require('./database/handlers/cma')
 const usersHandlers     = require('./database/handlers/users')
+const auditHandlers     = require('./database/handlers/audit')
+const aiHandlers        = require('./handlers/ai')
 
 // Settings handler lives at ./handlers/settings; fall back to the database/
 // handlers path only if the primary location is absent.
