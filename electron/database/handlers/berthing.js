@@ -42,6 +42,16 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   )
 }
 
+// Writes one human-readable audit entry. The plain-language description lives in
+// new_data.summary; voyage is stored alongside so the log can show it per row.
+function logAction(tableName, recordId, action, summary, voyage, userId) {
+  writeAudit(tableName, recordId, action, null, { summary, voyage }, userId)
+}
+
+function money(n) {
+  return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 function getRates() {
   try {
     const rateRows = db.prepare('SELECT * FROM berthing_rates').all()
@@ -105,7 +115,10 @@ function save(data) {
       d.raw_fee, d.discount_factor, d.fee_after_discount, d.min_fee,
       d.late_fee, d.maintenance_fee, d.final_fee, d.created_by
     )
-    writeAudit('berthing_records', result.lastInsertRowid, 'INSERT', null, d, d.created_by)
+    if (!data._suppressAudit) {
+      logAction('berthing_records', result.lastInsertRowid, 'INSERT',
+        `Berthing saved — Voyage ${d.voyage_number}, ${money(d.final_fee)}`, d.voyage_number, d.created_by)
+    }
     return { success: true, id: result.lastInsertRowid }
   } catch (err) {
     return { success: false, error: err.message }
@@ -159,14 +172,17 @@ function update(id, data) {
       d.late_fee, d.maintenance_fee, d.final_fee,
       d.updated_by, id
     )
-    writeAudit('berthing_records', id, 'UPDATE', old, d, d.updated_by)
+    if (!data._suppressAudit) {
+      logAction('berthing_records', id, 'UPDATE',
+        `Edited berthing record — Voyage ${d.voyage_number}`, d.voyage_number, d.updated_by)
+    }
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
   }
 }
 
-function softDelete(id, userId) {
+function softDelete(id, userId, opts) {
   try {
     const old = db.prepare('SELECT * FROM berthing_records WHERE id = ? AND is_deleted = 0').get(id)
     if (!old) return { success: false, error: 'Record not found' }
@@ -176,7 +192,10 @@ function softDelete(id, userId) {
       SET is_deleted=1, deleted_by=?, deleted_at=datetime('now')
       WHERE id=?
     `).run(userId, id)
-    writeAudit('berthing_records', id, 'DELETE', old, { is_deleted: 1 }, userId)
+    if (!opts?.suppressAudit) {
+      logAction('berthing_records', id, 'DELETE',
+        `Deleted berthing record — Voyage ${old.voyage_number}`, old.voyage_number, userId)
+    }
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

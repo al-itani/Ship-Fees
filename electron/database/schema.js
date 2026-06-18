@@ -444,8 +444,39 @@ module.exports = function initSchema(db) {
         db.exec(`INSERT INTO voyages SELECT * FROM voyages_pre_vtype`)
         db.exec(`DROP TABLE voyages_pre_vtype`)
       })()
+      needsReopen = true
     }
   } catch {}
+
+  // ── Recovery: dangling voyages_pre_vtype FK references ──────────────────────
+  // The vessel_type migration above renamed voyages → voyages_pre_vtype. SQLite
+  // 3.26+ auto-rewrites FK references in other tables to the new name, so the
+  // receipts table (voyage_id REFERENCES voyages) became REFERENCES
+  // voyages_pre_vtype. Creating the new voyages table and dropping the backup
+  // leaves receipts with a dangling FK baked into sqlite_master, so every receipt
+  // INSERT fails with "no such table: main.voyages_pre_vtype". Patch any table
+  // whose SQL still references the dropped backup back to voyages.
+  try {
+    const affected = db.prepare(
+      `SELECT name, sql FROM sqlite_master WHERE type='table' AND sql LIKE '%voyages_pre_vtype%'`
+    ).all()
+    if (affected.length > 0) {
+      db.pragma('foreign_keys = OFF')
+      db.unsafeMode(true)
+      db.pragma('writable_schema = ON')
+      for (const t of affected) {
+        const fixed = t.sql.replace(/voyages_pre_vtype/g, 'voyages')
+        db.prepare(`UPDATE sqlite_master SET sql=? WHERE type='table' AND name=?`).run(fixed, t.name)
+      }
+      db.pragma('writable_schema = OFF')
+      db.unsafeMode(false)
+      const ver = db.pragma('schema_version', { simple: true })
+      db.pragma(`schema_version = ${ver + 1}`)
+      db.pragma('foreign_keys = ON')
+      needsReopen = true
+    }
+  } catch (err) { console.error('[recovery] voyages_pre_vtype fix failed:', err) }
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Remove any duplicate auto/fixed service lines per voyage (keep oldest row per code)
   // FK enforcement disabled here: stale sqlite_master FK refs (users_pre_manager) from a

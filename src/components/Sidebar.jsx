@@ -14,6 +14,7 @@ const navItems = [
 
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
+  { key: 'audit_log',       icon: '📋', label: 'audit_log' },
   { key: 'settings',        icon: '⚙️', label: 'settings' },
 ]
 

@@ -12,6 +12,15 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   )
 }
 
+// One human-readable audit entry per user action (summary stored in new_data).
+function logAction(tableName, recordId, action, summary, voyage, userId) {
+  writeAudit(tableName, recordId, action, null, { summary, voyage }, userId)
+}
+
+function money(n) {
+  return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
 function getDataForReceipt(voyageNumber) {
   try {
     const voyage = db.prepare(
@@ -91,8 +100,8 @@ function saveReceipt(data) {
         'SELECT id FROM receipts WHERE voyage_number = ? AND is_deleted = 0'
       ).get(voyage_number)
       if (old) {
+        // Regeneration replaces the old receipt silently — the new entry below covers the action.
         db.prepare('UPDATE receipts SET is_deleted = 1 WHERE id = ?').run(old.id)
-        writeAudit('receipts', old.id, 'DELETE', old, { is_deleted: 1 }, null)
       }
 
       const r = db.prepare(`
@@ -108,7 +117,8 @@ function saveReceipt(data) {
         price, fundable, fresh_amount, final_price, generated_by
       )
       // generated_by is a username string; audit_log.user_id is an integer FK — pass null
-      writeAudit('receipts', r.lastInsertRowid, 'INSERT', null, data, null)
+      logAction('receipts', r.lastInsertRowid, 'INSERT',
+        `Receipt generated — Voyage ${voyage_number}, ${money(final_price)}`, voyage_number, null)
       return r.lastInsertRowid
     })
 

@@ -12,6 +12,11 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   )
 }
 
+// One human-readable audit entry per user action (summary stored in new_data).
+function logAction(tableName, recordId, action, summary, voyage, userId) {
+  writeAudit(tableName, recordId, action, null, { summary, voyage }, userId)
+}
+
 function lookupVoyage(voyageNumber) {
   try {
     const berthing = db.prepare(`
@@ -62,6 +67,7 @@ function saveSession(data) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
+    let firstLineId = 0
     const doSave = db.transaction(() => {
       // When called from Automate screen, replace existing user lines
       if (data.replaceUserLines) {
@@ -77,20 +83,24 @@ function saveSession(data) {
           l.minimum_applied ? 1 : 0,
           l.is_taxable || 0, 0, 0, created_by
         )
-        writeAudit('gc_services', r.lastInsertRowid, 'INSERT', null, l, created_by)
+        if (!firstLineId) firstLineId = r.lastInsertRowid
       }
 
-      // Auto system lines — insert once per voyage only
+      // Auto system lines — insert once per voyage only (system lines, not audited individually)
       const hasAutoLines = db.prepare(
         `SELECT COUNT(*) as c FROM gc_services WHERE voyage_number = ? AND (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0`
       ).get(voyageNumber).c > 0
       if (!hasAutoLines) {
-        const autom = insertLine.run(voyageNumber, 'AUTOM', 'unit', 1, 1.00, 0, 1.00, 0, 0, 1, 0, created_by)
-        const billf = insertLine.run(voyageNumber, 'BILLF', 'unit', 1, 1.00, 0, 1.00, 0, 0, 1, 0, created_by)
-        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Stamp', 1, 2.00, 0, 2.00, 0, 0, 0, 1, created_by)
-        writeAudit('gc_services', autom.lastInsertRowid, 'INSERT', null, { code: 'AUTOM' }, created_by)
-        writeAudit('gc_services', billf.lastInsertRowid, 'INSERT', null, { code: 'BILLF' }, created_by)
-        writeAudit('gc_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', is_auto: 1 }, created_by)
+        insertLine.run(voyageNumber, 'AUTOM', 'unit', 1, 1.00, 0, 1.00, 0, 0, 1, 0, created_by)
+        insertLine.run(voyageNumber, 'BILLF', 'unit', 1, 1.00, 0, 1.00, 0, 0, 1, 0, created_by)
+        insertLine.run(voyageNumber, 'STAMP', 'Stamp', 1, 2.00, 0, 2.00, 0, 0, 0, 1, created_by)
+      }
+
+      // One grouped entry per save (suppressed during bulk import — logged there instead)
+      if (!data.suppressAudit) {
+        logAction('gc_services', firstLineId, 'INSERT',
+          `GC services saved — ${lines.length} line${lines.length === 1 ? '' : 's'}, Voyage ${voyageNumber}`,
+          voyageNumber, created_by)
       }
 
       // Upsert voyages
@@ -135,7 +145,8 @@ function deleteLine(id, userId) {
     if (old.is_fixed || old.is_auto) return { success: false, error: 'cannot_delete_system_line' }
 
     db.prepare('UPDATE gc_services SET is_deleted = 1 WHERE id = ?').run(id)
-    writeAudit('gc_services', id, 'DELETE', old, { is_deleted: 1 }, userId)
+    logAction('gc_services', id, 'DELETE',
+      `Deleted GC service line ${old.service_code} — Voyage ${old.voyage_number}`, old.voyage_number, userId)
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

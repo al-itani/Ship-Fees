@@ -12,6 +12,7 @@ import AutomateScreen from './automate/AutomateScreen.jsx'
 import CMAScreen from './cma/CMAScreen.jsx'
 import UserManagementScreen from './users/UserManagementScreen.jsx'
 import ManagerStaffScreen from './users/ManagerStaffScreen.jsx'
+import AuditLogScreen from './audit/AuditLogScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import { useSession } from '../context/SessionContext.jsx'
 
@@ -76,6 +77,9 @@ export default function MainApp() {
         return <CMAScreen />
       case 'settings':
         return <SettingsScreen />
+      case 'audit_log':
+        if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
+        return <AuditLogScreen />
       case 'user_management':
         if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />

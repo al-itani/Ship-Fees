@@ -12,6 +12,7 @@ const gcHandlers         = require('./database/handlers/gc')
 const receiptHandlers    = require('./database/handlers/receipts')
 const cmaHandlers        = require('./database/handlers/cma')
 const usersHandlers      = require('./database/handlers/users')
+const auditHandlers      = require('./database/handlers/audit')
 const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
 
@@ -58,7 +59,7 @@ ipcMain.handle('berthing:getAgents', () => berthingHandlers.getAgents())
 ipcMain.handle('berthing:save',      (_, data) => berthingHandlers.save(data))
 ipcMain.handle('berthing:getAll',    () => berthingHandlers.getAll())
 ipcMain.handle('berthing:update',    (_, id, data) => berthingHandlers.update(id, data))
-ipcMain.handle('berthing:delete',    (_, id, userId) => berthingHandlers.softDelete(id, userId))
+ipcMain.handle('berthing:delete',    (_, id, userId, opts) => berthingHandlers.softDelete(id, userId, opts))
 
 // Container
 ipcMain.handle('container:lookupVoyage', (_, voyageNumber) => containerHandlers.lookupVoyage(voyageNumber))
@@ -239,6 +240,11 @@ ipcMain.handle('users:setPermission',  (_, userId, key, grant, adminId) => users
 ipcMain.handle('users:checkRecords',   (_, userId) => usersHandlers.checkHasRecords(userId))
 ipcMain.handle('users:delete',         (_, id, adminId) => usersHandlers.deleteUser(id, adminId))
 ipcMain.handle('users:heartbeat',      (_, userId) => usersHandlers.heartbeat(userId))
+
+// Audit log
+ipcMain.handle('audit:getEntries',      (_, filters) => auditHandlers.getEntries(filters))
+ipcMain.handle('audit:getFilterOptions', () => auditHandlers.getFilterOptions())
+ipcMain.handle('audit:logImport',        (_, payload) => auditHandlers.logImport(payload))
 
 // Settings
 ipcMain.handle('settings:load', () => settingsHandlers.load())

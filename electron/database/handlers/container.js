@@ -12,6 +12,11 @@ function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   )
 }
 
+// One human-readable audit entry per user action (summary stored in new_data).
+function logAction(tableName, recordId, action, summary, voyage, userId) {
+  writeAudit(tableName, recordId, action, null, { summary, voyage }, userId)
+}
+
 function lookupVoyage(voyageNumber) {
   try {
     const berthing = db.prepare(`
@@ -76,6 +81,7 @@ function saveSession(data) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
 
+    let firstLineId = 0
     const doSave = db.transaction(() => {
       // When called from Automate screen, replace existing user lines
       if (data.replaceUserLines) {
@@ -93,20 +99,17 @@ function saveSession(data) {
           l.container_type || '20ft', qty, price, total,
           l.is_taxable || 0, 0, 0, created_by
         )
-        writeAudit('container_services', r.lastInsertRowid, 'INSERT', null, l, created_by)
+        if (!firstLineId) firstLineId = r.lastInsertRowid
       }
 
-      // AUTOM, BILLF, STAMP(qty=1) — insert once per voyage only
+      // AUTOM, BILLF, STAMP(qty=1) — insert once per voyage only (system lines, not audited individually)
       const hasAutoLines = db.prepare(
         `SELECT COUNT(*) as c FROM container_services WHERE voyage_number = ? AND (is_fixed = 1 OR is_auto = 1) AND is_deleted = 0`
       ).get(voyageNumber).c > 0
       if (!hasAutoLines) {
-        const autom = insertLine.run(voyageNumber, 'AUTOM', 'Automation fee',   '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
-        const billf = insertLine.run(voyageNumber, 'BILLF', 'Billing fee',      '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
-        const stamp = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 1, 2.00, 2.00, 0, 0, 1, created_by)
-        writeAudit('container_services', autom.lastInsertRowid, 'INSERT', null, { code: 'AUTOM' }, created_by)
-        writeAudit('container_services', billf.lastInsertRowid, 'INSERT', null, { code: 'BILLF' }, created_by)
-        writeAudit('container_services', stamp.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: 1, is_auto: 1 }, created_by)
+        insertLine.run(voyageNumber, 'AUTOM', 'Automation fee',   '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
+        insertLine.run(voyageNumber, 'BILLF', 'Billing fee',      '20ft', 1, 1.00, 1.00, 0, 1, 0, created_by)
+        insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', 1, 2.00, 2.00, 0, 0, 1, created_by)
       }
 
       // Extra STAMP(qty=3) — separate guard so existing voyages with only qty=1 get backfilled to total qty=4
@@ -116,8 +119,14 @@ function saveSession(data) {
       if (stampQtyTotal < 4) {
         const extraQty = 4 - stampQtyTotal
         const extraAmt = extraQty * 2.00
-        const stamp3 = insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', extraQty, 2.00, extraAmt, 0, 0, 1, created_by)
-        writeAudit('container_services', stamp3.lastInsertRowid, 'INSERT', null, { code: 'STAMP', quantity: extraQty, is_auto: 1 }, created_by)
+        insertLine.run(voyageNumber, 'STAMP', 'Government stamp', '20ft', extraQty, 2.00, extraAmt, 0, 0, 1, created_by)
+      }
+
+      // One grouped entry per save (suppressed during bulk import — logged there instead)
+      if (!data.suppressAudit) {
+        logAction('container_services', firstLineId, 'INSERT',
+          `Container services saved — ${lines.length} line${lines.length === 1 ? '' : 's'}, Voyage ${voyageNumber}`,
+          voyageNumber, created_by)
       }
 
       // Upsert voyages
@@ -162,7 +171,8 @@ function deleteLine(id, userId) {
     if (old.is_fixed || old.is_auto) return { success: false, error: 'cannot_delete_system_line' }
 
     db.prepare('UPDATE container_services SET is_deleted = 1 WHERE id = ?').run(id)
-    writeAudit('container_services', id, 'DELETE', old, { is_deleted: 1 }, userId)
+    logAction('container_services', id, 'DELETE',
+      `Deleted container service line ${old.service_code} — Voyage ${old.voyage_number}`, old.voyage_number, userId)
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

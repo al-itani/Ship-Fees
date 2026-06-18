@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('api', {
   saveBerthing:       (data) => ipcRenderer.invoke('berthing:save', data),
   getBerthingRecords: () => ipcRenderer.invoke('berthing:getAll'),
   updateBerthing:     (id, data) => ipcRenderer.invoke('berthing:update', id, data),
-  deleteBerthing:     (id, userId) => ipcRenderer.invoke('berthing:delete', id, userId),
+  deleteBerthing:     (id, userId, opts) => ipcRenderer.invoke('berthing:delete', id, userId, opts),
 
   containerLookupVoyage: (voyageNumber) => ipcRenderer.invoke('container:lookupVoyage', voyageNumber),
   containerListVoyages:  () => ipcRenderer.invoke('container:listVoyages'),
@@ -44,6 +44,10 @@ contextBridge.exposeInMainWorld('api', {
   usersCheckRecords:   (userId)                        => ipcRenderer.invoke('users:checkRecords', userId),
   usersDelete:         (id, adminId)                   => ipcRenderer.invoke('users:delete', id, adminId),
   usersHeartbeat:      (userId)                        => ipcRenderer.invoke('users:heartbeat', userId),
+
+  auditGetEntries:      (filters) => ipcRenderer.invoke('audit:getEntries', filters),
+  auditGetFilterOptions: ()       => ipcRenderer.invoke('audit:getFilterOptions'),
+  auditLogImport:       (payload) => ipcRenderer.invoke('audit:logImport', payload),
 
   settingsLoad: ()       => ipcRenderer.invoke('settings:load'),
   settingsSave: (data)   => ipcRenderer.invoke('settings:save', data),

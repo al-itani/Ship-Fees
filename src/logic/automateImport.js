@@ -199,6 +199,8 @@ export async function insertVoyage({ form, validRows, serviceLines, manualLines 
     loa:             parseFloat(form.loa),
     vessel_category: form.vesselCategory || null,
     maintenance:     form.maintenance,
+    // Per-row audit is suppressed; the whole import is logged as one grouped entry below.
+    _suppressAudit:  true,
   }
 
   const allBerthing = await window.api.getBerthingRecords()
@@ -235,7 +237,7 @@ export async function insertVoyage({ form, validRows, serviceLines, manualLines 
 
   // Soft-delete any surplus existing records not covered by this import
   for (let i = validRows.length; i < existingRecords.length; i++) {
-    await window.api.deleteBerthing(existingRecords[i].id, userId)
+    await window.api.deleteBerthing(existingRecords[i].id, userId, { suppressAudit: true })
   }
 
   const validManualLines = manualLines.filter(l => l.service_code)
@@ -243,13 +245,21 @@ export async function insertVoyage({ form, validRows, serviceLines, manualLines 
   let servicesSaved = 0
   if (allServiceLines.length > 0) {
     const isContainer = allServiceLines[0]._type === 'container'
-    const svc = { voyageNumber, vesselName: form.vesselName.trim(), vesselType: form.vesselType || null, lines: allServiceLines, created_by: userId, replaceUserLines: true }
+    const svc = { voyageNumber, vesselName: form.vesselName.trim(), vesselType: form.vesselType || null, lines: allServiceLines, created_by: userId, replaceUserLines: true, suppressAudit: true }
     const sRes = isContainer
       ? await window.api.containerSaveSession(svc)
       : await window.api.gcSaveSession(svc)
     if (!sRes.success) throw new Error(sRes.error || 'Error saving services')
     servicesSaved = allServiceLines.length
   }
+
+  // One grouped audit entry for the whole import (berthing rows + service lines).
+  await window.api.auditLogImport({
+    voyageNumber,
+    berthingCount: validRows.length,
+    serviceCount:  servicesSaved,
+    userId,
+  })
 
   return { voyageNumber, servicesSaved, berthingFee: totalFee }
 }

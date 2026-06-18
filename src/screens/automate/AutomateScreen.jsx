@@ -786,13 +786,35 @@ export default function AutomateScreen({ onGenerateReceipt }) {
               <tbody>
                 {serviceLines.map((l, i) => {
                   const inpStyle = { height: 30, padding: '0 6px', border: '1px solid var(--color-border)', borderRadius: 4, fontSize: 12, outline: 'none', background: 'white', textAlign: 'end' }
+                  const codeListId = `code-sl-${i}`
+                  function applyServiceCode(code) {
+                    const upper = code.toUpperCase().trim()
+                    const mc = (isContainerSession ? containerCodes : gcCodes).find(c => c.code.toUpperCase() === upper)
+                    if (!mc) { updateServiceLine(i, { service_code: code.trim() }); return }
+                    if (isContainerSession) {
+                      const rate = l.container_type === '40ft' && mc.default_rate_40 != null ? mc.default_rate_40 : (mc.default_rate_20 ?? 0)
+                      updateServiceLine(i, { service_code: mc.code, description: mc.description || '', is_taxable: mc.is_taxable || 0, price_per_unit: rate })
+                    } else {
+                      updateServiceLine(i, { service_code: mc.code, description: mc.description || '', unit: mc.unit || '', is_taxable: mc.is_taxable || 0, rate: mc.rate ?? l.rate, minimum: mc.minimum ?? 0 })
+                    }
+                  }
                   return (
                   <tr key={`p${i}`} style={{ borderBottom: '1px solid #F5F5F5', background: l._uncertain ? '#FFFBEB' : 'transparent' }}>
-                    <td style={tdStyle}>
-                      <strong>{l.service_code}</strong>
-                      {' '}
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>{l.description}</span>
-                      {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4 }}>⚠</span>}
+                    <td style={{ ...tdStyle, paddingTop: 5, paddingBottom: 5, minWidth: 180 }}>
+                      <datalist id={codeListId}>
+                        {(isContainerSession ? containerCodes : gcCodes).map(c => <option key={c.code} value={c.code} />)}
+                      </datalist>
+                      <input
+                        type="text"
+                        list={codeListId}
+                        value={l.service_code}
+                        onChange={e => updateServiceLine(i, { service_code: e.target.value })}
+                        onBlur={e => applyServiceCode(e.target.value)}
+                        onFocus={() => l._uncertain && updateServiceLine(i, { _uncertain: false })}
+                        style={{ ...inpStyle, width: '100%', textAlign: 'start', textTransform: 'uppercase' }}
+                      />
+                      {l.description && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, paddingInlineStart: 2 }}>{l.description}</div>}
+                      {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4, fontSize: 11 }}>⚠</span>}
                     </td>
                     {isContainerSession && <td style={tdStyle}>{l.container_type}</td>}
                     <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>
