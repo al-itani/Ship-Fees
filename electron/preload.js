@@ -61,4 +61,10 @@ contextBridge.exposeInMainWorld('api', {
   cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
 
   getConfig: () => ipcRenderer.invoke('app:getConfig'),
+
+  storageGetAll:  ()                    => ipcRenderer.invoke('storage:getAll'),
+  storageGetById: (id)                  => ipcRenderer.invoke('storage:getById', id),
+  storageSave:    (data)                => ipcRenderer.invoke('storage:save', data),
+  storageUpdate:  (id, data, userId)    => ipcRenderer.invoke('storage:update', id, data, userId),
+  storageDelete:  (id, userId)          => ipcRenderer.invoke('storage:delete', id, userId),
 })

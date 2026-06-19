@@ -347,5 +347,14 @@
   "lang_en": "الإنجليزية",
   "lang_ar": "العربية",
   "save_changes": "حفظ التغييرات",
-  "warn_second_admin": "سيؤدي هذا إلى إنشاء حساب مشرف ثانٍ. هل تريد المتابعة؟"
+  "warn_second_admin": "سيؤدي هذا إلى إنشاء حساب مشرف ثانٍ. هل تريد المتابعة؟",
+
+  "storage_description": "حاسبة رسوم التخزين",
+  "storage_calculator_tab": "الحاسبة",
+  "storage_records_tab": "السجلات",
+  "cma_receipt_description": "تقرير النشاط الشهري لحاويات CMA",
+  "module_access": "الوصول للوحدات",
+  "perm_storage": "الوصول إلى التخزين",
+  "perm_automate": "الوصول إلى الأتمتة",
+  "perm_cma": "الوصول إلى وصل CMA"
 }

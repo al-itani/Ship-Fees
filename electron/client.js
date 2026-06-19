@@ -183,7 +183,24 @@ async function usersDeleteUser(id) {
   return apiCall('/api/users/delete', { id })
 }
 
-// ── Settings ──────────────────────────────────────────────────────────────
+// ── Storage ───────────────────────────────────────────────────────────────
+async function storageGetAll() {
+  return apiCall('/api/storage/getAll')
+}
+async function storageGetById(id) {
+  return apiCall('/api/storage/getById', { id })
+}
+async function storageSave(data) {
+  return apiCall('/api/storage/save', data)
+}
+async function storageUpdate(id, data, userId) {
+  return apiCall('/api/storage/update', { id, data, userId })
+}
+async function storageDelete(id, userId) {
+  return apiCall('/api/storage/delete', { id, userId })
+}
+
+// ── Settings ───────────────────────────────────────────────────────────────
 async function settingsLoad() {
   return apiCall('/api/settings/load')
 }
@@ -235,6 +252,12 @@ module.exports = {
   usersSetPermission,
   usersCheckRecords,
   usersDeleteUser,
+  // Storage
+  storageGetAll,
+  storageGetById,
+  storageSave,
+  storageUpdate,
+  storageDelete,
   // Settings
   settingsLoad,
   settingsSave,

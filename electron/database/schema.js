@@ -214,6 +214,27 @@ module.exports = function initSchema(db) {
       created_at      TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS storage_records (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      agency         TEXT NOT NULL,
+      cargo_type     TEXT NOT NULL,
+      status         TEXT NOT NULL,
+      days           INTEGER NOT NULL,
+      vehicle_size   TEXT,
+      container_size TEXT,
+      tons           REAL,
+      arrival_date   TEXT,
+      departure_date TEXT,
+      notes          TEXT,
+      fee            REAL NOT NULL,
+      result_json    TEXT NOT NULL,
+      is_deleted     INTEGER NOT NULL DEFAULT 0,
+      created_by     TEXT NOT NULL,
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_by     TEXT,
+      updated_at     TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS receipts (
       id                INTEGER PRIMARY KEY AUTOINCREMENT,
       voyage_id         INTEGER REFERENCES voyages(id),
@@ -242,6 +263,9 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE users ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN last_seen TEXT`) } catch {}
   try { db.exec(`ALTER TABLE berthing_records ADD COLUMN roro_cargo_type TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_storage INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_automate INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_cma INTEGER NOT NULL DEFAULT 0`) } catch {}
 
   // Reset presence on every startup — clears stale is_online from crashes or force-kills
   try { db.exec(`UPDATE users SET is_online = 0, last_seen = NULL`) } catch {}

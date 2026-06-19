@@ -3,7 +3,7 @@ const db = require('../db')
 
 function login(username, password) {
   try {
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username)
+    const user = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE').get(username)
     if (!user) return { success: false, error: 'invalid_login' }
     if (!user.is_active) return { success: false, error: 'account_disabled' }
 
@@ -25,6 +25,9 @@ function login(username, password) {
         language: user.language,
         must_change_password: user.must_change_password,
         permissions,
+        perm_storage:  user.perm_storage  ?? 0,
+        perm_automate: user.perm_automate ?? 0,
+        perm_cma:      user.perm_cma      ?? 0,
       },
     }
   } catch (err) {

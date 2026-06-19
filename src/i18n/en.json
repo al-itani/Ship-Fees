@@ -347,5 +347,14 @@
   "lang_en": "English",
   "lang_ar": "Arabic",
   "save_changes": "Save Changes",
-  "warn_second_admin": "This will create a second Admin account. Continue?"
+  "warn_second_admin": "This will create a second Admin account. Continue?",
+
+  "storage_description": "Cargo storage fee calculator",
+  "storage_calculator_tab": "Calculator",
+  "storage_records_tab": "Records",
+  "cma_receipt_description": "Monthly CMA container activity report",
+  "module_access": "Module Access",
+  "perm_storage": "Storage Access",
+  "perm_automate": "Automate Access",
+  "perm_cma": "CMA Receipt Access"
 }

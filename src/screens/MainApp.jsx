@@ -14,6 +14,7 @@ import UserManagementScreen from './users/UserManagementScreen.jsx'
 import ManagerStaffScreen from './users/ManagerStaffScreen.jsx'
 import AuditLogScreen from './audit/AuditLogScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
+import StorageScreen from './storage/StorageScreen.jsx'
 import { useSession } from '../context/SessionContext.jsx'
 
 export default function MainApp() {
@@ -68,12 +69,16 @@ export default function MainApp() {
             onGenerateReceipt={handleGenerateReceipt}
           />
         )
+      case 'storage':
+        if (session?.role !== 'admin' && !session?.perm_storage) return <Home setCurrentScreen={setCurrentScreen} />
+        return <StorageScreen />
       case 'receipts_archive':
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':
-        if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
+        if (session?.role !== 'admin' && !session?.perm_automate) return <Home setCurrentScreen={setCurrentScreen} />
         return <AutomateScreen onGenerateReceipt={handleGenerateReceipt} />
       case 'cma':
+        if (session?.role !== 'admin' && !session?.perm_cma) return <Home setCurrentScreen={setCurrentScreen} />
         return <CMAScreen />
       case 'settings':
         return <SettingsScreen />

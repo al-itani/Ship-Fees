@@ -4,12 +4,12 @@ import { useSession } from '../context/SessionContext.jsx'
 const VERSION = '1.0.1'
 
 const navItems = [
-  { key: 'home',            icon: '🏠', label: 'home',            active: true  },
-  { key: 'automate',        icon: '🤖', label: 'automate',        active: true, adminOnly: true },
-  { key: 'voyage_services',  icon: '🚢', label: 'voyage_services',  active: true  },
-  { key: 'storage',         icon: '🏪', label: 'storage',         active: false },
-  { key: 'receipts_archive',icon: '🗂', label: 'receipts_archive',active: true  },
-  { key: 'cma',             icon: '📊', label: 'cma_receipt',     active: true, permissionGated: true },
+  { key: 'home',             icon: '🏠', label: 'home' },
+  { key: 'automate',         icon: '🤖', label: 'automate',        permKey: 'perm_automate' },
+  { key: 'voyage_services',  icon: '🚢', label: 'voyage_services' },
+  { key: 'storage',          icon: '🏪', label: 'storage',         permKey: 'perm_storage' },
+  { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive' },
+  { key: 'cma',              icon: '📊', label: 'cma_receipt',     permKey: 'perm_cma' },
 ]
 
 const adminNavItems = [
@@ -46,46 +46,30 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
       {/* Nav */}
       <nav style={{ flex: 1, padding: '12px 0' }}>
         {navItems.map(item => {
-          if (item.adminOnly && session?.role !== 'admin') return null
-          // CMA is visible to admin always, or to users with the permission
-          if (item.permissionGated && session?.role !== 'admin') {
-            if (!session?.permissions?.includes('generate_cma_receipt')) return null
-          }
+          if (item.permKey && session?.role !== 'admin' && !session?.[item.permKey]) return null
           const isSelected = currentScreen === item.key
           return (
             <div
               key={item.key}
-              onClick={() => item.active && setCurrentScreen(item.key)}
+              onClick={() => setCurrentScreen(item.key)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
                 padding: '11px 20px',
-                cursor: item.active ? 'pointer' : 'default',
+                cursor: 'pointer',
                 background: isSelected ? 'var(--color-sidebar-active)' : 'transparent',
-                color: item.active ? 'white' : 'rgba(255,255,255,0.35)',
+                color: 'white',
                 fontSize: 14,
                 fontWeight: isSelected ? 600 : 400,
                 transition: 'background 0.15s',
                 userSelect: 'none',
               }}
-              onMouseEnter={e => { if (item.active && !isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
+              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.07)' }}
               onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
             >
               <span style={{ fontSize: 16 }}>{item.icon}</span>
               <span>{t(item.label)}</span>
-              {!item.active && (
-                <span style={{
-                  marginInlineStart: 'auto',
-                  fontSize: 10,
-                  background: 'rgba(255,255,255,0.15)',
-                  color: 'rgba(255,255,255,0.5)',
-                  borderRadius: 4,
-                  padding: '2px 6px',
-                }}>
-                  {t('coming_soon')}
-                </span>
-              )}
             </div>
           )
         })}

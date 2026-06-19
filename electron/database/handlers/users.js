@@ -12,7 +12,8 @@ function getAll() {
   try {
     const users = db.prepare(`
       SELECT id, username, full_name, role, language, is_active, must_change_password,
-             created_at, last_login, created_by, is_online, last_seen
+             created_at, last_login, created_by, is_online, last_seen,
+             perm_storage, perm_automate, perm_cma
       FROM users
       ORDER BY role DESC, username ASC
     `).all()
@@ -120,12 +121,18 @@ function getPermissions(user_id) {
   }
 }
 
+const COLUMN_PERMS = ['perm_storage', 'perm_automate', 'perm_cma']
+
 function setPermission(user_id, permission_key, grant, admin_id) {
   try {
     const userRow = db.prepare('SELECT username FROM users WHERE id = ?').get(user_id)
     if (!userRow) return { success: false, error: 'user_not_found' }
 
-    if (grant) {
+    if (COLUMN_PERMS.includes(permission_key)) {
+      db.prepare(`UPDATE users SET ${permission_key} = ? WHERE id = ?`).run(grant ? 1 : 0, user_id)
+      writeAudit(user_id, 'UPDATE', null,
+        { message: `${grant ? 'Granted' : 'Revoked'} ${permission_key} ${grant ? 'to' : 'from'}: ${userRow.username}` }, admin_id)
+    } else if (grant) {
       db.prepare('INSERT OR IGNORE INTO user_permissions (user_id, permission_key, granted_by) VALUES (?, ?, ?)')
         .run(user_id, permission_key, admin_id)
       writeAudit(user_id, 'INSERT', null,

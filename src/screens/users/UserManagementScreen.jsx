@@ -3,9 +3,14 @@ import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
 
 const PERMISSIONS = [
-  { key: 'generate_cma_receipt',  labelKey: 'perm_generate_cma_receipt'  },
-  { key: 'edit_others_records',   labelKey: 'perm_edit_others_records'   },
-  { key: 'access_tariff_editor',  labelKey: 'perm_access_tariff_editor'  },
+  { key: 'edit_others_records',  labelKey: 'perm_edit_others_records'  },
+  { key: 'access_tariff_editor', labelKey: 'perm_access_tariff_editor' },
+]
+
+const MODULE_PERMS = [
+  { key: 'perm_storage',  labelKey: 'perm_storage'  },
+  { key: 'perm_automate', labelKey: 'perm_automate' },
+  { key: 'perm_cma',      labelKey: 'perm_cma'      },
 ]
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
@@ -84,8 +89,13 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
   const [role, setRole]         = useState(user.role)
   const [language, setLanguage] = useState(user.language)
   const [perms, setPerms]       = useState([])
-  const [saving, setSaving]     = useState(false)
-  const [error, setError]       = useState('')
+  const [modPerms, setModPerms] = useState({
+    perm_storage:  !!user.perm_storage,
+    perm_automate: !!user.perm_automate,
+    perm_cma:      !!user.perm_cma,
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState('')
 
   useEffect(() => {
     window.api.usersGetPermissions(user.id).then(res => {
@@ -112,6 +122,12 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
     if (res.success) {
       setPerms(prev => grant ? [...prev, key] : prev.filter(p => p !== key))
     }
+  }
+
+  async function toggleModPerm(key, currently) {
+    const grant = !currently
+    const res = await window.api.usersSetPermission(user.id, key, grant, session.id)
+    if (res.success) setModPerms(prev => ({ ...prev, [key]: grant }))
   }
 
   const isOwnAccount = user.id === session.id
@@ -146,25 +162,44 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
 
         {/* Permissions — only shown for non-admin users */}
         {role !== 'admin' && (
-          <div style={{ borderTop: '1px solid #EEF0F6', paddingTop: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {t('permissions')}
+          <>
+            <div style={{ borderTop: '1px solid #EEF0F6', paddingTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {t('permissions')}
+              </div>
+              {PERMISSIONS.map(p => {
+                const granted = perms.includes(p.key)
+                return (
+                  <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', fontSize: 13 }}>
+                    <input
+                      type="checkbox"
+                      checked={granted}
+                      onChange={() => togglePerm(p.key, granted)}
+                      style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    />
+                    {t(p.labelKey)}
+                  </label>
+                )
+              })}
             </div>
-            {PERMISSIONS.map(p => {
-              const granted = perms.includes(p.key)
-              return (
+
+            <div style={{ borderTop: '1px solid #EEF0F6', paddingTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                {t('module_access')}
+              </div>
+              {MODULE_PERMS.map(p => (
                 <label key={p.key} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input
                     type="checkbox"
-                    checked={granted}
-                    onChange={() => togglePerm(p.key, granted)}
+                    checked={modPerms[p.key]}
+                    onChange={() => toggleModPerm(p.key, modPerms[p.key])}
                     style={{ width: 16, height: 16, cursor: 'pointer' }}
                   />
                   {t(p.labelKey)}
                 </label>
-              )
-            })}
-          </div>
+              ))}
+            </div>
+          </>
         )}
 
         {error && <div style={{ color: 'var(--color-danger)', fontSize: 13 }}>{error}</div>}

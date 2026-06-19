@@ -16,6 +16,7 @@ const auditHandlers      = require('./database/handlers/audit')
 const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
 const { getConfig }      = require('./configStore')
+const storageHandlers    = require('./database/handlers/storage')
 const clientHandlers     = require('./client')
 
 const appConfig = getConfig()
@@ -385,6 +386,23 @@ ipcMain.handle('settings:load',
 )
 ipcMain.handle('settings:save',
   (_, data) => C ? clientHandlers.settingsSave(data) : settingsHandlers.save(data)
+)
+
+// Storage
+ipcMain.handle('storage:getAll',
+  () => C ? clientHandlers.storageGetAll() : storageHandlers.getAll()
+)
+ipcMain.handle('storage:getById',
+  (_, id) => C ? clientHandlers.storageGetById(id) : storageHandlers.getById(id)
+)
+ipcMain.handle('storage:save',
+  (_, data) => C ? clientHandlers.storageSave(data) : storageHandlers.saveRecord(data)
+)
+ipcMain.handle('storage:update',
+  (_, id, data, userId) => C ? clientHandlers.storageUpdate(id, data, userId) : storageHandlers.updateRecord(id, data, userId)
+)
+ipcMain.handle('storage:delete',
+  (_, id, userId) => C ? clientHandlers.storageDelete(id, userId) : storageHandlers.softDelete(id, userId)
 )
 
 // AI document extraction
