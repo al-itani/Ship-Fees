@@ -59,4 +59,6 @@ contextBridge.exposeInMainWorld('api', {
 
   cmaGetReport:   (year, month)          => ipcRenderer.invoke('cma:getReport', year, month),
   cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
+
+  getConfig: () => ipcRenderer.invoke('app:getConfig'),
 })

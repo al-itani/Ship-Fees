@@ -11,6 +11,7 @@ const fetch = globalThis.fetch
 
 async function apiCall(endpoint, body = {}) {
   const { serverUrl, token } = getConfig()
+  console.log('apiCall:', endpoint, JSON.stringify(body))
   const res = await fetch(`${serverUrl}${endpoint}`, {
     method: 'POST',
     headers: {
@@ -27,8 +28,12 @@ async function apiCall(endpoint, body = {}) {
 // ── Auth ──────────────────────────────────────────────────────────────────
 // After the server.js login fix, apiCall returns the user object directly.
 async function login(username, password) {
-  const result = await apiCall('/api/auth/login', { username, password })
-  return result
+  try {
+    const user = await apiCall('/api/auth/login', { username, password })
+    return { success: true, user }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
 }
 
 // currentPassword is accepted for API surface parity; the handler doesn't validate it.

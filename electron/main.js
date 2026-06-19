@@ -16,9 +16,13 @@ const auditHandlers      = require('./database/handlers/audit')
 const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
 const { getConfig }      = require('./configStore')
+const clientHandlers     = require('./client')
 
 const appConfig = getConfig()
 if (appConfig.mode !== 'client') require('./server').startServer()
+
+const C = appConfig.mode === 'client'
+console.log('MODE:', appConfig.mode, 'C:', C)
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
@@ -53,40 +57,123 @@ function createWindow() {
 }
 
 // Auth
-ipcMain.handle('auth:login',          (_, username, password) => authHandlers.login(username, password))
-ipcMain.handle('auth:changePassword', (_, userId, newPassword) => authHandlers.changePassword(userId, newPassword))
-ipcMain.handle('auth:logout',         (_, userId) => authHandlers.logout(userId))
+ipcMain.handle('auth:login',
+  (_, username, password) => C
+    ? clientHandlers.login(username, password)
+    : authHandlers.login(username, password)
+)
+ipcMain.handle('auth:changePassword',
+  // client.js signature is (userId, currentPassword, newPassword); pass null for currentPassword
+  (_, userId, newPassword) => C
+    ? clientHandlers.changePassword(userId, null, newPassword)
+    : authHandlers.changePassword(userId, newPassword)
+)
+ipcMain.handle('auth:logout', (_, userId) => authHandlers.logout(userId))
 
 // Berthing
-ipcMain.handle('berthing:getRates',  () => berthingHandlers.getRates())
-ipcMain.handle('berthing:getAgents', () => berthingHandlers.getAgents())
-ipcMain.handle('berthing:save',      (_, data) => berthingHandlers.save(data))
-ipcMain.handle('berthing:getAll',    () => berthingHandlers.getAll())
-ipcMain.handle('berthing:update',    (_, id, data) => berthingHandlers.update(id, data))
-ipcMain.handle('berthing:delete',    (_, id, userId, opts) => berthingHandlers.softDelete(id, userId, opts))
+ipcMain.handle('berthing:getRates',
+  () => C ? clientHandlers.berthingGetRates() : berthingHandlers.getRates()
+)
+ipcMain.handle('berthing:getAgents',
+  () => C ? clientHandlers.berthingGetAgents() : berthingHandlers.getAgents()
+)
+ipcMain.handle('berthing:save',
+  (_, data) => C ? clientHandlers.berthingSave(data) : berthingHandlers.save(data)
+)
+ipcMain.handle('berthing:getAll',
+  () => C ? clientHandlers.berthingGetAll() : berthingHandlers.getAll()
+)
+ipcMain.handle('berthing:update',
+  (_, id, data) => C ? clientHandlers.berthingUpdate(id, data) : berthingHandlers.update(id, data)
+)
+ipcMain.handle('berthing:delete',
+  // client.js berthingSoftDelete does not accept opts; local handler still gets opts
+  (_, id, userId, opts) => C
+    ? clientHandlers.berthingSoftDelete(id, userId)
+    : berthingHandlers.softDelete(id, userId, opts)
+)
 
 // Container
-ipcMain.handle('container:lookupVoyage', (_, voyageNumber) => containerHandlers.lookupVoyage(voyageNumber))
-ipcMain.handle('container:listVoyages',  () => containerHandlers.listVoyages())
-ipcMain.handle('container:getCodes',     () => containerHandlers.getCodes())
-ipcMain.handle('container:saveSession',  (_, data) => containerHandlers.saveSession(data))
-ipcMain.handle('container:getLines',     (_, voyageNumber) => containerHandlers.getLines(voyageNumber))
-ipcMain.handle('container:deleteLine',   (_, id, userId) => containerHandlers.deleteLine(id, userId))
+ipcMain.handle('container:lookupVoyage',
+  (_, voyageNumber) => C
+    ? clientHandlers.containerLookupVoyage(voyageNumber)
+    : containerHandlers.lookupVoyage(voyageNumber)
+)
+ipcMain.handle('container:listVoyages',
+  () => C ? clientHandlers.containerListVoyages() : containerHandlers.listVoyages()
+)
+ipcMain.handle('container:getCodes',
+  () => C ? clientHandlers.containerGetCodes() : containerHandlers.getCodes()
+)
+ipcMain.handle('container:saveSession',
+  // data arrives as a single object; destructure for client which takes (voyageNumber, lines, savedBy)
+  (_, data) => C
+    ? clientHandlers.containerSaveSession(data.voyageNumber, data.lines, data.created_by)
+    : containerHandlers.saveSession(data)
+)
+ipcMain.handle('container:getLines',
+  (_, voyageNumber) => C
+    ? clientHandlers.containerGetLines(voyageNumber)
+    : containerHandlers.getLines(voyageNumber)
+)
+ipcMain.handle('container:deleteLine',
+  (_, id, userId) => C
+    ? clientHandlers.containerDeleteLine(id, userId)
+    : containerHandlers.deleteLine(id, userId)
+)
 
 // General Cargo
-ipcMain.handle('gc:lookupVoyage', (_, voyageNumber) => gcHandlers.lookupVoyage(voyageNumber))
-ipcMain.handle('gc:listVoyages',  () => gcHandlers.listVoyages())
-ipcMain.handle('gc:getCodes',     () => gcHandlers.getCodes())
-ipcMain.handle('gc:saveSession',  (_, data) => gcHandlers.saveSession(data))
-ipcMain.handle('gc:getLines',     (_, voyageNumber) => gcHandlers.getLines(voyageNumber))
-ipcMain.handle('gc:deleteLine',   (_, id, userId) => gcHandlers.deleteLine(id, userId))
+ipcMain.handle('gc:lookupVoyage',
+  (_, voyageNumber) => C
+    ? clientHandlers.gcLookupVoyage(voyageNumber)
+    : gcHandlers.lookupVoyage(voyageNumber)
+)
+ipcMain.handle('gc:listVoyages',
+  () => C ? clientHandlers.gcListVoyages() : gcHandlers.listVoyages()
+)
+ipcMain.handle('gc:getCodes',
+  () => C ? clientHandlers.gcGetCodes() : gcHandlers.getCodes()
+)
+ipcMain.handle('gc:saveSession',
+  // data arrives as a single object; destructure for client which takes (voyageNumber, lines, savedBy)
+  (_, data) => C
+    ? clientHandlers.gcSaveSession(data.voyageNumber, data.lines, data.created_by)
+    : gcHandlers.saveSession(data)
+)
+ipcMain.handle('gc:getLines',
+  (_, voyageNumber) => C
+    ? clientHandlers.gcGetLines(voyageNumber)
+    : gcHandlers.getLines(voyageNumber)
+)
+ipcMain.handle('gc:deleteLine',
+  (_, id, userId) => C
+    ? clientHandlers.gcDeleteLine(id, userId)
+    : gcHandlers.deleteLine(id, userId)
+)
 
 // Receipts
-ipcMain.handle('receipt:getData',              (_, voyageNumber) => receiptHandlers.getDataForReceipt(voyageNumber))
-ipcMain.handle('receipt:save',                 (_, data) => receiptHandlers.saveReceipt(data))
-ipcMain.handle('receipt:getAll',               () => receiptHandlers.getAll())
-ipcMain.handle('receipt:delete',               (_, id, userId) => receiptHandlers.softDelete(id, userId))
-ipcMain.handle('receipt:prepareBerthingOnly',  (_, voyageNumber, username) => receiptHandlers.prepareBerthingOnly(voyageNumber, username))
+ipcMain.handle('receipt:getData',
+  (_, voyageNumber) => C
+    ? clientHandlers.receiptGetData(voyageNumber)
+    : receiptHandlers.getDataForReceipt(voyageNumber)
+)
+ipcMain.handle('receipt:save',
+  (_, data) => C ? clientHandlers.receiptSave(data) : receiptHandlers.saveReceipt(data)
+)
+ipcMain.handle('receipt:getAll',
+  () => C ? clientHandlers.receiptGetAll() : receiptHandlers.getAll()
+)
+ipcMain.handle('receipt:delete',
+  (_, id, userId) => C
+    ? clientHandlers.receiptSoftDelete(id, userId)
+    : receiptHandlers.softDelete(id, userId)
+)
+ipcMain.handle('receipt:prepareBerthingOnly',
+  // client.js prepareBerthingOnly does not accept username; local handler still gets it
+  (_, voyageNumber, username) => C
+    ? clientHandlers.prepareBerthingOnly(voyageNumber)
+    : receiptHandlers.prepareBerthingOnly(voyageNumber, username)
+)
 
 // PDF Export — uses printToPDF on the calling window's webContents
 ipcMain.handle('dialog:openDocuments', async (event) => {
@@ -153,7 +240,12 @@ ipcMain.handle('receipt:exportPDFBatch', async (event, { filePath }) => {
 })
 
 // CMA Receipt
-ipcMain.handle('cma:getReport', (_, year, month) => cmaHandlers.getReport(year, month))
+// IPC receives (year, month) to match preload call order; client.js signature is (month, year) — swap intentional
+ipcMain.handle('cma:getReport',
+  (_, year, month) => C
+    ? clientHandlers.cmaGetReport(month, year)
+    : cmaHandlers.getReport(year, month)
+)
 
 ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
   try {
@@ -234,25 +326,66 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
 })
 
 // User Management
-ipcMain.handle('users:getAll',         () => usersHandlers.getAll())
-ipcMain.handle('users:create',         (_, data) => usersHandlers.create(data))
-ipcMain.handle('users:update',         (_, id, data, adminId) => usersHandlers.update(id, data, adminId))
-ipcMain.handle('users:resetPassword',  (_, id, tmpPwd, adminId) => usersHandlers.resetPassword(id, tmpPwd, adminId))
-ipcMain.handle('users:setActive',      (_, id, isActive, adminId) => usersHandlers.setActive(id, isActive, adminId))
-ipcMain.handle('users:getPermissions', (_, userId) => usersHandlers.getPermissions(userId))
-ipcMain.handle('users:setPermission',  (_, userId, key, grant, adminId) => usersHandlers.setPermission(userId, key, grant, adminId))
-ipcMain.handle('users:checkRecords',   (_, userId) => usersHandlers.checkHasRecords(userId))
-ipcMain.handle('users:delete',         (_, id, adminId) => usersHandlers.deleteUser(id, adminId))
-ipcMain.handle('users:heartbeat',      (_, userId) => usersHandlers.heartbeat(userId))
+ipcMain.handle('users:getAll',
+  () => C ? clientHandlers.usersGetAll() : usersHandlers.getAll()
+)
+ipcMain.handle('users:create',
+  (_, data) => C ? clientHandlers.usersCreate(data) : usersHandlers.create(data)
+)
+ipcMain.handle('users:update',
+  // adminId not forwarded to client (server doesn't require it for this endpoint)
+  (_, id, data, adminId) => C
+    ? clientHandlers.usersUpdate(id, data)
+    : usersHandlers.update(id, data, adminId)
+)
+ipcMain.handle('users:resetPassword',
+  // adminId not forwarded to client
+  (_, id, tmpPwd, adminId) => C
+    ? clientHandlers.usersResetPassword(id, tmpPwd)
+    : usersHandlers.resetPassword(id, tmpPwd, adminId)
+)
+ipcMain.handle('users:setActive',
+  // adminId not forwarded to client
+  (_, id, isActive, adminId) => C
+    ? clientHandlers.usersSetActive(id, isActive)
+    : usersHandlers.setActive(id, isActive, adminId)
+)
+ipcMain.handle('users:getPermissions',
+  (_, userId) => C
+    ? clientHandlers.usersGetPermissions(userId)
+    : usersHandlers.getPermissions(userId)
+)
+ipcMain.handle('users:setPermission',
+  // adminId not forwarded to client
+  (_, userId, key, grant, adminId) => C
+    ? clientHandlers.usersSetPermission(userId, key, grant)
+    : usersHandlers.setPermission(userId, key, grant, adminId)
+)
+ipcMain.handle('users:checkRecords',
+  (_, userId) => C
+    ? clientHandlers.usersCheckRecords(userId)
+    : usersHandlers.checkHasRecords(userId)
+)
+ipcMain.handle('users:delete',
+  // exported as usersDeleteUser in client.js; adminId not forwarded
+  (_, id, adminId) => C
+    ? clientHandlers.usersDeleteUser(id)
+    : usersHandlers.deleteUser(id, adminId)
+)
+ipcMain.handle('users:heartbeat', (_, userId) => usersHandlers.heartbeat(userId))
 
-// Audit log
-ipcMain.handle('audit:getEntries',      (_, filters) => auditHandlers.getEntries(filters))
+// Audit log — local only (no client.js implementation)
+ipcMain.handle('audit:getEntries',       (_, filters) => auditHandlers.getEntries(filters))
 ipcMain.handle('audit:getFilterOptions', () => auditHandlers.getFilterOptions())
 ipcMain.handle('audit:logImport',        (_, payload) => auditHandlers.logImport(payload))
 
 // Settings
-ipcMain.handle('settings:load', () => settingsHandlers.load())
-ipcMain.handle('settings:save', (_, data) => settingsHandlers.save(data))
+ipcMain.handle('settings:load',
+  () => C ? clientHandlers.settingsLoad() : settingsHandlers.load()
+)
+ipcMain.handle('settings:save',
+  (_, data) => C ? clientHandlers.settingsSave(data) : settingsHandlers.save(data)
+)
 
 // AI document extraction
 ipcMain.handle('ai:extract',        (_, images) => aiHandlers.extract(images))
