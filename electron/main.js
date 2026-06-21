@@ -177,6 +177,23 @@ ipcMain.handle('receipt:prepareBerthingOnly',
     : receiptHandlers.prepareBerthingOnly(voyageNumber, username)
 )
 
+// Native dialogs (confirm / message)
+ipcMain.handle('dialog:confirm', async (event, { title, message, detail, type = 'question' }) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  const result = await dialog.showMessageBox(win, {
+    type, title, message, detail,
+    buttons: ['OK', 'Cancel'], defaultId: 0, cancelId: 1, noLink: true,
+  })
+  return result.response === 0
+})
+ipcMain.handle('dialog:message', async (event, { title, message, detail, type = 'info' }) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  await dialog.showMessageBox(win, {
+    type, title, message, detail, buttons: ['OK'], noLink: true,
+  })
+  return true
+})
+
 // PDF Export — uses printToPDF on the calling window's webContents
 ipcMain.handle('dialog:openDocuments', async (event) => {
   try {

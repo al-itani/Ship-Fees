@@ -84,7 +84,7 @@ export default function StorageRecords({ refreshKey, onEdit }) {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this storage record? It will be hidden but not permanently erased.')) return
+    if (!await window.api.dialogConfirm({ title: 'Confirm', message: 'Delete this storage record? It will be hidden but not permanently erased.' })) return
     setDeleting(true)
     setDeleteError('')
     try {

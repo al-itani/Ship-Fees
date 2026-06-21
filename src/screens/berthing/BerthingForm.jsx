@@ -5,7 +5,6 @@ import { useSession } from '../../context/SessionContext.jsx'
 import { calcBerthingFee } from '../../logic/berthingCalc.js'
 import SearchableSelect from '../../components/SearchableSelect.jsx'
 import FeePreview from '../../components/FeePreview.jsx'
-import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import { COUNTRIES } from '../../data/countries.js'
 
 const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
@@ -46,7 +45,6 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
   const [breakdown, setBreakdown]     = useState(null)
   const [errors, setErrors]           = useState({})
   const [showConfirm, setShowConfirm]           = useState(false)
-  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [postSaveVoyage, setPostSaveVoyage]         = useState(null)
   const [postSaveVesselType, setPostSaveVesselType] = useState(null)
   const [saving, setSaving]                     = useState(false)
@@ -196,14 +194,16 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
     }
   }
 
-  function handleClear() {
+  async function handleClear() {
     const hasData = Object.values(form).some(v => v !== '' && v !== 'No')
-    if (hasData) { setShowClearConfirm(true); return }
+    if (hasData) {
+      const ok = await window.api.dialogConfirm({ title: t('clear_form'), message: t('confirm_clear') })
+      if (!ok) return
+    }
     doClear()
   }
 
   function doClear() {
-    setShowClearConfirm(false)
     setForm(EMPTY)
     setBreakdown(null)
     setErrors({})
@@ -497,19 +497,6 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
           {t('clear_form')}
         </button>
       </div>
-
-      {/* Clear-form confirmation */}
-      {showClearConfirm && (
-        <ConfirmDialog
-          title={t('clear_form')}
-          message={t('confirm_clear')}
-          confirmLabel={t('clear_form')}
-          cancelLabel={t('cancel')}
-          danger
-          onConfirm={doClear}
-          onCancel={() => setShowClearConfirm(false)}
-        />
-      )}
 
       {/* Confirmation modal */}
       {showConfirm && breakdown && (

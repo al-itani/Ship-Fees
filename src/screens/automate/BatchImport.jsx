@@ -676,10 +676,11 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                     )}
                     {step === 'summary' && (
                       <button
-                        onClick={e => {
+                        onClick={async (e) => {
                           e.stopPropagation()
                           if (group.status === 'needs_review') {
-                            if (!window.confirm(t('batch_confirm_remove_reviewed'))) return
+                            const ok = await window.api.dialogConfirm({ title: t('confirm'), message: t('batch_confirm_remove_reviewed') })
+                            if (!ok) return
                           }
                           setGroups(prev => prev.filter(g => g.id !== group.id))
                         }}

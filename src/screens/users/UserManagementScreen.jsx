@@ -71,6 +71,13 @@ function Toast({ message, onDone }) {
 
 // ─── Modal wrapper ─────────────────────────────────────────────────
 function Modal({ title, onClose, children, width = 460 }) {
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
@@ -88,7 +95,7 @@ function Modal({ title, onClose, children, width = 460 }) {
 }
 
 // ─── Edit User dialog ─────────────────────────────────────────────
-function EditUserDialog({ user, onClose, onSaved, t, session }) {
+function EditUserDialog({ user, onClose, onSaved, t, session, showConfirm }) {
   const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole]         = useState(user.role)
   const [language, setLanguage] = useState(user.language)
@@ -114,7 +121,7 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
   async function handleSave() {
     if (!fullName.trim()) { setError(t('required_fields_missing')); return }
     if (role === 'admin' && session.role === 'admin' && user.role !== 'admin') {
-      if (!window.confirm(t('warn_second_admin'))) return
+      if (!await showConfirm(t('confirm'), t('warn_second_admin'))) return
     }
     setSaving(true); setError('')
     try {
@@ -283,6 +290,45 @@ export default function UserManagementScreen() {
   const [resetUser, setResetUser]       = useState(null)
   const [showAddForm, setShowAddForm]   = useState(false)
 
+  // In-app confirm / alert modals
+  const [confirmDialog, setConfirmDialog] = useState(null)
+  const [alertDialog, setAlertDialog]     = useState(null)
+  const confirmResolveRef = useRef(null)
+
+  function showConfirm(title, message) {
+    return new Promise(resolve => {
+      confirmResolveRef.current = resolve
+      setConfirmDialog({ title, message })
+    })
+  }
+  function resolveConfirm(result) {
+    setConfirmDialog(null)
+    confirmResolveRef.current?.(result)
+    confirmResolveRef.current = null
+  }
+  function showAlert(title, message) {
+    setAlertDialog({ title, message })
+  }
+
+  useEffect(() => {
+    if (!confirmDialog) return
+    function onKey(e) {
+      if (e.key === 'Enter')  { e.preventDefault(); resolveConfirm(true) }
+      if (e.key === 'Escape') { e.preventDefault(); resolveConfirm(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirmDialog])
+
+  useEffect(() => {
+    if (!alertDialog) return
+    function onKey(e) {
+      if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); setAlertDialog(null) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [alertDialog])
+
   // Add User form state
   const [newUsername, setNewUsername]   = useState('')
   const [newFullName, setNewFullName]   = useState('')
@@ -343,11 +389,11 @@ export default function UserManagementScreen() {
   async function handleToggleActive(user) {
     const isActive = !user.is_active
     const confirmMsg = isActive ? t('confirm_enable_user', { username: user.username }) : t('confirm_disable_user', { username: user.username })
-    if (!window.confirm(confirmMsg)) return
+    if (!await showConfirm(t('confirm'), confirmMsg)) return
 
     const res = await window.api.usersSetActive(user.id, isActive, session.id)
     if (!res.success) {
-      window.alert(t(res.error) || res.error)
+      showAlert(t('error'), t(res.error) || res.error)
       return
     }
     showToast(isActive ? t('user_enabled') : t('user_disabled'))
@@ -356,10 +402,10 @@ export default function UserManagementScreen() {
 
   async function handleDelete(user) {
     const check = await window.api.usersCheckRecords(user.id)
-    if (check.hasRecords) { window.alert(t('has_records')); return }
-    if (!window.confirm(t('confirm_delete_user', { username: user.username }))) return
+    if (check.hasRecords) { showAlert(t('error'), t('has_records')); return }
+    if (!await showConfirm(t('confirm'), t('confirm_delete_user', { username: user.username }))) return
     const res = await window.api.usersDelete(user.id, session.id)
-    if (!res.success) { window.alert(t(res.error) || res.error); return }
+    if (!res.success) { showAlert(t('error'), t(res.error) || res.error); return }
     showToast(t('record_deleted'))
     load()
   }
@@ -371,7 +417,7 @@ export default function UserManagementScreen() {
     if (!newFullName.trim()) { setAddError(t('required_fields_missing')); return }
     if (newPwd.length < 6)  { setAddError(t('password_too_short')); return }
     if (newRole === 'admin') {
-      if (!window.confirm(t('warn_second_admin'))) return
+      if (!await showConfirm(t('confirm'), t('warn_second_admin'))) return
     }
     setAdding(true)
     const res = await window.api.usersCreate({
@@ -584,7 +630,7 @@ export default function UserManagementScreen() {
       {/* Dialogs — admin only */}
       {session?.role === 'admin' && editUser && (
         <EditUserDialog
-          user={editUser} t={t} session={session}
+          user={editUser} t={t} session={session} showConfirm={showConfirm}
           onClose={() => setEditUser(null)}
           onSaved={msg => { setEditUser(null); showToast(msg); load() }}
         />
@@ -598,6 +644,79 @@ export default function UserManagementScreen() {
       )}
 
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
+
+      {/* In-app confirm modal */}
+      {confirmDialog && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 10, width: 380,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.25)', padding: 28,
+          }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700 }}>
+              {confirmDialog.title}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+              {confirmDialog.message}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => resolveConfirm(false)}
+                style={{
+                  padding: '9px 18px', borderRadius: 6, fontSize: 13,
+                  border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer',
+                }}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={() => resolveConfirm(true)}
+                style={{
+                  padding: '9px 20px', borderRadius: 6, border: 'none',
+                  background: 'var(--color-danger)', color: 'white',
+                  fontWeight: 600, cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                {t('confirm_save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-app alert modal */}
+      {alertDialog && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 10, width: 380,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.25)', padding: 28,
+          }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700 }}>
+              {alertDialog.title}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+              {alertDialog.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setAlertDialog(null)}
+                style={{
+                  padding: '9px 20px', borderRadius: 6, border: 'none',
+                  background: 'var(--color-primary)', color: 'white',
+                  fontWeight: 600, cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                {t('ok') || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
