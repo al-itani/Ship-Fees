@@ -365,8 +365,16 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const twoCol     = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }
 
   const UncWarn = ({ field }) => uncertainFields.has(field)
-    ? <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 5, fontSize: 13 }}>⚠</span>
+    ? <span title={t('uncertain_reason_model')} style={{ color: '#F59E0B', marginInlineStart: 5, fontSize: 13 }}>⚠</span>
     : null
+
+  function serviceUncertainHint(line) {
+    if (!line._uncertain) return null
+    const key = line._uncertainReason === 'unknown_code' ? 'uncertain_reason_unknown_code'
+      : line._uncertainReason === 'missing_ctype' ? 'uncertain_reason_missing_ctype'
+      : 'uncertain_reason_model'
+    return t(key)
+  }
 
   // Only show the blocking banner when there are actually visible amber indicators
   const FORM_UNCERTAIN_KEYS = new Set(['voyage_number','vessel_name','vessel_type','flag','shipping_agent','ata','atd','loa'])
@@ -810,11 +818,10 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                         value={l.service_code}
                         onChange={e => updateServiceLine(i, { service_code: e.target.value })}
                         onBlur={e => applyServiceCode(e.target.value)}
-                        onFocus={() => l._uncertain && updateServiceLine(i, { _uncertain: false })}
+                        onFocus={() => l._uncertain && updateServiceLine(i, { _uncertain: false, _uncertainReason: null })}
                         style={{ ...inpStyle, width: '100%', textAlign: 'start', textTransform: 'uppercase' }}
                       />
-                      {l.description && <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, paddingInlineStart: 2 }}>{l.description}</div>}
-                      {l._uncertain && <span title={t('import_uncertain_tooltip')} style={{ color: '#F59E0B', marginInlineStart: 4, fontSize: 11 }}>⚠</span>}
+                      {l._uncertain && <div style={{ fontSize: 11, color: '#D97706', marginTop: 2, paddingInlineStart: 2 }}>⚠ {serviceUncertainHint(l)}</div>}
                     </td>
                     {isContainerSession && <td style={tdStyle}>{l.container_type}</td>}
                     <td style={{ ...tdStyle, textAlign: 'end', paddingTop: 5, paddingBottom: 5 }}>

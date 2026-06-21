@@ -98,6 +98,10 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
       // Strip currency symbols/spaces before converting — Claude occasionally returns "$26.54"
       const rawPrice = parseFloat(String(s.price_per_unit ?? '').replace(/[$,\s]/g, ''))
       const price    = isFinite(rawPrice) && rawPrice > 0 ? rawPrice : defaultRate
+      const reason = uncertain?.has('services') ? 'model'
+        : !mc ? 'unknown_code'
+        : !ctype ? 'missing_ctype'
+        : null
       return {
         _type:          'container',
         service_code:   mc?.code || String(s.code).toUpperCase(),
@@ -107,7 +111,8 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
         price_per_unit: price,
         line_total:     qty * price,
         is_taxable:     mc?.is_taxable || 0,
-        _uncertain:     uncertain?.has('services') || !mc || !ctype,
+        _uncertain:     !!reason,
+        _uncertainReason: reason,
       }
     } else {
       const mc      = gcCodes.find(c => c.code.toLowerCase() === String(s.code).toLowerCase())
@@ -116,6 +121,9 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
       const rate    = isFinite(rawRate) && rawRate > 0 ? rawRate : (mc?.rate ?? 0)
       const min   = mc?.minimum || 0
       const total = min > 0 ? Math.max(qty * rate, min) : qty * rate
+      const reason = uncertain?.has('services') ? 'model'
+        : !mc ? 'unknown_code'
+        : null
       return {
         _type:           'gc',
         service_code:    mc?.code || String(s.code).toUpperCase(),
@@ -127,7 +135,8 @@ export function buildReviewState(fields, uncertain, containerCodes, gcCodes) {
         line_total:      total,
         minimum_applied: min > 0 && qty * rate < min ? 1 : 0,
         is_taxable:      mc?.is_taxable || 0,
-        _uncertain:      uncertain?.has('services') || !mc,
+        _uncertain:      !!reason,
+        _uncertainReason: reason,
       }
     }
   })
