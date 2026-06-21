@@ -111,7 +111,7 @@ export default function MainApp() {
       <Sidebar currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <TopBar currentScreen={currentScreen} />
-        <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)' }}>
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
           {renderScreen()}
         </div>
       </div>

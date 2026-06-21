@@ -397,7 +397,7 @@ export default function UserManagementScreen() {
   })
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1100 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>

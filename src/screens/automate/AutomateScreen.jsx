@@ -386,7 +386,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const totalBerthingFee   = breakdowns.reduce((sum, bd) => sum + (bd?.finalFee || 0), 0)
 
   return (
-    <div style={{ padding: 28, maxWidth: 960 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 960 }}>
 
       {toast && (
         <div style={{

@@ -79,7 +79,7 @@ export default function CMAScreen() {
   }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1100 }}>
 
       {/* Toast */}
       {toast && (

@@ -48,7 +48,7 @@ export default function VoyageServicesScreen({ onGenerateReceipt }) {
   }
 
   return (
-    <div>
+    <div className="app-screen">
       {/* Header */}
       <div style={{ padding: '28px 28px 0' }}>
         <div style={{ marginBottom: 20 }}>

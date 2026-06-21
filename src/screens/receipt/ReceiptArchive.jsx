@@ -112,7 +112,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
   })
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1100 }}>
       {/* Toast */}
       {toast && (
         <div style={{

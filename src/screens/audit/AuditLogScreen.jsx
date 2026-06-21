@@ -162,7 +162,7 @@ export default function AuditLogScreen() {
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
   return (
-    <div style={{ padding: 28, maxWidth: 1200 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1200 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1B2A4A' }}>

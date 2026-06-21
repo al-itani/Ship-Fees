@@ -295,7 +295,7 @@ export default function BerthingForm({ editRecord, onSaved, onCancelEdit, onGoTo
   const uf = (field) => ({ onFocus: () => clearUncertain(field), onClick: () => clearUncertain(field) })
 
   return (
-    <div style={{ background: 'white', borderRadius: 8, padding: 28, border: '1px solid var(--color-border)', maxWidth: 860 }}>
+    <div style={{ background: 'white', borderRadius: 8, padding: 28, border: '1px solid var(--color-border)', maxWidth: 860, marginInline: 'auto' }}>
 
       {/* Toast */}
       {toast && (

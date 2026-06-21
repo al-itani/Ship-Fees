@@ -44,6 +44,12 @@ input:focus, select:focus {
   display: inline-block;
 }
 
+/* Shared screen wrapper — centers content with its own maxWidth */
+.app-screen {
+  width: 100%;
+  margin-inline: auto;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }

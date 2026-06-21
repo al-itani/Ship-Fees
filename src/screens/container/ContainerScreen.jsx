@@ -51,7 +51,7 @@ export default function ContainerScreen({ initialVoyage, onVoyageConsumed, onGen
   }
 
   return (
-    <div style={{ padding: 28, maxWidth: 1060 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1060 }}>
       <h2 style={{ margin: '0 0 24px', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>
         📦 {t('containers')}
       </h2>

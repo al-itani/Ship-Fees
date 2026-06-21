@@ -86,7 +86,7 @@ export default function ManagerStaffScreen() {
   const onlineCount = users.filter(u => getPresence(u) === 'online').length
 
   return (
-    <div style={{ padding: 28, maxWidth: 900 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 900 }}>
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1B2A4A' }}>
           {t('staff_view')}
