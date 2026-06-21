@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
+import { formatLocal } from '../../logic/formatDate.js'
 
 function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '—'
@@ -243,7 +244,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
                     {r.generated_by || '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12, color: 'var(--color-text-muted)' }}>
-                    <span className="num-ltr">{fmtDate(r.generated_at)}</span>
+                    <span className="num-ltr">{formatLocal(r.generated_at)}</span>
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     <button

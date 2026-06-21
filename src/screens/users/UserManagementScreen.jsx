@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
+import { formatLocal } from '../../logic/formatDate.js'
 
 const PERMISSIONS = [
   { key: 'edit_others_records',  labelKey: 'perm_edit_others_records'  },
@@ -378,7 +379,7 @@ export default function UserManagementScreen() {
 
   function fmtDate(ts) {
     if (!ts) return t('never')
-    return ts.slice(0, 16).replace('T', ' ')
+    return formatLocal(ts)
   }
 
   function sortArrow(key) {

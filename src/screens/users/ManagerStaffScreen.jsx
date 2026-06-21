@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
+import { formatLocal } from '../../logic/formatDate.js'
 
 const card = {
   background: 'white', borderRadius: 10,
@@ -65,7 +66,7 @@ export default function ManagerStaffScreen() {
 
   function fmtDate(ts) {
     if (!ts) return t('never')
-    return ts.slice(0, 16).replace('T', ' ')
+    return formatLocal(ts)
   }
 
   const filtered = users.filter(u => {

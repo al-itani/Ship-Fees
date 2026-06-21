@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatLocal } from '../../logic/formatDate.js'
 
 const PAGE_SIZE = 50
 
@@ -155,8 +156,7 @@ export default function AuditLogScreen() {
   function applyPage(pg) { setPage(pg); load(pg) }
 
   function fmtDate(ts) {
-    if (!ts) return '—'
-    return ts.slice(0, 16).replace('T', ' ')
+    return formatLocal(ts)
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
