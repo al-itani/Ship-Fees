@@ -1,4 +1,4 @@
-import { useState, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
 import { compressToJpeg, pdfToImages, pdfToImagesFromBase64 } from '../../components/DocumentImport.jsx'
@@ -74,8 +74,20 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
   const [running, setRunning] = useState(false)    // queue in flight
   const [dragOver, setDragOver] = useState(null)   // group id | 'zone' | 'new'
   const [toast, setToast]     = useState(null)
-  const [hoverPreview, setHoverPreview] = useState(null) // { data, mediaType, top, left }
+  const [hoverPreview, setHoverPreview] = useState(null) // { data, mediaType, top, left, pageId }
   const dragPageRef = useRef(null)
+
+  useEffect(() => {
+    if (!hoverPreview) return
+    function onKey(e) { if (e.key === 'Escape') setHoverPreview(null) }
+    function onDocClick() { setHoverPreview(null) }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('click', onDocClick)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('click', onDocClick)
+    }
+  }, [!!hoverPreview])
 
   // PDF auto-export state: one voyage rendered at a time, batch loop awaits via ref
   const [pdfExportItem, setPdfExportItem] = useState(null) // { voyageNumber, filePath }
@@ -332,18 +344,21 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
         </div>
       )}
 
-      {/* ── Hover preview overlay ── */}
+      {/* ── Click preview overlay ── */}
       {hoverPreview && (
-        <div style={{
-          position: 'fixed', top: hoverPreview.top, left: hoverPreview.left,
-          zIndex: 99990, pointerEvents: 'none',
-          background: 'white', border: '1px solid var(--color-border)',
-          borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', padding: 4,
-        }}>
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed', top: hoverPreview.top, left: hoverPreview.left,
+            zIndex: 99990, pointerEvents: 'all',
+            background: 'white', border: '1px solid var(--color-border)',
+            borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.18)', padding: 4,
+          }}
+        >
           <img
             src={`data:${hoverPreview.mediaType};base64,${hoverPreview.data}`}
             alt=""
-            style={{ width: 640, height: 'auto', maxHeight: '85vh', borderRadius: 5, display: 'block' }}
+            style={{ width: 512, height: 'auto', maxHeight: '85vh', borderRadius: 5, display: 'block' }}
           />
         </div>
       )}
@@ -392,6 +407,7 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                 <span style={{ fontSize: 13, fontWeight: 600 }}>
                   {t('batch_files_count', { count: files.length })}
                 </span>
+                <span style={{ flex: 1 }} />
                 <button
                   onClick={() => { setFiles([]); setGroups([]) }}
                   style={{
@@ -515,17 +531,21 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                         alt={page.filename}
                         style={{
                           width: '100%', height: 82, objectFit: 'cover', borderRadius: 6,
-                          border: '1px solid var(--color-border)', display: 'block', cursor: 'zoom-in',
+                          border: `1px solid ${hoverPreview?.pageId === page.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                          display: 'block', cursor: 'zoom-in',
                         }}
-                        onMouseEnter={e => {
+                        onClick={e => {
+                          e.stopPropagation()
+                          if (hoverPreview?.pageId === page.id) { setHoverPreview(null); return }
                           const rect = e.currentTarget.getBoundingClientRect()
+                          const PREVIEW_W = 524
+                          const PREVIEW_MAX_H = window.innerHeight * 0.85 + 16
                           let left = rect.right + 12
+                          if (left + PREVIEW_W > window.innerWidth) left = Math.max(4, rect.left - PREVIEW_W)
                           let top = rect.top - 20
-                          if (left + 660 > window.innerWidth) left = rect.left - 660
-                          if (top + 500 > window.innerHeight) top = Math.max(8, window.innerHeight - 500)
-                          setHoverPreview({ data: page.images[0].data, mediaType: page.images[0].mediaType, top, left })
+                          if (top + PREVIEW_MAX_H > window.innerHeight) top = Math.max(8, window.innerHeight - PREVIEW_MAX_H - 8)
+                          setHoverPreview({ data: page.images[0].data, mediaType: page.images[0].mediaType, top, left, pageId: page.id })
                         }}
-                        onMouseLeave={() => setHoverPreview(null)}
                       />
                       <span className="num-ltr" style={{
                         position: 'absolute', top: 4, insetInlineStart: 4,
@@ -687,51 +707,9 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                     )}
                     <StatusChip status={group.status} />
                     {clickable && (
-                      <>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation()
-                            if (!group.review) return
-                            const bd = computeBreakdowns(group.review.berthingRows, group.review.form, ratesData)
-                            const { errors: errs, validRows } = validateReviewData(group.review.form, group.review.berthingRows, bd)
-                            if (Object.keys(errs).length > 0) {
-                              await window.api.dialogMessage({ title: t('batch_accept_ai'), message: t('required_fields_missing'), type: 'warning' })
-                              return
-                            }
-                            try {
-                              patch(group.id, { status: 'processing' })
-                              const result = await insertVoyage({ form: group.review.form, validRows, serviceLines: group.review.serviceLines, manualLines: [], userId: session.id })
-                              patch(group.id, { status: 'done', result, review: null, voyageNumber: result.voyageNumber })
-                              const receiptResult = await autoSaveReceipt(result.voyageNumber, session.username)
-                              if (!receiptResult.success) {
-                                patch(group.id, { receiptSaved: false, pdfPath: null, receiptSkipped: receiptResult.skip || false, receiptError: receiptResult.error || 'receipt_gen_failed' })
-                              } else {
-                                patch(group.id, { receiptSaved: true })
-                                const filePath = buildPdfPath(result.voyageNumber, receiptResult.rawData.header.vessel_name)
-                                const pdfResult = await new Promise(resolve => {
-                                  pdfResolveRef.current = resolve
-                                  setPdfExportItem({ voyageNumber: result.voyageNumber, filePath })
-                                })
-                                setPdfExportItem(null)
-                                patch(group.id, { pdfPath: pdfResult.error ? null : (pdfResult.path || null), receiptSkipped: false, receiptError: pdfResult.error || null })
-                              }
-                            } catch (err) {
-                              patch(group.id, { status: 'error', error: err.message || 'Error' })
-                            }
-                          }}
-                          title={t('batch_accept_ai')}
-                          style={{
-                            padding: '3px 10px', borderRadius: 5, border: '1px solid #047857',
-                            background: 'white', fontSize: 11, cursor: 'pointer',
-                            color: '#047857', fontWeight: 700,
-                          }}
-                        >
-                          ✓ {t('batch_accept_ai')}
-                        </button>
-                        <span style={{ fontSize: 12, color: '#B45309', fontWeight: 600 }}>
-                          {t('batch_open_review')} ‹
-                        </span>
-                      </>
+                      <span style={{ fontSize: 12, color: '#B45309', fontWeight: 600 }}>
+                        {t('batch_open_review')} ‹
+                      </span>
                     )}
                     {/* View/Generate Receipt button for done groups */}
                     {step === 'summary' && group.status === 'done' && group.voyageNumber && onViewReceipt && (

@@ -10,6 +10,77 @@ import {
   validateReviewData, insertVoyage, autoSaveReceipt,
 } from '../../logic/automateImport.js'
 
+function ImagePreviewModal({ images, onClose }) {
+  const [index, setIndex] = useState(0)
+  const [zoom, setZoom] = useState(1.0)
+  const [pos, setPos] = useState({ x: Math.max(0, window.innerWidth / 2 - 340), y: 60 })
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, origX: 0, origY: 0 })
+
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      if (e.key === 'ArrowLeft') setIndex(i => Math.max(0, i - 1))
+      if (e.key === 'ArrowRight') setIndex(i => Math.min(images.length - 1, i + 1))
+    }
+    function onMove(e) {
+      if (!dragRef.current.active) return
+      setPos({ x: e.clientX - dragRef.current.startX + dragRef.current.origX, y: e.clientY - dragRef.current.startY + dragRef.current.origY })
+    }
+    function onUp() { dragRef.current.active = false }
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+  }, [images.length, onClose])
+
+  function startDrag(e) {
+    if (e.button !== 0) return
+    e.preventDefault()
+    dragRef.current = { active: true, startX: e.clientX, startY: e.clientY, origX: pos.x, origY: pos.y }
+  }
+
+  const MODAL_W = 680
+  const btnStyle = { padding: '3px 10px', borderRadius: 4, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 14 }
+
+  return (
+    <div style={{ position: 'fixed', top: pos.y, left: pos.x, zIndex: 99997, background: 'white', borderRadius: 10, boxShadow: '0 8px 40px rgba(0,0,0,0.3)', border: '1px solid var(--color-border)', width: MODAL_W, userSelect: 'none' }}>
+      <div onMouseDown={startDrag} style={{ padding: '10px 16px', borderBottom: '1px solid #F0F0F0', cursor: 'move', display: 'flex', alignItems: 'center', gap: 10, background: '#F8FAFF', borderRadius: '10px 10px 0 0' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>
+          👁 {images.length > 1 ? `Image ${index + 1} / ${images.length}` : 'Preview'}
+        </span>
+        <button onClick={() => setZoom(z => Math.max(0.25, Math.round((z - 0.25) * 100) / 100))} style={btnStyle}>−</button>
+        <span className="num-ltr" style={{ fontSize: 12, minWidth: 42, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
+        <button onClick={() => setZoom(z => Math.min(4, Math.round((z + 0.25) * 100) / 100))} style={btnStyle}>+</button>
+        <button onClick={onClose} style={{ ...btnStyle, marginInlineStart: 4, color: 'var(--color-text-muted)' }}>✕</button>
+      </div>
+      <div style={{ overflow: 'auto', maxHeight: 'calc(80vh - 50px)', background: '#F5F5F5' }}>
+        <img
+          src={`data:${images[index].mediaType};base64,${images[index].data}`}
+          alt=""
+          style={{ width: MODAL_W * zoom, maxWidth: 'none', display: 'block' }}
+        />
+      </div>
+      {images.length > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, padding: '10px 16px', borderTop: '1px solid #F0F0F0' }}>
+          <button disabled={index === 0} onClick={() => setIndex(i => i - 1)}
+            style={{ ...btnStyle, opacity: index === 0 ? 0.4 : 1, cursor: index === 0 ? 'not-allowed' : 'pointer' }}>
+            ‹ Prev
+          </button>
+          <span className="num-ltr" style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>{index + 1} / {images.length}</span>
+          <button disabled={index === images.length - 1} onClick={() => setIndex(i => i + 1)}
+            style={{ ...btnStyle, opacity: index === images.length - 1 ? 0.4 : 1, cursor: index === images.length - 1 ? 'not-allowed' : 'pointer' }}>
+            Next ›
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function buildPdfPath(voyageNumber, vesselName) {
   const sanitize = s => String(s || '').replace(/[^a-zA-Z0-9-_]/g, '_').replace(/_+/g, '_').slice(0, 40)
   const today = new Date().toISOString().split('T')[0]
@@ -66,6 +137,8 @@ export default function AutomateScreen({ onGenerateReceipt }) {
   const [pdfExportItem, setPdfExportItem] = useState(null)
   const pdfResolveRef = useRef(null)
   const [manualLines, setManualLines]   = useState([])
+  const [reviewImages, setReviewImages] = useState([])
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
 
   // Batch import state — BatchImport stays mounted (hidden) while one of its
   // groups is open in the review phase, so the queue state survives the handoff
@@ -170,6 +243,8 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setDonePdf(null)
     setPdfExportItem(null)
     setBatchReviewGroupId(null)
+    setReviewImages([])
+    setShowPreviewModal(false)
   }
 
   // A batch group held in "Needs Review" opens in the regular review phase
@@ -183,11 +258,15 @@ export default function AutomateScreen({ onGenerateReceipt }) {
     setManualLines([])
     setUncertainFields(new Set(group.review.uncertainFields))
     setErrors({})
+    setReviewImages(group.pages ? group.pages.flatMap(p => p.images) : [])
+    setShowPreviewModal(false)
     setPhase('review')
   }
 
   function backToBatch() {
     setBatchReviewGroupId(null)
+    setReviewImages([])
+    setShowPreviewModal(false)
     setPhase('batch')
   }
 
@@ -308,6 +387,28 @@ export default function AutomateScreen({ onGenerateReceipt }) {
       {/* ── REVIEW ── */}
       {phase === 'review' && (
         <>
+          {/* Preview modal */}
+          {showPreviewModal && reviewImages.length > 0 && (
+            <ImagePreviewModal images={reviewImages} onClose={() => setShowPreviewModal(false)} />
+          )}
+
+          {/* Preview button strip */}
+          {reviewImages.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
+              <button
+                onClick={() => setShowPreviewModal(v => !v)}
+                style={{
+                  padding: '7px 18px', borderRadius: 6, border: '1px solid var(--color-border)',
+                  background: showPreviewModal ? 'var(--color-primary)' : 'white',
+                  color: showPreviewModal ? 'white' : 'var(--color-text)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                👁 {t('preview')} {reviewImages.length > 1 ? `(${reviewImages.length})` : ''}
+              </button>
+            </div>
+          )}
+
           {/* Berthing card */}
           <div style={{ background: 'white', borderRadius: 8, padding: 24, border: '1px solid var(--color-border)', marginBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 20, color: 'var(--color-text)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -573,7 +674,14 @@ export default function AutomateScreen({ onGenerateReceipt }) {
                     <td style={{ ...tdStyle, textAlign: 'end' }}>
                       <span className="num-ltr" style={{ fontWeight: 600 }}>{fmt(l.line_total)}</span>
                     </td>
-                    <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    <td style={{ ...tdStyle, textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      {l._uncertain && (
+                        <button
+                          onClick={() => updateServiceLine(i, { _uncertain: false, _uncertainReason: null })}
+                          title={t('batch_accept_ai')}
+                          style={{ background: 'none', border: 'none', color: '#047857', cursor: 'pointer', fontSize: 15, padding: '0 2px', lineHeight: 1, fontWeight: 700 }}
+                        >✓</button>
+                      )}
                       <button
                         onClick={() => setServiceLines(prev => prev.filter((_, j) => j !== i))}
                         style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}

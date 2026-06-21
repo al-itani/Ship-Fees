@@ -434,5 +434,7 @@
   "stat_action_user_enabled": "User Enabled",
   "stat_action_permission_changed": "Permission Changed",
   "stat_action_storage_saved": "Storage Saved",
-  "stat_action_batch_import": "Batch Import"
+  "stat_action_batch_import": "Batch Import",
+
+  "preview": "Preview"
 }

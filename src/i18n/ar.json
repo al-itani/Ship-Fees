@@ -437,5 +437,7 @@
   "stat_action_user_enabled": "تفعيل مستخدم",
   "stat_action_permission_changed": "تغيير صلاحية",
   "stat_action_storage_saved": "حفظ تخزين",
-  "stat_action_batch_import": "استيراد دفعة"
+  "stat_action_batch_import": "استيراد دفعة",
+
+  "preview": "معاينة"
 }
