@@ -401,8 +401,7 @@
   "tc_date_until": "تاريخ الاحتساب",
   "tc_billing_number": "رقم الفاتورة",
   "tc_receipt_saved": "تم حفظ الوصل.",
-  "tc_bill_of_services": "وصل تخزين الحاويات الفارغة"
-  "perm_cma": "الوصول إلى وصل CMA",
+  "tc_bill_of_services": "وصل تخزين الحاويات الفارغة",
 
   "your_profile": "ملفك الشخصي",
   "edit_profile": "تعديل الملف الشخصي",
