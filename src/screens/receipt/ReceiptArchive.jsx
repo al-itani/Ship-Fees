@@ -193,6 +193,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
                   { col: 'ata',            label: t('ata_short'),      align: 'end'   },
                   { col: 'atd',            label: t('atd_short'),      align: 'end'   },
                   { col: 'final_price',    label: t('final_price'),    align: 'end'   },
+                  { col: 'generated_by',   label: t('generated_by_label'), align: 'start' },
                   { col: 'generated_at',   label: t('generated_at'),   align: 'end'   },
                 ].map(({ col, label, align }) => (
                   <th
@@ -237,6 +238,9 @@ export default function ReceiptArchive({ onViewReceipt }) {
                     <span className="num-ltr" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
                       {fmt(r.final_price)}
                     </span>
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: 12, color: 'var(--color-text-muted)' }}>
+                    {r.generated_by || '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12, color: 'var(--color-text-muted)' }}>
                     <span className="num-ltr">{fmtDate(r.generated_at)}</span>

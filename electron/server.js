@@ -23,6 +23,7 @@ const receiptHandlers   = require('./database/handlers/receipts')
 const cmaHandlers       = require('./database/handlers/cma')
 const usersHandlers     = require('./database/handlers/users')
 const auditHandlers     = require('./database/handlers/audit')
+const storageHandlers   = require('./database/handlers/storage')
 const aiHandlers        = require('./handlers/ai')
 
 // Settings handler lives at ./handlers/settings; fall back to the database/
@@ -182,6 +183,25 @@ app.post('/api/users/checkRecords', (req, res) => {
 app.post('/api/users/delete', (req, res) => {
   const { id, adminId } = req.body
   handle(res, () => usersHandlers.deleteUser(id, adminId))
+})
+
+// ── Storage ───────────────────────────────────────────────────────────────
+app.post('/api/storage/getAll',  (req, res) => handle(res, () => storageHandlers.getAll()))
+app.post('/api/storage/getById', (req, res) => {
+  const { id } = req.body
+  handle(res, () => storageHandlers.getById(id))
+})
+// Real signature is saveRecord(data) — body is the full data object.
+app.post('/api/storage/save', (req, res) => handle(res, () => storageHandlers.saveRecord(req.body)))
+// Real signature is updateRecord(id, data, userId).
+app.post('/api/storage/update', (req, res) => {
+  const { id, data, userId } = req.body
+  handle(res, () => storageHandlers.updateRecord(id, data, userId))
+})
+// Real signature is softDelete(id, userId).
+app.post('/api/storage/delete', (req, res) => {
+  const { id, userId } = req.body
+  handle(res, () => storageHandlers.softDelete(id, userId))
 })
 
 // ── Settings ─────────────────────────────────────────────────────────────

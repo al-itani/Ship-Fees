@@ -110,7 +110,7 @@ function saveReceipt(data) {
           berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
           price, fundable, fresh_amount, final_price,
           generated_by, generated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
       `).run(
         voyage_id || null, voyage_number, bill_number,
         berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,

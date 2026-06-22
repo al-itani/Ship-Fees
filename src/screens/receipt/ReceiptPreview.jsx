@@ -549,7 +549,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
             borderTop: '1px dashed #D0D8EC',
             fontSize: 10, color: '#999', textAlign: 'right',
           }}>
-            {t('generated_by_label')}: {session?.full_name || '—'} &nbsp;|&nbsp; {t('generated_at')}: {new Date().toLocaleString('en-US')}
+            {t('generated_at')}: {new Date().toLocaleString('en-US', { timeZone: 'Asia/Beirut' })} &nbsp;|&nbsp; {t('generated_by_label')}: {session?.full_name || session?.username || '—'}
           </div>
         </div>
       )}
