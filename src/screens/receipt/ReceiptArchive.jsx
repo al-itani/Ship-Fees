@@ -25,6 +25,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
 
   const [receipts, setReceipts]     = useState([])
   const [loading, setLoading]       = useState(true)
+  const [activeTab, setActiveTab]   = useState('voyage')
   const [search, setSearch]         = useState('')
   const [monthFilter, setMonthFilter] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -72,21 +73,35 @@ export default function ReceiptArchive({ onViewReceipt }) {
     }
   }
 
-  // Build sorted list of unique year-month values from ATA dates
+  const tabs = [
+    { key: 'voyage', label: t('receipt_tab_voyages') },
+    { key: 'tariff_c', label: t('receipt_tab_tariff_c') },
+    { key: 'storage', label: t('receipt_tab_storage') },
+  ]
+
+  const tabReceipts = receipts.filter(r => (r.receipt_type || 'voyage') === activeTab)
+
+  function receiptMonth(r) {
+    const sourceDate = activeTab === 'voyage' ? (r.ata || r.generated_at) : r.generated_at
+    return sourceDate ? sourceDate.slice(0, 7) : ''
+  }
+
   const monthOptions = [...new Set(
-    receipts
-      .map(r => r.ata ? r.ata.slice(0, 7) : null)
+    tabReceipts
+      .map(r => receiptMonth(r) || null)
       .filter(Boolean)
   )].sort((a, b) => b.localeCompare(a))
 
-  const filtered = receipts.filter(r => {
-    if (monthFilter && (r.ata || '').slice(0, 7) !== monthFilter) return false
+  const filtered = tabReceipts.filter(r => {
+    if (monthFilter && receiptMonth(r) !== monthFilter) return false
     if (!search.trim()) return true
     const q = search.toLowerCase()
     return (
       (r.voyage_number || '').toLowerCase().includes(q) ||
       (r.vessel_name   || '').toLowerCase().includes(q) ||
-      (r.shipping_agent|| '').toLowerCase().includes(q)
+      (r.shipping_agent|| '').toLowerCase().includes(q) ||
+      (r.display_name  || '').toLowerCase().includes(q) ||
+      (r.display_agent || '').toLowerCase().includes(q)
     )
   })
 
@@ -129,7 +144,35 @@ export default function ReceiptArchive({ onViewReceipt }) {
         🗂 {t('receipts_archive')}
       </h2>
 
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, borderBottom: '1px solid var(--color-border)' }}>
+        {tabs.map(tab => {
+          const active = activeTab === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setActiveTab(tab.key)
+                setMonthFilter('')
+              }}
+              style={{
+                padding: '10px 16px',
+                border: 'none',
+                borderBottom: active ? '3px solid var(--color-primary)' : '3px solid transparent',
+                background: 'transparent',
+                color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                fontSize: 14,
+                fontWeight: active ? 700 : 600,
+                cursor: 'pointer',
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
       {/* Search + Month filter */}
+      {activeTab !== 'storage' && (
       <div style={{ marginBottom: 16, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <input
           style={{
@@ -163,6 +206,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
           })}
         </select>
       </div>
+      )}
 
       {loading && (
         <div style={{ color: 'var(--color-text-muted)', fontSize: 14, padding: '20px 0' }}>
@@ -170,26 +214,37 @@ export default function ReceiptArchive({ onViewReceipt }) {
         </div>
       )}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && activeTab === 'storage' && (
         <div style={{
           background: 'white', borderRadius: 8,
           border: '1px solid var(--color-border)',
           padding: '40px', textAlign: 'center',
           color: 'var(--color-text-muted)', fontSize: 14,
         }}>
-          {receipts.length === 0 ? t('no_receipts') : t('no_results')}
+          {t('storage_receipts_unavailable')}
         </div>
       )}
 
-      {!loading && filtered.length > 0 && (
+      {!loading && activeTab !== 'storage' && filtered.length === 0 && (
+        <div style={{
+          background: 'white', borderRadius: 8,
+          border: '1px solid var(--color-border)',
+          padding: '40px', textAlign: 'center',
+          color: 'var(--color-text-muted)', fontSize: 14,
+        }}>
+          {tabReceipts.length === 0 ? t('no_receipts') : t('no_results')}
+        </div>
+      )}
+
+      {!loading && activeTab !== 'storage' && filtered.length > 0 && (
         <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#F8FAFF' }}>
                 {[
                   { col: 'bill_number',    label: t('bill_number'),    align: 'start' },
-                  { col: 'vessel_name',    label: t('vessel_name'),    align: 'start' },
-                  { col: 'shipping_agent', label: t('shipping_agent'), align: 'start' },
+                  { col: 'display_name',   label: activeTab === 'tariff_c' ? t('agency_name') : t('vessel_name'), align: 'start' },
+                  { col: 'display_agent',  label: activeTab === 'tariff_c' ? t('period_label') : t('shipping_agent'), align: 'start' },
                   { col: 'ata',            label: t('ata_short'),      align: 'end'   },
                   { col: 'atd',            label: t('atd_short'),      align: 'end'   },
                   { col: 'final_price',    label: t('final_price'),    align: 'end'   },
@@ -217,16 +272,16 @@ export default function ReceiptArchive({ onViewReceipt }) {
                 <tr
                   key={r.id}
                   style={{ borderBottom: '1px solid #F5F5F5', cursor: 'pointer' }}
-                  onClick={() => onViewReceipt(r.voyage_number)}
+                  onClick={() => onViewReceipt(r)}
                   onMouseEnter={e => { e.currentTarget.style.background = '#F8FAFF' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
                 >
                   <td style={tdStyle}>
                     <strong style={{ color: 'var(--color-primary)' }}>{r.bill_number || r.voyage_number}</strong>
                   </td>
-                  <td style={tdStyle}>{r.vessel_name || '—'}</td>
+                  <td style={tdStyle}>{r.display_name || r.vessel_name || '—'}</td>
                   <td style={{ ...tdStyle, color: 'var(--color-text-muted)', fontSize: 12 }}>
-                    {r.shipping_agent || '—'}
+                    {r.display_agent || r.shipping_agent || '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12 }}>
                     <span className="num-ltr">{fmtDate(r.ata)}</span>
@@ -283,7 +338,7 @@ export default function ReceiptArchive({ onViewReceipt }) {
               {t('confirm_delete_receipt')}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 20px' }}>
-              {t('receipt_voyage_label')}: <strong>{deleteTarget.voyage_number}</strong>
+              {(deleteTarget.receipt_type || 'voyage') === 'tariff_c' ? t('tc_billing_number') : t('receipt_voyage_label')}: <strong>{deleteTarget.bill_number || deleteTarget.voyage_number}</strong>
             </p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button

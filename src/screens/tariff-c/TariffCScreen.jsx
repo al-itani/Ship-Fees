@@ -84,6 +84,12 @@ export default function TariffCScreen() {
       const saveRes = await window.api.tariffCSaveReceipt({
         agencyName:        agency.agencyName,
         period,
+        snapshot: {
+          period,
+          billingNumber: bnRes.next,
+          agencyData: agency,
+          serviceRows: buildServiceRows(agency.storageAmount),
+        },
         berthing_total:    calc.berthingTotal,
         services_subtotal: calc.servicesSubtotal,
         taxable_subtotal:  calc.taxableSubtotal,

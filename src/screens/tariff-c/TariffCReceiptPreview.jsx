@@ -71,11 +71,13 @@ export default function TariffCReceiptPreview({
   agencyData, period, onClose, onSaved,
   billingNumber: billingNumberProp,
   autoExportPath, onAutoExportDone,
+  savedReceipt, readOnly = false,
 }) {
   const { t } = useTranslation()
   const { session } = useSession()
 
   const batchMode = !!autoExportPath
+  const savedMode = !!savedReceipt
 
   const [billingNumber, setBillingNumber] = useState(billingNumberProp ?? null)
   const [saving, setSaving]   = useState(false)
@@ -83,16 +85,36 @@ export default function TariffCReceiptPreview({
   const [exporting, setExporting] = useState(false)
   const [toast, setToast]     = useState(null)
 
-  const serviceRows = buildServiceRows(agencyData.storageAmount)
-  const calc = calculateReceipt({ berthingRows: [], serviceRows, moduleType: 'GC', vesselType: null })
+  const displayAgencyData = savedMode ? savedReceipt.agencyData : agencyData
+  const displayPeriod = savedMode ? savedReceipt.period : period
+  const displayBillingNumber = savedMode ? savedReceipt.billingNumber : billingNumber
+  const serviceRows = savedMode
+    ? (savedReceipt.serviceRows?.length ? savedReceipt.serviceRows : buildServiceRows(savedReceipt.price || 0))
+    : buildServiceRows(agencyData.storageAmount)
+  const calc = savedMode
+    ? {
+        userServiceLines: serviceRows.filter(r => !r.is_fixed && !r.is_auto),
+        systemServiceLines: serviceRows.filter(r => r.is_fixed || r.is_auto),
+        berthingTotal: savedReceipt.berthing_total || 0,
+        servicesSubtotal: savedReceipt.services_subtotal || 0,
+        taxableSubtotal: savedReceipt.taxable_subtotal || 0,
+        rehabFee: savedReceipt.rehab_fee || 0,
+        totalTax: savedReceipt.total_tax || 0,
+        price: savedReceipt.price || 0,
+        fundable: savedReceipt.fundable || 0,
+        freshAmount: savedReceipt.fresh_amount || 0,
+        finalPrice: savedReceipt.final_price || 0,
+        fundableCapped: Number(savedReceipt.fundable || 0) >= 450,
+      }
+    : calculateReceipt({ berthingRows: [], serviceRows, moduleType: 'GC', vesselType: null })
 
   // Fetch next billing number only in interactive mode
   useEffect(() => {
-    if (billingNumberProp != null || batchMode) return
+    if (savedMode || billingNumberProp != null || batchMode) return
     window.api.tariffCGetNextBillingNumber().then(res => {
       if (res.success) setBillingNumber(res.next)
     })
-  }, [billingNumberProp, batchMode])
+  }, [savedMode, billingNumberProp, batchMode])
 
   // Auto-export for batch mode — fires once calc is ready
   useEffect(() => {
@@ -121,6 +143,12 @@ export default function TariffCReceiptPreview({
     const res = await window.api.tariffCSaveReceipt({
       agencyName:        agencyData.agencyName,
       period,
+      snapshot: {
+        period,
+        billingNumber,
+        agencyData,
+        serviceRows,
+      },
       berthing_total:    calc.berthingTotal,
       services_subtotal: calc.servicesSubtotal,
       taxable_subtotal:  calc.taxableSubtotal,
@@ -141,19 +169,19 @@ export default function TariffCReceiptPreview({
     } else {
       showToast(res.error, 'error')
     }
-  }, [agencyData, period, calc, saving, saved, session, t, onSaved])
+  }, [agencyData, period, billingNumber, serviceRows, calc, saving, saved, session, t, onSaved])
 
   async function handleExportPDF() {
     setExporting(true)
-    const safeName = agencyData.agencyName.replace(/[^a-zA-Z0-9-_]/g, '_')
-    const filename = `TariffC_${safeName}_${period.replace(/\s+/g, '_')}.pdf`
+    const safeName = displayAgencyData.agencyName.replace(/[^a-zA-Z0-9-_]/g, '_')
+    const filename = `TariffC_${safeName}_${String(displayPeriod || '').replace(/\s+/g, '_')}.pdf`
     const res = await window.api.receiptExportPDF({ defaultFilename: filename })
     setExporting(false)
     if (res && res.success) showToast(t('pdf_exported'), 'success')
     else if (res && !res.canceled) showToast(t('pdf_export_failed'), 'error')
   }
 
-  const dateUntilDisplay = agencyData.dateUntil ? `${agencyData.dateUntil} 23:59` : '—'
+  const dateUntilDisplay = displayAgencyData.dateUntil ? `${displayAgencyData.dateUntil} 23:59` : '—'
 
   const receiptPage = (
     <div id="receipt-print-area" style={{
@@ -189,13 +217,14 @@ export default function TariffCReceiptPreview({
       <div style={{ marginBottom: 22, border: '1px solid #E0E6F0', borderRadius: 4, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
-            <InfoRow label={t('agency_name')}           value={agencyData.agencyName} />
-            <InfoRow label={t('tc_box_number')}         value={agencyData.box} />
-            <InfoRow label={t('tc_free_teus_per_day')}  value={String(agencyData.freeTEUsPerDay)} />
-            <InfoRow label={t('tc_monthly_free')}       value={String(agencyData.monthlyFreeContainers)} />
-            <InfoRow label={t('tc_total_teus')}         value={String(agencyData.totalActualTEUs)} />
+            <InfoRow label={t('agency_name')}           value={displayAgencyData.agencyName} />
+            <InfoRow label={t('period_label')}          value={displayPeriod} />
+            <InfoRow label={t('tc_box_number')}         value={String(displayAgencyData.box ?? '')} />
+            <InfoRow label={t('tc_free_teus_per_day')}  value={String(displayAgencyData.freeTEUsPerDay ?? '')} />
+            <InfoRow label={t('tc_monthly_free')}       value={String(displayAgencyData.monthlyFreeContainers ?? '')} />
+            <InfoRow label={t('tc_total_teus')}         value={String(displayAgencyData.totalActualTEUs ?? '')} />
             <InfoRow label={t('tc_date_until')}         value={dateUntilDisplay} />
-            <InfoRow label={t('tc_billing_number')}     value={billingNumber != null ? String(billingNumber) : '—'} />
+            <InfoRow label={t('tc_billing_number')}     value={displayBillingNumber != null ? String(displayBillingNumber) : '—'} />
           </tbody>
         </table>
       </div>
@@ -287,7 +316,7 @@ export default function TariffCReceiptPreview({
 
       {/* Generated note */}
       <div style={{ marginTop: 28, paddingTop: 12, borderTop: '1px dashed #D0D8EC', fontSize: 10, color: '#999', textAlign: 'right' }}>
-        {t('generated_at')}: {new Date().toLocaleString('en-US', { timeZone: 'Asia/Beirut' })} &nbsp;|&nbsp; {t('generated_by_label')}: {session?.full_name || session?.username || '—'}
+        {t('generated_at')}: {savedMode ? (savedReceipt.generated_at || '—') : new Date().toLocaleString('en-US', { timeZone: 'Asia/Beirut' })} &nbsp;|&nbsp; {t('generated_by_label')}: {savedMode ? (savedReceipt.generated_by || '—') : (session?.full_name || session?.username || '—')}
       </div>
     </div>
   )
@@ -341,6 +370,7 @@ export default function TariffCReceiptPreview({
           <button onClick={handleExportPDF} disabled={exporting} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #94a3b8', background: 'white', color: exporting ? '#94a3b8' : '#1e293b', cursor: exporting ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 500 }}>
             ⬇ {exporting ? '...' : t('export_pdf')}
           </button>
+          {!readOnly && !savedMode && (
           <button
             onClick={handleSave}
             disabled={saving || saved}
@@ -354,6 +384,7 @@ export default function TariffCReceiptPreview({
           >
             {saved ? `✓ ${t('receipt_saved_short')}` : (saving ? '...' : t('save_receipt'))}
           </button>
+          )}
         </div>
       </div>
 

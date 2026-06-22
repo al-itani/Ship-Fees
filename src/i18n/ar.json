@@ -173,6 +173,10 @@
   "filter_all_months": "كل الأشهر",
   "confirm_delete_receipt": "حذف هذا الوصل؟",
   "receipt_voyage_label": "الرحلة",
+  "receipt_tab_voyages": "الرحلات",
+  "receipt_tab_tariff_c": "تعريفة C",
+  "receipt_tab_storage": "التخزين",
+  "storage_receipts_unavailable": "وصولات التخزين غير متاحة بعد.",
 
   "settings": "الإعدادات",
   "settings_admin_only": "للمشرف فقط",

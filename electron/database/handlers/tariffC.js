@@ -68,7 +68,7 @@ function getNextBillingNumber() {
 function saveReceipt(data) {
   try {
     const {
-      agencyName, period,
+      agencyName, period, snapshot,
       berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
       price, fundable, fresh_amount, final_price, generated_by,
     } = data
@@ -84,17 +84,27 @@ function saveReceipt(data) {
       `).run(String(billingNumber))
 
       const voyageNumber = `TC-${billingNumber}`
+      const snapshotJson = JSON.stringify({
+        ...(snapshot || {}),
+        period,
+        billingNumber,
+        agencyData: {
+          ...(snapshot?.agencyData || {}),
+          agencyName,
+          storageAmount: snapshot?.agencyData?.storageAmount ?? price,
+        },
+      })
       const r = db.prepare(`
         INSERT INTO receipts (
           voyage_id, voyage_number, bill_number,
           berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
           price, fundable, fresh_amount, final_price,
-          generated_by, generated_at
-        ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+          generated_by, generated_at, receipt_type, snapshot_json
+        ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), 'tariff_c', ?)
       `).run(
         voyageNumber, String(billingNumber),
         berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
-        price, fundable, fresh_amount, final_price, generated_by
+        price, fundable, fresh_amount, final_price, generated_by, snapshotJson
       )
 
       writeAudit('receipts', r.lastInsertRowid, 'INSERT', null, {

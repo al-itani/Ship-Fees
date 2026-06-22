@@ -251,6 +251,8 @@ module.exports = function initSchema(db) {
       final_price       REAL,
       generated_by      TEXT,
       generated_at      TEXT,
+      receipt_type      TEXT NOT NULL DEFAULT 'voyage',
+      snapshot_json     TEXT,
       is_deleted        INTEGER DEFAULT 0
     );
   `)
@@ -259,6 +261,20 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE container_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE gc_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE receipts ADD COLUMN receipt_type TEXT NOT NULL DEFAULT 'voyage'`) } catch {}
+  try { db.exec(`ALTER TABLE receipts ADD COLUMN snapshot_json TEXT`) } catch {}
+
+  // Existing Tariff C receipts were stored in receipts with synthetic TC-* voyage numbers.
+  // Mark those rows so the archive does not try to open them through voyage/berthing logic.
+  try {
+    db.exec(`
+      UPDATE receipts
+      SET receipt_type = 'tariff_c'
+      WHERE is_deleted = 0
+        AND receipt_type = 'voyage'
+        AND voyage_number LIKE 'TC-%'
+    `)
+  } catch {}
 
   // app_settings: generic key-value store for counters and global config
   db.exec(`

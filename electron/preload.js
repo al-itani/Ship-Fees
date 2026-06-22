@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   receiptGetData:              (voyageNumber) => ipcRenderer.invoke('receipt:getData', voyageNumber),
   receiptSave:                 (data) => ipcRenderer.invoke('receipt:save', data),
   receiptGetAll:               () => ipcRenderer.invoke('receipt:getAll'),
+  receiptGetById:              (id) => ipcRenderer.invoke('receipt:getById', id),
   receiptDelete:               (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
   receiptPrepareBerthingOnly:  (voyageNumber, username) => ipcRenderer.invoke('receipt:prepareBerthingOnly', voyageNumber, username),
   receiptExportPDF:      (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),

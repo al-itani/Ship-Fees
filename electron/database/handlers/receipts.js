@@ -21,6 +21,26 @@ function money(n) {
   return '$' + (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function parseJson(value) {
+  if (!value) return null
+  try { return JSON.parse(value) } catch { return null }
+}
+
+function inferTariffCMeta(row) {
+  const audit = db.prepare(`
+    SELECT new_data FROM audit_log
+    WHERE table_name = 'receipts' AND record_id = ? AND action = 'INSERT'
+    ORDER BY created_at DESC LIMIT 1
+  `).get(row.id)
+  const data = parseJson(audit?.new_data)
+  const summary = data?.summary || ''
+  const match = summary.match(/Tariff C\s+[—-]\s+(.+?)\s+\((.+?)\)/)
+  return {
+    agencyName: match?.[1] || null,
+    period: match?.[2] || null,
+  }
+}
+
 function getDataForReceipt(voyageNumber) {
   try {
     const voyage = db.prepare(
@@ -109,8 +129,8 @@ function saveReceipt(data) {
           voyage_id, voyage_number, bill_number,
           berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
           price, fundable, fresh_amount, final_price,
-          generated_by, generated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'))
+          generated_by, generated_at, receipt_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', 'localtime'), 'voyage')
       `).run(
         voyage_id || null, voyage_number, bill_number,
         berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
@@ -133,6 +153,7 @@ function getAll() {
   try {
     const rows = db.prepare(`
       SELECT r.id, r.voyage_number, r.bill_number, r.final_price, r.generated_by, r.generated_at,
+             r.receipt_type, r.snapshot_json,
              br.vessel_name, br.shipping_agent, br.ata, br.atd
       FROM receipts r
       LEFT JOIN berthing_records br ON br.id = (
@@ -143,7 +164,59 @@ function getAll() {
       WHERE r.is_deleted = 0
       ORDER BY r.generated_at DESC
     `).all()
-    return { success: true, data: rows }
+    return {
+      success: true,
+      data: rows.map(row => {
+        const snapshot = parseJson(row.snapshot_json)
+        return {
+          ...row,
+          display_name: row.receipt_type === 'tariff_c'
+            ? (snapshot?.agencyData?.agencyName || inferTariffCMeta(row).agencyName || row.voyage_number)
+            : row.vessel_name,
+          display_agent: row.receipt_type === 'tariff_c'
+            ? (snapshot?.period || inferTariffCMeta(row).period || '')
+            : row.shipping_agent,
+        }
+      }),
+    }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+function getById(id) {
+  try {
+    const row = db.prepare(`
+      SELECT id, voyage_id, voyage_number, bill_number,
+             berthing_total, services_subtotal, taxable_subtotal, rehab_fee, total_tax,
+             price, fundable, fresh_amount, final_price,
+             generated_by, generated_at, receipt_type, snapshot_json
+      FROM receipts
+      WHERE id = ? AND is_deleted = 0
+    `).get(id)
+    if (!row) return { success: false, error: 'Receipt not found' }
+
+    const snapshot = parseJson(row.snapshot_json) || {}
+    const meta = row.receipt_type === 'tariff_c' ? inferTariffCMeta(row) : {}
+    return {
+      success: true,
+      data: {
+        ...row,
+        snapshot,
+        agencyData: snapshot.agencyData || {
+          agencyName: meta.agencyName || row.voyage_number,
+          box: '',
+          freeTEUsPerDay: '',
+          monthlyFreeContainers: '',
+          totalActualTEUs: '',
+          dateUntil: '',
+          storageAmount: row.price || row.services_subtotal || 0,
+        },
+        period: snapshot.period || meta.period || '',
+        billingNumber: snapshot.billingNumber || row.bill_number,
+        serviceRows: snapshot.serviceRows || [],
+      },
+    }
   } catch (err) {
     return { success: false, error: err.message }
   }
@@ -215,4 +288,4 @@ function prepareBerthingOnly(voyageNumber, username) {
   }
 }
 
-module.exports = { getDataForReceipt, saveReceipt, getAll, softDelete, prepareBerthingOnly }
+module.exports = { getDataForReceipt, saveReceipt, getAll, getById, softDelete, prepareBerthingOnly }

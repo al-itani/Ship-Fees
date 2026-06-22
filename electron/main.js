@@ -165,6 +165,9 @@ ipcMain.handle('receipt:save',
 ipcMain.handle('receipt:getAll',
   () => C ? clientHandlers.receiptGetAll() : receiptHandlers.getAll()
 )
+ipcMain.handle('receipt:getById',
+  (_, id) => C ? clientHandlers.receiptGetById(id) : receiptHandlers.getById(id)
+)
 ipcMain.handle('receipt:delete',
   (_, id, userId) => C
     ? clientHandlers.receiptSoftDelete(id, userId)

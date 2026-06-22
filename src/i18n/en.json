@@ -173,6 +173,10 @@
   "filter_all_months": "All months",
   "confirm_delete_receipt": "Delete this receipt?",
   "receipt_voyage_label": "Voyage",
+  "receipt_tab_voyages": "Voyages",
+  "receipt_tab_tariff_c": "Tariff C",
+  "receipt_tab_storage": "Storage",
+  "storage_receipts_unavailable": "Storage receipts are not available yet.",
 
   "settings": "Settings",
   "settings_admin_only": "Admin only",

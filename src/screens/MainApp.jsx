@@ -15,6 +15,7 @@ import AuditLogScreen from './audit/AuditLogScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import StorageScreen from './storage/StorageScreen.jsx'
 import TariffCScreen from './tariff-c/TariffCScreen.jsx'
+import TariffCReceiptPreview from './tariff-c/TariffCReceiptPreview.jsx'
 import { useSession } from '../context/SessionContext.jsx'
 
 export default function MainApp() {
@@ -22,7 +23,7 @@ export default function MainApp() {
   const [currentScreen, setCurrentScreen]     = useState('home')
   const [containerVoyage, setContainerVoyage] = useState(null)
   const [gcVoyage, setGcVoyage]               = useState(null)
-  // { voyageNumber, readOnly }
+  // { type, voyageNumber, readOnly } or { type, receipt }
   const [receiptState, setReceiptState]       = useState(null)
 
   function handleGoToContainers(voyageNumber) {
@@ -37,12 +38,22 @@ export default function MainApp() {
 
   function handleGenerateReceipt(voyageNumber) {
     if (session?.role !== 'admin' && !session?.perm_receipt) return
-    setReceiptState({ voyageNumber, readOnly: false })
+    setReceiptState({ type: 'voyage', voyageNumber, readOnly: false })
   }
 
-  function handleViewReceipt(voyageNumber) {
+  async function handleViewReceipt(receipt) {
     if (session?.role !== 'admin' && !session?.perm_receipt) return
-    setReceiptState({ voyageNumber, readOnly: true })
+    if (typeof receipt === 'string') {
+      setReceiptState({ type: 'voyage', voyageNumber: receipt, readOnly: true })
+      return
+    }
+    if ((receipt?.receipt_type || 'voyage') === 'tariff_c') {
+      const res = await window.api.receiptGetById(receipt.id)
+      if (res.success) setReceiptState({ type: 'tariff_c', receipt: res.data })
+      else window.alert(res.error || 'Could not load receipt')
+      return
+    }
+    setReceiptState({ type: 'voyage', voyageNumber: receipt.voyage_number, readOnly: true })
   }
 
   function handleCloseReceipt() {
@@ -117,10 +128,17 @@ export default function MainApp() {
       </div>
 
       {/* Full-screen receipt overlay — rendered via portal inside ReceiptPreview */}
-      {receiptState && (
+      {receiptState?.type === 'voyage' && (
         <ReceiptPreview
           voyageNumber={receiptState.voyageNumber}
           readOnly={receiptState.readOnly}
+          onClose={handleCloseReceipt}
+        />
+      )}
+      {receiptState?.type === 'tariff_c' && (
+        <TariffCReceiptPreview
+          savedReceipt={receiptState.receipt}
+          readOnly
           onClose={handleCloseReceipt}
         />
       )}

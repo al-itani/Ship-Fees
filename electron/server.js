@@ -129,6 +129,10 @@ app.post('/api/receipt/getData', (req, res) => {
 })
 app.post('/api/receipt/save',   (req, res) => handle(res, () => receiptHandlers.saveReceipt(req.body)))
 app.post('/api/receipt/getAll', (req, res) => handle(res, () => receiptHandlers.getAll()))
+app.post('/api/receipt/getById', (req, res) => {
+  const { id } = req.body
+  handle(res, () => receiptHandlers.getById(id))
+})
 app.post('/api/receipt/delete', (req, res) => {
   const { id, deletedBy } = req.body
   handle(res, () => receiptHandlers.softDelete(id, deletedBy))

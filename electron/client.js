@@ -131,6 +131,10 @@ async function receiptGetAll(filters) {
   return apiCall('/api/receipt/getAll', filters)
 }
 
+async function receiptGetById(id) {
+  return apiCall('/api/receipt/getById', { id })
+}
+
 async function receiptSoftDelete(id, deletedBy) {
   return apiCall('/api/receipt/delete', { id, deletedBy })
 }
@@ -238,6 +242,7 @@ module.exports = {
   receiptGetData,
   receiptSave,
   receiptGetAll,
+  receiptGetById,
   receiptSoftDelete,
   prepareBerthingOnly,
   // CMA
