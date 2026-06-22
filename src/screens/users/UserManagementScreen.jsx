@@ -95,6 +95,111 @@ function Modal({ title, onClose, children, width = 460 }) {
   )
 }
 
+// ─── Avatar component ──────────────────────────────────────────────
+function Avatar({ avatarPath, fullName, size = 48 }) {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    if (!avatarPath) { setSrc(null); return }
+    window.api.usersGetAvatarBase64(avatarPath).then(res => {
+      if (res.success) setSrc(res.dataUrl)
+    })
+  }, [avatarPath])
+  const initials = (fullName || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  if (src) {
+    return <img src={src} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontWeight: 700, fontSize: size * 0.38, flexShrink: 0,
+    }}>{initials}</div>
+  )
+}
+
+// ─── Profile Edit dialog ──────────────────────────────────────────
+function ProfileDialog({ session, onClose, onSaved, t, updateSession }) {
+  const [fullName, setFullName] = useState(session.full_name || '')
+  const [email, setEmail]       = useState(session.email || '')
+  const [phone, setPhone]       = useState(session.phone || '')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
+  const fileRef = useRef(null)
+
+  async function handleSave() {
+    if (!fullName.trim()) { setError(t('required_fields_missing')); return }
+    setSaving(true); setError('')
+    try {
+      const res = await window.api.usersUpdateProfile(session.id, { full_name: fullName, email, phone })
+      if (!res.success) { setError(t(res.error) || res.error); return }
+      updateSession({ full_name: fullName.trim(), email: email.trim() || null, phone: phone.trim() || null })
+      onSaved(t('profile_updated'))
+    } finally { setSaving(false) }
+  }
+
+  async function handleAvatarPick() {
+    fileRef.current?.click()
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (!['jpg', 'jpeg', 'png'].includes(ext)) return
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1]
+      const res = await window.api.usersUploadAvatar({ userId: session.id, base64, ext })
+      if (res.success) {
+        updateSession({ avatar_path: res.path })
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <Modal title={t('edit_profile')} onClose={onClose} width={440}>
+      <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Avatar avatarPath={session.avatar_path} fullName={session.full_name} size={64} />
+          <div>
+            <button onClick={handleAvatarPick} style={{ padding: '5px 14px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              {t('upload_avatar')}
+            </button>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png" style={{ display: 'none' }} onChange={handleAvatarChange} />
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>{t('username')}</label>
+          <input style={{ ...inputStyle, background: '#F5F7FA', color: '#888' }} value={session.username} readOnly />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('full_name')}</label>
+          <input style={inputStyle} value={fullName} onChange={e => setFullName(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('email')}</label>
+          <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com" />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('phone')}</label>
+          <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+961 ..." dir="ltr" />
+        </div>
+        {error && <div style={{ color: 'var(--color-danger)', fontSize: 13 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 13 }}>
+            {t('cancel')}
+          </button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', cursor: saving ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+            {t('save_changes')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Edit User dialog ─────────────────────────────────────────────
 function EditUserDialog({ user, onClose, onSaved, t, session, showConfirm }) {
   const [fullName, setFullName] = useState(user.full_name)
@@ -277,7 +382,7 @@ function ResetPasswordDialog({ user, onClose, onSaved, t, session }) {
 // ─── Main screen ──────────────────────────────────────────────────
 export default function UserManagementScreen() {
   const { t } = useTranslation()
-  const { session } = useSession()
+  const { session, updateSession } = useSession()
 
   const [users, setUsers]           = useState([])
   const [loading, setLoading]       = useState(true)
@@ -290,6 +395,7 @@ export default function UserManagementScreen() {
   const [editUser, setEditUser]         = useState(null)
   const [resetUser, setResetUser]       = useState(null)
   const [showAddForm, setShowAddForm]   = useState(false)
+  const [showProfile, setShowProfile]   = useState(false)
 
   // In-app confirm / alert modals
   const [confirmDialog, setConfirmDialog] = useState(null)
@@ -360,6 +466,7 @@ export default function UserManagementScreen() {
   }
 
   const filtered = users.filter(u => {
+    if (u.id === session?.id) return false
     if (!search) return true
     const q = search.toLowerCase()
     return u.username.includes(q) || u.full_name.toLowerCase().includes(q) || u.role.includes(q)
@@ -464,6 +571,36 @@ export default function UserManagementScreen() {
           </button>
         )}
       </div>
+
+      {/* Your Profile card — pinned at top */}
+      {session && (
+        <div style={{ ...card, padding: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
+          <Avatar avatarPath={session.avatar_path} fullName={session.full_name} size={52} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1B2A4A' }}>{session.full_name}</span>
+              <span style={{
+                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                background: session.role === 'admin' ? '#1B2A4A' : session.role === 'manager' ? '#7C3AED' : '#F0F4FF',
+                color: session.role === 'admin' || session.role === 'manager' ? 'white' : '#1B2A4A',
+              }}>
+                {t(`role_${session.role}`)}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+              @{session.username}
+              {session.email && <span style={{ marginInlineStart: 12 }}>{session.email}</span>}
+              {session.phone && <span style={{ marginInlineStart: 12 }} dir="ltr" className="num-ltr">{session.phone}</span>}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowProfile(true)}
+            style={{ padding: '7px 16px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#1B2A4A', whiteSpace: 'nowrap' }}
+          >
+            {t('edit_profile')}
+          </button>
+        </div>
+      )}
 
       {/* Add User Form — admin only */}
       {showAddForm && session?.role === 'admin' && (
@@ -627,6 +764,15 @@ export default function UserManagementScreen() {
           </div>
         )}
       </div>
+
+      {/* Profile dialog */}
+      {showProfile && session && (
+        <ProfileDialog
+          session={session} t={t} updateSession={updateSession}
+          onClose={() => setShowProfile(false)}
+          onSaved={msg => { setShowProfile(false); showToast(msg) }}
+        />
+      )}
 
       {/* Dialogs — admin only */}
       {session?.role === 'admin' && editUser && (

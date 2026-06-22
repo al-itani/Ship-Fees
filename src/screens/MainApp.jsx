@@ -12,6 +12,7 @@ import AutomateScreen from './automate/AutomateScreen.jsx'
 import CMAScreen from './cma/CMAScreen.jsx'
 import UserManagementScreen from './users/UserManagementScreen.jsx'
 import AuditLogScreen from './audit/AuditLogScreen.jsx'
+import StatisticsScreen from './users/StatisticsScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import StorageScreen from './storage/StorageScreen.jsx'
 import TariffCScreen from './tariff-c/TariffCScreen.jsx'
@@ -101,6 +102,12 @@ export default function MainApp() {
       case 'user_management':
         if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
+      case 'statistics':
+        if (session?.role !== 'admin' && session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
+        return <StatisticsScreen />
+      case 'staff_view':
+        if (session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
+        return <ManagerStaffScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }

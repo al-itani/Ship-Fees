@@ -1,4 +1,5 @@
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 function getEntries({ action, table_name, user_id, date_from, date_to, limit = 50, offset = 0 } = {}) {
   try {
@@ -66,6 +67,7 @@ function logImport({ voyageNumber, berthingCount = 0, serviceCount = 0, userId =
       INSERT INTO audit_log (table_name, record_id, action, old_data, new_data, user_id)
       VALUES ('import', 0, 'INSERT', NULL, ?, ?)
     `).run(JSON.stringify({ summary, voyage: voyageNumber }), userId || null)
+    try { statsHandlers.log({ user_id: userId, action_type: 'batch_import', detail: { voyage: voyageNumber, berthingCount, serviceCount } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

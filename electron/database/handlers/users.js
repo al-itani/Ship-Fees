@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs')
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 const PERMISSION_ALIASES = {
   perm_voyage: ['perm_berthing', 'perm_container', 'perm_gc'],
@@ -13,6 +14,11 @@ function writeAudit(recordId, action, oldData, newData, userId) {
   `).run(recordId, action, oldData ? JSON.stringify(oldData) : null, newData ? JSON.stringify(newData) : null, userId)
 }
 
+function isSuperadmin(id) {
+  const row = db.prepare('SELECT is_superadmin FROM users WHERE id = ?').get(id)
+  return row && row.is_superadmin === 1
+}
+
 function getAll() {
   try {
     const users = db.prepare(`
@@ -21,7 +27,9 @@ function getAll() {
              perm_storage, perm_automate, perm_cma, perm_tariff_c,
              perm_berthing, perm_container, perm_gc, perm_receipt,
              perm_voyage, perm_receipt_archive, perm_audit_log, perm_staff_view
+             avatar_path, email, phone
       FROM users
+      WHERE is_superadmin = 0
       ORDER BY role DESC, username ASC
     `).all()
     return { success: true, data: users }
@@ -47,6 +55,7 @@ function create({ username, full_name, role, language, temp_password, admin_id }
     writeAudit(result.lastInsertRowid, 'INSERT', null,
       { message: `Created user: ${uname} (role: ${role})` }, admin_id)
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_created', detail: { target: uname } }) } catch {}
     return { success: true, id: result.lastInsertRowid }
   } catch (err) {
     return { success: false, error: err.message }
@@ -55,6 +64,7 @@ function create({ username, full_name, role, language, temp_password, admin_id }
 
 function update(id, { full_name, role, language }, admin_id) {
   try {
+    if (isSuperadmin(id)) return { success: false, error: 'cannot_modify_superadmin' }
     const old = db.prepare('SELECT full_name, role, language FROM users WHERE id = ?').get(id)
     if (!old) return { success: false, error: 'user_not_found' }
 
@@ -70,6 +80,7 @@ function update(id, { full_name, role, language }, admin_id) {
     writeAudit(id, 'UPDATE', old,
       { message: `Edited user: ${userRow.username} — changed ${changed.join(', ')}` }, admin_id)
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_updated', detail: { target: userRow.username } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -78,6 +89,7 @@ function update(id, { full_name, role, language }, admin_id) {
 
 function resetPassword(id, temp_password, admin_id) {
   try {
+    if (isSuperadmin(id)) return { success: false, error: 'cannot_modify_superadmin' }
     const userRow = db.prepare('SELECT username FROM users WHERE id = ?').get(id)
     if (!userRow) return { success: false, error: 'user_not_found' }
 
@@ -87,6 +99,7 @@ function resetPassword(id, temp_password, admin_id) {
     writeAudit(id, 'UPDATE', null,
       { message: `Password reset for: ${userRow.username}` }, admin_id)
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_updated', detail: { action: 'password_reset', target: userRow.username } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -95,6 +108,7 @@ function resetPassword(id, temp_password, admin_id) {
 
 function setActive(id, isActive, admin_id) {
   try {
+    if (isSuperadmin(id)) return { success: false, error: 'cannot_modify_superadmin' }
     const userRow = db.prepare('SELECT username, role, is_active FROM users WHERE id = ?').get(id)
     if (!userRow) return { success: false, error: 'user_not_found' }
     if (id === admin_id) return { success: false, error: 'cannot_self_disable' }
@@ -113,6 +127,7 @@ function setActive(id, isActive, admin_id) {
     writeAudit(id, 'UPDATE', { is_active: userRow.is_active },
       { message: `${action} user: ${userRow.username}` }, admin_id)
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: isActive ? 'user_enabled' : 'user_disabled', detail: { target: userRow.username } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -136,6 +151,7 @@ const COLUMN_PERMS = [
 
 function setPermission(user_id, permission_key, grant, admin_id) {
   try {
+    if (isSuperadmin(user_id)) return { success: false, error: 'cannot_modify_superadmin' }
     const userRow = db.prepare('SELECT username FROM users WHERE id = ?').get(user_id)
     if (!userRow) return { success: false, error: 'user_not_found' }
 
@@ -158,6 +174,7 @@ function setPermission(user_id, permission_key, grant, admin_id) {
         { message: `Revoked ${permission_key} from: ${userRow.username}` }, admin_id)
     }
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'permission_changed', detail: { target: userRow.username, key: permission_key, grant } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -175,6 +192,7 @@ function checkHasRecords(user_id) {
 
 function deleteUser(id, admin_id) {
   try {
+    if (isSuperadmin(id)) return { success: false, error: 'cannot_modify_superadmin' }
     if (id === admin_id) return { success: false, error: 'cannot_self_delete' }
     const userRow = db.prepare('SELECT username FROM users WHERE id = ?').get(id)
     if (!userRow) return { success: false, error: 'user_not_found' }
@@ -189,6 +207,7 @@ function deleteUser(id, admin_id) {
     writeAudit(id, 'DELETE', { username: userRow.username },
       { message: `Deleted user: ${userRow.username}` }, admin_id)
 
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_deleted', detail: { target: userRow.username } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -204,4 +223,21 @@ function heartbeat(userId) {
   }
 }
 
-module.exports = { getAll, create, update, resetPassword, setActive, getPermissions, setPermission, checkHasRecords, deleteUser, heartbeat }
+function updateProfile(userId, { full_name, email, phone }) {
+  try {
+    const old = db.prepare('SELECT full_name, email, phone FROM users WHERE id = ?').get(userId)
+    if (!old) return { success: false, error: 'user_not_found' }
+
+    db.prepare('UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?')
+      .run(full_name?.trim() || old.full_name, email?.trim() || null, phone?.trim() || null, userId)
+
+    writeAudit(userId, 'UPDATE', old,
+      { message: `Profile updated by self` }, userId)
+
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getAll, create, update, resetPassword, setActive, getPermissions, setPermission, checkHasRecords, deleteUser, heartbeat, updateProfile }

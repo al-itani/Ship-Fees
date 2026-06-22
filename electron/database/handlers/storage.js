@@ -1,4 +1,5 @@
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 function writeAudit(recordId, action, oldData, newData, userId) {
   db.prepare(`
@@ -64,6 +65,7 @@ function saveRecord(data) {
       }, created_by)
     } catch {}
 
+    try { statsHandlers.log({ username: created_by, action_type: 'storage_saved', detail: { agency, cargo_type } }) } catch {}
     return { success: true, id: r.lastInsertRowid }
   } catch (err) {
     return { success: false, error: err.message }
@@ -102,6 +104,7 @@ function updateRecord(id, data, userId) {
       }, userId)
     } catch {}
 
+    try { statsHandlers.log({ username: userId, action_type: 'storage_saved', detail: { agency, cargo_type, action: 'update' } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -119,6 +122,7 @@ function softDelete(id, userId) {
       summary: `[STORAGE] Deleted record — Agency: ${old.agency} | Cargo: ${old.cargo_type} | Fee: $${Number(old.fee).toFixed(2)}`,
     }, userId)
 
+    try { statsHandlers.log({ username: userId, action_type: 'storage_saved', detail: { agency: old.agency, action: 'delete' } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

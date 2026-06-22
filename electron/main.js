@@ -18,6 +18,7 @@ const aiHandlers         = require('./handlers/ai')
 const { getConfig }      = require('./configStore')
 const storageHandlers    = require('./database/handlers/storage')
 const tariffCHandlers    = require('./database/handlers/tariffC')
+const statsHandlers      = require('./database/handlers/stats')
 const clientHandlers     = require('./client')
 
 const appConfig = getConfig()
@@ -169,6 +170,9 @@ ipcMain.handle('receipt:delete',
   (_, id, userId) => C
     ? clientHandlers.receiptSoftDelete(id, userId)
     : receiptHandlers.softDelete(id, userId)
+)
+ipcMain.handle('receipt:existsForVoyage',
+  (_, voyageNumber) => receiptHandlers.existsForVoyage(voyageNumber)
 )
 ipcMain.handle('receipt:prepareBerthingOnly',
   // client.js prepareBerthingOnly does not accept username; local handler still gets it
@@ -338,6 +342,7 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
     if (canceled || !filePath) return { success: false, canceled: true }
 
     XLSX.writeFile(wb, filePath)
+    try { statsHandlers.log({ action_type: 'cma_exported', detail: { agent, year, month } }) } catch {}
     return { success: true, filePath }
   } catch (err) {
     return { success: false, error: err.message }
@@ -392,6 +397,32 @@ ipcMain.handle('users:delete',
     : usersHandlers.deleteUser(id, adminId)
 )
 ipcMain.handle('users:heartbeat', (_, userId) => usersHandlers.heartbeat(userId))
+ipcMain.handle('users:updateProfile', (_, userId, data) => usersHandlers.updateProfile(userId, data))
+ipcMain.handle('users:uploadAvatar', async (_, { userId, base64, ext }) => {
+  try {
+    const dir = 'C:\\ShipFees\\avatars'
+    await fs.promises.mkdir(dir, { recursive: true })
+    const filename = `${userId}_${Date.now()}.${ext}`
+    const filepath = path.join(dir, filename)
+    await fs.promises.writeFile(filepath, Buffer.from(base64, 'base64'))
+    const db = require('./database/db')
+    db.prepare('UPDATE users SET avatar_path = ? WHERE id = ?').run(filepath, userId)
+    return { success: true, path: filepath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+ipcMain.handle('users:getAvatarBase64', async (_, avatarPath) => {
+  try {
+    if (!avatarPath) return { success: false, error: 'no_path' }
+    const data = await fs.promises.readFile(avatarPath)
+    const ext = path.extname(avatarPath).toLowerCase()
+    const mime = ext === '.png' ? 'image/png' : 'image/jpeg'
+    return { success: true, dataUrl: `data:${mime};base64,${data.toString('base64')}` }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
 
 // Audit log — local only (no client.js implementation)
 ipcMain.handle('audit:getEntries',       (_, filters) => auditHandlers.getEntries(filters))
@@ -422,6 +453,10 @@ ipcMain.handle('storage:update',
 ipcMain.handle('storage:delete',
   (_, id, userId) => C ? clientHandlers.storageDelete(id, userId) : storageHandlers.softDelete(id, userId)
 )
+
+// Usage stats
+ipcMain.handle('stats:log',      (_, payload) => statsHandlers.log(payload))
+ipcMain.handle('stats:getStats', (_, filters) => statsHandlers.getStats(filters))
 
 // Tariff C
 ipcMain.handle('tariff-c:openFile', async (event) => {
@@ -454,7 +489,11 @@ ipcMain.handle('tariff-c:getNextBillingNumber',  ()            => tariffCHandler
 ipcMain.handle('tariff-c:saveReceipt',           (_, data)     => tariffCHandlers.saveReceipt(data))
 
 // AI document extraction
-ipcMain.handle('ai:extract',        (_, images) => aiHandlers.extract(images))
+ipcMain.handle('ai:extract', async (_, images) => {
+  const result = await aiHandlers.extract(images)
+  if (result.success) try { statsHandlers.log({ action_type: 'ai_extract', detail: { pages: images.length } }) } catch {}
+  return result
+})
 ipcMain.handle('ai:testConnection', () => aiHandlers.testConnection())
 
 ipcMain.handle('app:getConfig', () => ({ mode: appConfig.mode, serverUrl: appConfig.serverUrl, token: appConfig.token }))

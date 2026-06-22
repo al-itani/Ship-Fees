@@ -4,7 +4,7 @@ import { useSession } from '../../context/SessionContext.jsx'
 import { compressToJpeg, pdfToImages, pdfToImagesFromBase64 } from '../../components/DocumentImport.jsx'
 import {
   parseFilenameTimestamp, nextId, buildGroups,
-  movePage, splitPage, movePageToNewGroup, mergeWithPrevious,
+  movePage, splitPage, movePageToNewGroup,
 } from '../../logic/batchGrouping.js'
 import {
   buildReviewState, computeBreakdowns, validateReviewData,
@@ -184,27 +184,39 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
 
   // ── Processing queue ────────────────────────────────────────────────────
 
+  const patch = (id, updates) =>
+    setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g))
+
   async function startProcessing() {
     if (running || groups.length === 0) return
     setStep('process')
     setRunning(true)
 
-    const patch = (id, updates) =>
-      setGroups(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g))
+    const MAX_CONCURRENT = 3
+    const FORM_UNCERTAIN_KEYS = new Set(['voyage_number','vessel_name','vessel_type','flag','shipping_agent','ata','atd','loa'])
 
-    for (const group of groups) {
-      patch(group.id, { status: 'processing' })
+    // Stage 1: parallel AI extraction (bounded concurrency)
+    async function extractGroup(group) {
+      patch(group.id, { status: 'processing', progress: 0 })
+      const progressInterval = setInterval(() => {
+        setGroups(prev => prev.map(g => {
+          if (g.id !== group.id || g.status !== 'processing') return g
+          const p = (g.progress || 0)
+          return { ...g, progress: Math.min(Math.round(p + (90 - p) * 0.07), 89) }
+        }))
+      }, 350)
+
       try {
-        // One multi-page submission per group — same code path as single import
         const images = group.pages.flatMap(p => p.images)
         const res = await window.api.aiExtract(images)
+        clearInterval(progressInterval)
 
         if (!res.success) {
           const key = EXTRACT_ERROR_KEYS[res.error]
           let msg = key ? t(key) : res.error
           if (res.detail) msg += ` (${res.detail})`
-          patch(group.id, { status: 'error', error: msg })
-          continue
+          patch(group.id, { status: 'error', error: msg, progress: 100 })
+          return
         }
 
         const fields    = res.data
@@ -213,53 +225,64 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
         const breakdowns = computeBreakdowns(built.berthingRows, built.form, ratesData)
         const { errors, validRows } = validateReviewData(built.form, built.berthingRows, breakdowns)
 
-        const FORM_UNCERTAIN_KEYS = new Set(['voyage_number','vessel_name','vessel_type','flag','shipping_agent','ata','atd','loa'])
         const needsReview =
           [...built.uncertainFields].some(f => FORM_UNCERTAIN_KEYS.has(f)) ||
           built.serviceLines.some(l => l._uncertain) ||
           Object.keys(errors).length > 0
 
         if (needsReview) {
-          patch(group.id, {
-            status: 'needs_review',
-            voyageNumber: built.form.voyageNumber || null,
-            review: built,
-          })
+          patch(group.id, { status: 'needs_review', voyageNumber: built.form.voyageNumber || null, review: built, progress: 100 })
         } else {
-          const result = await insertVoyage({
-            form: built.form, validRows,
-            serviceLines: built.serviceLines,
-            manualLines: [], userId: session.id,
-          })
-          patch(group.id, { status: 'done', result, voyageNumber: result.voyageNumber })
-
-          // Auto-generate receipt to DB
-          const receiptResult = await autoSaveReceipt(result.voyageNumber, session.username)
-          if (!receiptResult.success) {
-            patch(group.id, {
-              receiptSaved: false,
-              pdfPath: null,
-              receiptSkipped: receiptResult.skip || false,
-              receiptError: receiptResult.error || 'receipt_gen_failed',
-            })
-          } else {
-            patch(group.id, { receiptSaved: true })
-            const filePath = buildPdfPath(result.voyageNumber, receiptResult.rawData.header.vessel_name)
-            // Mount receipt overlay and await silent PDF export
-            const pdfResult = await new Promise(resolve => {
-              pdfResolveRef.current = resolve
-              setPdfExportItem({ voyageNumber: result.voyageNumber, filePath })
-            })
-            setPdfExportItem(null)
-            patch(group.id, {
-              pdfPath: pdfResult.error ? null : (pdfResult.path || null),
-              receiptSkipped: false,
-              receiptError: pdfResult.error || null,
-            })
-          }
+          patch(group.id, { status: 'ready_to_insert', _validRows: validRows, _built: built, progress: 95 })
         }
       } catch (err) {
-        patch(group.id, { status: 'error', error: err.message || 'Error' })
+        clearInterval(progressInterval)
+        patch(group.id, { status: 'error', error: err.message || 'Error', progress: 100 })
+      }
+    }
+
+    // Promise pool with bounded concurrency
+    const queue = [...groups]
+    const active = []
+    while (queue.length > 0 || active.length > 0) {
+      while (active.length < MAX_CONCURRENT && queue.length > 0) {
+        const group = queue.shift()
+        const promise = extractGroup(group).then(() => {
+          active.splice(active.indexOf(promise), 1)
+        })
+        active.push(promise)
+      }
+      if (active.length > 0) await Promise.race(active)
+    }
+
+    // Stage 2: sequential insert + receipt + PDF for ready groups
+    const snapshot = await new Promise(resolve =>
+      setGroups(prev => { resolve(prev); return prev })
+    )
+    for (const group of snapshot) {
+      if (group.status !== 'ready_to_insert') continue
+      try {
+        const result = await insertVoyage({
+          form: group._built.form, validRows: group._validRows,
+          serviceLines: group._built.serviceLines, manualLines: [], userId: session.id,
+        })
+        patch(group.id, { status: 'done', result, voyageNumber: result.voyageNumber, _validRows: undefined, _built: undefined, progress: 100 })
+
+        const receiptResult = await autoSaveReceipt(result.voyageNumber, session.username)
+        if (!receiptResult.success) {
+          patch(group.id, { receiptSaved: false, pdfPath: null, receiptSkipped: receiptResult.skip || false, receiptError: receiptResult.error || 'receipt_gen_failed' })
+        } else {
+          patch(group.id, { receiptSaved: true })
+          const filePath = buildPdfPath(result.voyageNumber, receiptResult.rawData.header.vessel_name)
+          const pdfResult = await new Promise(resolve => {
+            pdfResolveRef.current = resolve
+            setPdfExportItem({ voyageNumber: result.voyageNumber, filePath })
+          })
+          setPdfExportItem(null)
+          patch(group.id, { pdfPath: pdfResult.error ? null : (pdfResult.path || null), receiptSkipped: false, receiptError: pdfResult.error || null })
+        }
+      } catch (err) {
+        patch(group.id, { status: 'error', error: err.message || 'Error', _validRows: undefined, _built: undefined })
       }
     }
 
@@ -270,7 +293,7 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
   // ── Derived ─────────────────────────────────────────────────────────────
 
   const totalPages    = groups.reduce((n, g) => n + g.pages.length, 0)
-  const processedCount = groups.filter(g => ['done', 'error', 'needs_review'].includes(g.status)).length
+  const processedCount = groups.filter(g => ['done', 'error', 'needs_review', 'ready_to_insert'].includes(g.status)).length
   const insertedCount  = groups.filter(g => g.status === 'done').length
   const reviewCount    = groups.filter(g => g.status === 'needs_review').length
   const failedCount    = groups.filter(g => g.status === 'error').length
@@ -320,7 +343,7 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
           <img
             src={`data:${hoverPreview.mediaType};base64,${hoverPreview.data}`}
             alt=""
-            style={{ width: 220, height: 'auto', maxHeight: 300, borderRadius: 5, display: 'block' }}
+            style={{ width: 640, height: 'auto', maxHeight: '85vh', borderRadius: 5, display: 'block' }}
           />
         </div>
       )}
@@ -365,8 +388,20 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
 
           {files.length > 0 && (
             <>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-                {t('batch_files_count', { count: files.length })}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }}>
+                  {t('batch_files_count', { count: files.length })}
+                </span>
+                <button
+                  onClick={() => { setFiles([]); setGroups([]) }}
+                  style={{
+                    padding: '3px 10px', borderRadius: 5, border: '1px solid var(--color-danger)',
+                    background: 'white', fontSize: 11, color: 'var(--color-danger)',
+                    cursor: 'pointer', fontWeight: 600,
+                  }}
+                >
+                  {t('batch_remove_all')}
+                </button>
               </div>
               <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, marginBottom: 16, overflow: 'hidden', maxHeight: 260, overflowY: 'auto' }}>
                 {files.map((f, i) => (
@@ -428,7 +463,8 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
               onDragLeave={() => setDragOver(prev => prev === group.id ? null : prev)}
               onDrop={e => {
                 e.preventDefault(); setDragOver(null)
-                if (dragPageRef.current) setGroups(prev => movePage(prev, dragPageRef.current, group.id))
+                const pageId = dragPageRef.current || e.dataTransfer.getData('text/plain')
+                if (pageId) setGroups(prev => movePage(prev, pageId, group.id))
                 dragPageRef.current = null
               }}
               style={{
@@ -447,17 +483,6 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                   {groupTimeLabel(group)}
                 </span>
                 <span style={{ flex: 1 }} />
-                {gi > 0 && (
-                  <button
-                    onClick={() => setGroups(prev => mergeWithPrevious(prev, group.id))}
-                    style={{
-                      padding: '6px 14px', borderRadius: 6, border: '1px dashed var(--color-border)',
-                      background: 'white', fontSize: 12, color: 'var(--color-text-muted)', cursor: 'pointer',
-                    }}
-                  >
-                    ⤴ {t('batch_merge_prev')}
-                  </button>
-                )}
                 <button
                   onClick={() => setGroups(prev => prev.filter(g => g.id !== group.id))}
                   title={t('batch_remove_group')}
@@ -477,7 +502,8 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                     onDragOver={e => e.preventDefault()}
                     onDrop={e => {
                       e.preventDefault(); e.stopPropagation(); setDragOver(null)
-                      if (dragPageRef.current) setGroups(prev => movePage(prev, dragPageRef.current, group.id, page.id))
+                      const pageId = dragPageRef.current || e.dataTransfer.getData('text/plain')
+                      if (pageId) setGroups(prev => movePage(prev, pageId, group.id, page.id))
                       dragPageRef.current = null
                     }}
                     style={{ width: 112, cursor: 'grab' }}
@@ -493,7 +519,11 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                         }}
                         onMouseEnter={e => {
                           const rect = e.currentTarget.getBoundingClientRect()
-                          setHoverPreview({ data: page.images[0].data, mediaType: page.images[0].mediaType, top: rect.top - 20, left: rect.right + 12 })
+                          let left = rect.right + 12
+                          let top = rect.top - 20
+                          if (left + 660 > window.innerWidth) left = rect.left - 660
+                          if (top + 500 > window.innerHeight) top = Math.max(8, window.innerHeight - 500)
+                          setHoverPreview({ data: page.images[0].data, mediaType: page.images[0].mediaType, top, left })
                         }}
                         onMouseLeave={() => setHoverPreview(null)}
                       />
@@ -544,7 +574,8 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
             onDragLeave={() => setDragOver(prev => prev === 'new' ? null : prev)}
             onDrop={e => {
               e.preventDefault(); setDragOver(null)
-              if (dragPageRef.current) setGroups(prev => movePageToNewGroup(prev, dragPageRef.current))
+              const pageId = dragPageRef.current || e.dataTransfer.getData('text/plain')
+              if (pageId) setGroups(prev => movePageToNewGroup(prev, pageId))
               dragPageRef.current = null
             }}
             style={{
@@ -656,9 +687,51 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                     )}
                     <StatusChip status={group.status} />
                     {clickable && (
-                      <span style={{ fontSize: 12, color: '#B45309', fontWeight: 600 }}>
-                        {t('batch_open_review')} ‹
-                      </span>
+                      <>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            if (!group.review) return
+                            const bd = computeBreakdowns(group.review.berthingRows, group.review.form, ratesData)
+                            const { errors: errs, validRows } = validateReviewData(group.review.form, group.review.berthingRows, bd)
+                            if (Object.keys(errs).length > 0) {
+                              await window.api.dialogMessage({ title: t('batch_accept_ai'), message: t('required_fields_missing'), type: 'warning' })
+                              return
+                            }
+                            try {
+                              patch(group.id, { status: 'processing' })
+                              const result = await insertVoyage({ form: group.review.form, validRows, serviceLines: group.review.serviceLines, manualLines: [], userId: session.id })
+                              patch(group.id, { status: 'done', result, review: null, voyageNumber: result.voyageNumber })
+                              const receiptResult = await autoSaveReceipt(result.voyageNumber, session.username)
+                              if (!receiptResult.success) {
+                                patch(group.id, { receiptSaved: false, pdfPath: null, receiptSkipped: receiptResult.skip || false, receiptError: receiptResult.error || 'receipt_gen_failed' })
+                              } else {
+                                patch(group.id, { receiptSaved: true })
+                                const filePath = buildPdfPath(result.voyageNumber, receiptResult.rawData.header.vessel_name)
+                                const pdfResult = await new Promise(resolve => {
+                                  pdfResolveRef.current = resolve
+                                  setPdfExportItem({ voyageNumber: result.voyageNumber, filePath })
+                                })
+                                setPdfExportItem(null)
+                                patch(group.id, { pdfPath: pdfResult.error ? null : (pdfResult.path || null), receiptSkipped: false, receiptError: pdfResult.error || null })
+                              }
+                            } catch (err) {
+                              patch(group.id, { status: 'error', error: err.message || 'Error' })
+                            }
+                          }}
+                          title={t('batch_accept_ai')}
+                          style={{
+                            padding: '3px 10px', borderRadius: 5, border: '1px solid #047857',
+                            background: 'white', fontSize: 11, cursor: 'pointer',
+                            color: '#047857', fontWeight: 700,
+                          }}
+                        >
+                          ✓ {t('batch_accept_ai')}
+                        </button>
+                        <span style={{ fontSize: 12, color: '#B45309', fontWeight: 600 }}>
+                          {t('batch_open_review')} ‹
+                        </span>
+                      </>
                     )}
                     {/* View/Generate Receipt button for done groups */}
                     {step === 'summary' && group.status === 'done' && group.voyageNumber && onViewReceipt && (
@@ -692,6 +765,17 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
                       >×</button>
                     )}
                   </div>
+                  {group.status === 'processing' && (
+                    <div style={{ marginTop: 6 }}>
+                      <div style={{ width: '100%', height: 4, background: '#E5E7EB', borderRadius: 99, overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${group.progress || 0}%`,
+                          background: 'linear-gradient(90deg, #1B2A4A, #3B5998)',
+                          borderRadius: 99, transition: 'width 0.35s ease',
+                        }} />
+                      </div>
+                    </div>
+                  )}
                   {group.status === 'error' && group.error && (
                     <div style={{ fontSize: 12, color: 'var(--color-danger)', marginTop: 6 }}>
                       {group.error}

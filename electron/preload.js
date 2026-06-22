@@ -30,6 +30,7 @@ contextBridge.exposeInMainWorld('api', {
   receiptSave:                 (data) => ipcRenderer.invoke('receipt:save', data),
   receiptGetAll:               () => ipcRenderer.invoke('receipt:getAll'),
   receiptDelete:               (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
+  receiptExistsForVoyage:      (voyageNumber) => ipcRenderer.invoke('receipt:existsForVoyage', voyageNumber),
   receiptPrepareBerthingOnly:  (voyageNumber, username) => ipcRenderer.invoke('receipt:prepareBerthingOnly', voyageNumber, username),
   receiptExportPDF:      (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
   receiptExportPDFBatch: (opts) => ipcRenderer.invoke('receipt:exportPDFBatch', opts),
@@ -44,6 +45,12 @@ contextBridge.exposeInMainWorld('api', {
   usersCheckRecords:   (userId)                        => ipcRenderer.invoke('users:checkRecords', userId),
   usersDelete:         (id, adminId)                   => ipcRenderer.invoke('users:delete', id, adminId),
   usersHeartbeat:      (userId)                        => ipcRenderer.invoke('users:heartbeat', userId),
+  usersUpdateProfile:  (userId, data)                  => ipcRenderer.invoke('users:updateProfile', userId, data),
+  usersUploadAvatar:   (data)                          => ipcRenderer.invoke('users:uploadAvatar', data),
+  usersGetAvatarBase64:(avatarPath)                    => ipcRenderer.invoke('users:getAvatarBase64', avatarPath),
+
+  statsLog:             (payload) => ipcRenderer.invoke('stats:log', payload),
+  statsGetStats:        (filters) => ipcRenderer.invoke('stats:getStats', filters),
 
   auditGetEntries:      (filters) => ipcRenderer.invoke('audit:getEntries', filters),
   auditGetFilterOptions: ()       => ipcRenderer.invoke('audit:getFilterOptions'),

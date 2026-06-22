@@ -1,4 +1,5 @@
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   db.prepare(`
@@ -123,6 +124,7 @@ function saveReceipt(data) {
     })
 
     const id = doSave()
+    try { statsHandlers.log({ username: data.generated_by, action_type: 'receipt_generated', detail: { voyage: data.voyage_number } }) } catch {}
     return { success: true, id }
   } catch (err) {
     return { success: false, error: err.message }
@@ -155,6 +157,7 @@ function softDelete(id, userId) {
     if (!old) return { success: false, error: 'Receipt not found' }
     db.prepare('UPDATE receipts SET is_deleted = 1 WHERE id = ?').run(id)
     writeAudit('receipts', id, 'DELETE', old, { is_deleted: 1 }, userId)
+    try { statsHandlers.log({ user_id: userId, action_type: 'receipt_deleted', detail: { voyage: old.voyage_number } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -215,4 +218,15 @@ function prepareBerthingOnly(voyageNumber, username) {
   }
 }
 
-module.exports = { getDataForReceipt, saveReceipt, getAll, softDelete, prepareBerthingOnly }
+function existsForVoyage(voyageNumber) {
+  try {
+    const row = db.prepare(
+      'SELECT 1 FROM receipts WHERE voyage_number = ? AND is_deleted = 0 LIMIT 1'
+    ).get(voyageNumber)
+    return { success: true, exists: !!row }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getDataForReceipt, saveReceipt, getAll, softDelete, prepareBerthingOnly, existsForVoyage }

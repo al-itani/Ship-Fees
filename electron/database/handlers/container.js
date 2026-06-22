@@ -1,4 +1,5 @@
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   db.prepare(`
@@ -142,6 +143,7 @@ function saveSession(data) {
     })
 
     doSave()
+    try { statsHandlers.log({ user_id: created_by, action_type: 'container_saved', detail: { voyage: voyageNumber, lines: lines.length } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
