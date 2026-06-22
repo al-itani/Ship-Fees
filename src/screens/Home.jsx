@@ -5,11 +5,10 @@ const ALL_MODULES = [
   { key: 'voyage_services',  icon: '🚢', labelKey: 'voyage_services',  descKey: 'voyage_services_description',  permKey: 'perm_voyage'          },
   { key: 'automate',         icon: '🤖', labelKey: 'automate',         descKey: 'automate_description',         permKey: 'perm_automate'        },
   { key: 'storage',          icon: '🏪', labelKey: 'storage',          descKey: 'storage_description',          permKey: 'perm_storage'         },
-  { key: 'receipts_archive', icon: '🗂', labelKey: 'receipts_archive', descKey: 'receipts_archive_description', permKey: 'perm_receipt_archive' },
+  { key: 'receipts_archive', icon: '🗂', labelKey: 'receipts_archive', descKey: 'receipts_archive_description', permKey: 'perm_receipt'         },
   { key: 'cma',              icon: '📊', labelKey: 'cma_receipt',      descKey: 'cma_receipt_description',      permKey: 'perm_cma'             },
   { key: 'tariff_c',         icon: '📦', labelKey: 'tariff_c',         descKey: 'tariff_c_description',         permKey: 'perm_tariff_c'        },
   { key: 'audit_log',        icon: '📋', labelKey: 'audit_log',        descKey: 'audit_log_description',        permKey: 'perm_audit_log'       },
-  { key: 'staff_view',       icon: '👥', labelKey: 'staff_view',       descKey: 'staff_view_description',       permKey: 'perm_staff_view'      },
 ]
 
 export default function Home({ setCurrentScreen }) {

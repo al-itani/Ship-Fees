@@ -11,7 +11,6 @@ import SettingsScreen from './settings/SettingsScreen.jsx'
 import AutomateScreen from './automate/AutomateScreen.jsx'
 import CMAScreen from './cma/CMAScreen.jsx'
 import UserManagementScreen from './users/UserManagementScreen.jsx'
-import ManagerStaffScreen from './users/ManagerStaffScreen.jsx'
 import AuditLogScreen from './audit/AuditLogScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import StorageScreen from './storage/StorageScreen.jsx'
@@ -42,6 +41,7 @@ export default function MainApp() {
   }
 
   function handleViewReceipt(voyageNumber) {
+    if (session?.role !== 'admin' && !session?.perm_receipt) return
     setReceiptState({ voyageNumber, readOnly: true })
   }
 
@@ -81,7 +81,7 @@ export default function MainApp() {
         if (!isAdmin && !session?.perm_storage) return <Home setCurrentScreen={setCurrentScreen} />
         return <StorageScreen />
       case 'receipts_archive':
-        if (!isAdmin && !session?.perm_receipt_archive) return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_receipt) return <Home setCurrentScreen={setCurrentScreen} />
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':
         if (!isAdmin && !session?.perm_automate) return <Home setCurrentScreen={setCurrentScreen} />
@@ -101,9 +101,6 @@ export default function MainApp() {
       case 'user_management':
         if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
-      case 'staff_view':
-        if (!isAdmin && !session?.perm_staff_view) return <Home setCurrentScreen={setCurrentScreen} />
-        return <ManagerStaffScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }

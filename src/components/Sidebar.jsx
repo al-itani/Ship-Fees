@@ -8,11 +8,10 @@ const navItems = [
   { key: 'automate',         icon: '🤖', label: 'automate',        permKey: 'perm_automate'        },
   { key: 'voyage_services',  icon: '🚢', label: 'voyage_services', permKey: 'perm_voyage'          },
   { key: 'storage',          icon: '🏪', label: 'storage',         permKey: 'perm_storage'         },
-  { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive', permKey: 'perm_receipt_archive' },
+  { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive', permKey: 'perm_receipt'         },
   { key: 'cma',              icon: '📊', label: 'cma_receipt',     permKey: 'perm_cma'             },
   { key: 'tariff_c',         icon: '📦', label: 'tariff_c',        permKey: 'perm_tariff_c'        },
   { key: 'audit_log',        icon: '📋', label: 'audit_log',       permKey: 'perm_audit_log'       },
-  { key: 'staff_view',       icon: '👥', label: 'staff_view',      permKey: 'perm_staff_view'      },
 ]
 
 const adminNavItems = [

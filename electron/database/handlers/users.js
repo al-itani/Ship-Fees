@@ -1,6 +1,11 @@
 const bcrypt = require('bcryptjs')
 const db = require('../db')
 
+const PERMISSION_ALIASES = {
+  perm_voyage: ['perm_berthing', 'perm_container', 'perm_gc'],
+  perm_receipt: ['perm_receipt_archive'],
+}
+
 function writeAudit(recordId, action, oldData, newData, userId) {
   db.prepare(`
     INSERT INTO audit_log (table_name, record_id, action, old_data, new_data, user_id)
@@ -135,7 +140,10 @@ function setPermission(user_id, permission_key, grant, admin_id) {
     if (!userRow) return { success: false, error: 'user_not_found' }
 
     if (COLUMN_PERMS.includes(permission_key)) {
-      db.prepare(`UPDATE users SET ${permission_key} = ? WHERE id = ?`).run(grant ? 1 : 0, user_id)
+      const linkedColumns = PERMISSION_ALIASES[permission_key] || []
+      for (const col of [permission_key, ...linkedColumns]) {
+        db.prepare(`UPDATE users SET ${col} = ? WHERE id = ?`).run(grant ? 1 : 0, user_id)
+      }
       writeAudit(user_id, 'UPDATE', null,
         { message: `${grant ? 'Granted' : 'Revoked'} ${permission_key} ${grant ? 'to' : 'from'}: ${userRow.username}` }, admin_id)
     } else if (grant) {

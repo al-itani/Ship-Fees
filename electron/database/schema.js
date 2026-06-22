@@ -286,6 +286,22 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_audit_log INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_staff_view INTEGER NOT NULL DEFAULT 0`) } catch {}
 
+  // Promote old granular grants into the high-level grants now used by the UI.
+  // Keep the old columns for compatibility with older app installs and clients.
+  try {
+    db.exec(`
+      UPDATE users SET perm_voyage = 1
+      WHERE role != 'admin'
+        AND perm_voyage = 0
+        AND (perm_berthing = 1 OR perm_container = 1 OR perm_gc = 1);
+
+      UPDATE users SET perm_receipt = 1
+      WHERE role != 'admin'
+        AND perm_receipt = 0
+        AND perm_receipt_archive = 1;
+    `)
+  } catch {}
+
   // One-time migration: grant previously-unrestricted modules to all existing non-admin users
   try {
     const migDone = db.prepare("SELECT value FROM app_settings WHERE key = 'perm_migration_v1'").get()

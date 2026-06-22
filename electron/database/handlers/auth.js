@@ -14,6 +14,8 @@ function login(username, password) {
 
     const permissions = db.prepare('SELECT permission_key FROM user_permissions WHERE user_id = ?')
       .all(user.id).map(r => r.permission_key)
+    const voyageAccess = user.perm_voyage || user.perm_berthing || user.perm_container || user.perm_gc
+    const receiptAccess = user.perm_receipt || user.perm_receipt_archive
 
     return {
       success: true,
@@ -32,8 +34,8 @@ function login(username, password) {
         perm_berthing:        user.perm_berthing        ?? 0,
         perm_container:       user.perm_container       ?? 0,
         perm_gc:              user.perm_gc              ?? 0,
-        perm_receipt:         user.perm_receipt         ?? 0,
-        perm_voyage:          user.perm_voyage          ?? 0,
+        perm_receipt:         receiptAccess             ?? 0,
+        perm_voyage:          voyageAccess              ?? 0,
         perm_receipt_archive: user.perm_receipt_archive ?? 0,
         perm_audit_log:       user.perm_audit_log       ?? 0,
         perm_staff_view:      user.perm_staff_view      ?? 0,

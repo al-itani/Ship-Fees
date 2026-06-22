@@ -361,7 +361,7 @@
   "perm_berthing": "Berthing Access",
   "perm_container": "Container Services Access",
   "perm_gc": "General Cargo Access",
-  "perm_receipt": "Receipt Generation",
+  "perm_receipt": "Receipt Access",
   "perm_voyage": "Voyage Services Access",
   "perm_receipt_archive": "Receipt Archive Access",
   "perm_audit_log": "Audit Log Access",
