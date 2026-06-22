@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useSession } from '../../context/SessionContext.jsx'
-import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 
 function fmtDate(str) {
   if (!str) return '—'
@@ -48,7 +47,6 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
   const [records, setRecords]           = useState([])
   const [loading, setLoading]           = useState(true)
   const [search, setSearch]             = useState('')
-  const [deleteTarget, setDeleteTarget] = useState(null)
   const [toast, setToast]               = useState(null)
   const [sortCol, setSortCol]           = useState('id')
   const [sortDir, setSortDir]           = useState('desc')
@@ -72,10 +70,11 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
     return session.role === 'admin' || record.created_by === session.id
   }
 
-  async function handleDelete() {
-    if (!deleteTarget) return
-    const res = await window.api.deleteBerthing(deleteTarget.id, session.id)
-    setDeleteTarget(null)
+  async function handleDelete(record) {
+    if (!record) return
+    const ok = await window.api.dialogConfirm({ title: t('delete'), message: t('confirm_delete') })
+    if (!ok) return
+    const res = await window.api.deleteBerthing(record.id, session.id)
     if (res.success) {
       showToast(t('record_deleted'), 'success')
       await loadRecords()
@@ -146,18 +145,6 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
         }}>
           {toast.msg}
         </div>
-      )}
-
-      {deleteTarget && (
-        <ConfirmDialog
-          title={t('delete')}
-          message={t('confirm_delete')}
-          confirmLabel={t('delete')}
-          cancelLabel={t('cancel')}
-          danger
-          onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
-        />
       )}
 
       {/* Search + count */}
@@ -266,7 +253,7 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
                       )}
                       {canEdit(r) && (
                         <button
-                          onClick={() => setDeleteTarget(r)}
+                          onClick={() => handleDelete(r)}
                           style={{
                             padding: '5px 12px', borderRadius: 5,
                             border: '1px solid var(--color-danger)',

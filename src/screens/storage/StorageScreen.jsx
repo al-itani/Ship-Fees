@@ -43,7 +43,7 @@ export default function StorageScreen() {
   }
 
   return (
-    <div style={{ padding: 28, maxWidth: 1200 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1200 }}>
       <h2 style={{ margin: '0 0 24px', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>
         🏪 Storage Fees
       </h2>

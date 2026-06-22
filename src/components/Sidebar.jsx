@@ -16,7 +16,14 @@ const navItems = [
 
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
+  { key: 'statistics',      icon: '📈', label: 'statistics_usage' },
+  { key: 'audit_log',       icon: '📋', label: 'audit_log' },
   { key: 'settings',        icon: '⚙️', label: 'settings' },
+]
+
+const managerNavItems = [
+  { key: 'staff_view',  icon: '👥', label: 'staff_view' },
+  { key: 'statistics',  icon: '📈', label: 'statistics_usage' },
 ]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {

@@ -63,7 +63,7 @@ export default function SettingsScreen() {
   const keyEmpty = !apiKey.trim()
 
   return (
-    <div style={{ padding: 36, maxWidth: 600 }}>
+    <div className="app-screen" style={{ padding: 36, maxWidth: 600 }}>
 
       {toast && (
         <div style={{

@@ -22,7 +22,7 @@ export default function Home({ setCurrentScreen }) {
   })
 
   return (
-    <div style={{ padding: 36 }}>
+    <div className="app-screen" style={{ padding: 36, maxWidth: 800 }}>
       <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 700, color: 'var(--color-text)' }}>
         {t('welcome')}, {session?.full_name}
       </h2>

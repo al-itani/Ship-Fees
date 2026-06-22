@@ -1,12 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatLocal } from '../../logic/formatDate.js'
 
 function fmtDateProcessed(s) {
-  if (!s) return '—'
-  const [datePart = '', timePart = ''] = s.split(' ')
-  const [y, m, d] = datePart.split('-')
-  if (!y || !m || !d) return s
-  return `${d}-${m}-${y} ${timePart.slice(0, 5)}`
+  return formatLocal(s)
 }
 
 const thStyle = {

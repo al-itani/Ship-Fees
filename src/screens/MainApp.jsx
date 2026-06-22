@@ -12,6 +12,7 @@ import AutomateScreen from './automate/AutomateScreen.jsx'
 import CMAScreen from './cma/CMAScreen.jsx'
 import UserManagementScreen from './users/UserManagementScreen.jsx'
 import AuditLogScreen from './audit/AuditLogScreen.jsx'
+import StatisticsScreen from './users/StatisticsScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import StorageScreen from './storage/StorageScreen.jsx'
 import TariffCScreen from './tariff-c/TariffCScreen.jsx'
@@ -101,6 +102,12 @@ export default function MainApp() {
       case 'user_management':
         if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
+      case 'statistics':
+        if (session?.role !== 'admin' && session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
+        return <StatisticsScreen />
+      case 'staff_view':
+        if (session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
+        return <ManagerStaffScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }
@@ -111,7 +118,7 @@ export default function MainApp() {
       <Sidebar currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <TopBar currentScreen={currentScreen} />
-        <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)' }}>
+        <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
           {renderScreen()}
         </div>
       </div>
