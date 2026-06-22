@@ -8,9 +8,18 @@ const PERMISSIONS = [
 ]
 
 const MODULE_PERMS = [
-  { key: 'perm_storage',  labelKey: 'perm_storage'  },
-  { key: 'perm_automate', labelKey: 'perm_automate' },
-  { key: 'perm_cma',      labelKey: 'perm_cma'      },
+  { key: 'perm_voyage',          labelKey: 'perm_voyage'          },
+  { key: 'perm_berthing',        labelKey: 'perm_berthing'        },
+  { key: 'perm_container',       labelKey: 'perm_container'       },
+  { key: 'perm_gc',              labelKey: 'perm_gc'              },
+  { key: 'perm_receipt',         labelKey: 'perm_receipt'         },
+  { key: 'perm_receipt_archive', labelKey: 'perm_receipt_archive' },
+  { key: 'perm_storage',         labelKey: 'perm_storage'         },
+  { key: 'perm_automate',        labelKey: 'perm_automate'        },
+  { key: 'perm_cma',             labelKey: 'perm_cma'             },
+  { key: 'perm_tariff_c',        labelKey: 'perm_tariff_c'        },
+  { key: 'perm_audit_log',       labelKey: 'perm_audit_log'       },
+  { key: 'perm_staff_view',      labelKey: 'perm_staff_view'      },
 ]
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
@@ -90,9 +99,18 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
   const [language, setLanguage] = useState(user.language)
   const [perms, setPerms]       = useState([])
   const [modPerms, setModPerms] = useState({
-    perm_storage:  !!user.perm_storage,
-    perm_automate: !!user.perm_automate,
-    perm_cma:      !!user.perm_cma,
+    perm_storage:         !!user.perm_storage,
+    perm_automate:        !!user.perm_automate,
+    perm_cma:             !!user.perm_cma,
+    perm_tariff_c:        !!user.perm_tariff_c,
+    perm_berthing:        !!user.perm_berthing,
+    perm_container:       !!user.perm_container,
+    perm_gc:              !!user.perm_gc,
+    perm_receipt:         !!user.perm_receipt,
+    perm_voyage:          !!user.perm_voyage,
+    perm_receipt_archive: !!user.perm_receipt_archive,
+    perm_audit_log:       !!user.perm_audit_log,
+    perm_staff_view:      !!user.perm_staff_view,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')

@@ -5,21 +5,19 @@ const VERSION = '1.0.1'
 
 const navItems = [
   { key: 'home',             icon: '🏠', label: 'home' },
-  { key: 'automate',         icon: '🤖', label: 'automate',        permKey: 'perm_automate' },
-  { key: 'voyage_services',  icon: '🚢', label: 'voyage_services' },
-  { key: 'storage',          icon: '🏪', label: 'storage',         permKey: 'perm_storage' },
-  { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive' },
-  { key: 'cma',              icon: '📊', label: 'cma_receipt',     permKey: 'perm_cma' },
+  { key: 'automate',         icon: '🤖', label: 'automate',        permKey: 'perm_automate'        },
+  { key: 'voyage_services',  icon: '🚢', label: 'voyage_services', permKey: 'perm_voyage'          },
+  { key: 'storage',          icon: '🏪', label: 'storage',         permKey: 'perm_storage'         },
+  { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive', permKey: 'perm_receipt_archive' },
+  { key: 'cma',              icon: '📊', label: 'cma_receipt',     permKey: 'perm_cma'             },
+  { key: 'tariff_c',         icon: '📦', label: 'tariff_c',        permKey: 'perm_tariff_c'        },
+  { key: 'audit_log',        icon: '📋', label: 'audit_log',       permKey: 'perm_audit_log'       },
+  { key: 'staff_view',       icon: '👥', label: 'staff_view',      permKey: 'perm_staff_view'      },
 ]
 
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
-  { key: 'audit_log',       icon: '📋', label: 'audit_log' },
   { key: 'settings',        icon: '⚙️', label: 'settings' },
-]
-
-const managerNavItems = [
-  { key: 'staff_view', icon: '👥', label: 'staff_view' },
 ]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {
@@ -75,10 +73,10 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
         })}
       </nav>
 
-      {/* Admin / Manager nav items */}
-      {(session?.role === 'admin' || session?.role === 'manager') && (
+      {/* Admin-only tools */}
+      {session?.role === 'admin' && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
-          {(session.role === 'admin' ? adminNavItems : managerNavItems).map(item => {
+          {adminNavItems.map(item => {
             const isSelected = currentScreen === item.key
             return (
               <div

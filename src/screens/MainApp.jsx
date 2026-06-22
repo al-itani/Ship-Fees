@@ -15,6 +15,7 @@ import ManagerStaffScreen from './users/ManagerStaffScreen.jsx'
 import AuditLogScreen from './audit/AuditLogScreen.jsx'
 import VoyageServicesScreen from './voyageservices/VoyageServicesScreen.jsx'
 import StorageScreen from './storage/StorageScreen.jsx'
+import TariffCScreen from './tariff-c/TariffCScreen.jsx'
 import { useSession } from '../context/SessionContext.jsx'
 
 export default function MainApp() {
@@ -36,6 +37,7 @@ export default function MainApp() {
   }
 
   function handleGenerateReceipt(voyageNumber) {
+    if (session?.role !== 'admin' && !session?.perm_receipt) return
     setReceiptState({ voyageNumber, readOnly: false })
   }
 
@@ -47,13 +49,18 @@ export default function MainApp() {
     setReceiptState(null)
   }
 
+  const isAdmin = session?.role === 'admin'
+
   function renderScreen() {
     switch (currentScreen) {
       case 'voyage_services':
+        if (!isAdmin && !session?.perm_voyage) return <Home setCurrentScreen={setCurrentScreen} />
         return <VoyageServicesScreen onGenerateReceipt={handleGenerateReceipt} />
       case 'berthing':
+        if (!isAdmin && !session?.perm_voyage) return <Home setCurrentScreen={setCurrentScreen} />
         return <BerthingScreen onGoToContainers={handleGoToContainers} onGoToGeneralCargo={handleGoToGeneralCargo} onGenerateReceipt={handleGenerateReceipt} />
       case 'containers':
+        if (!isAdmin && !session?.perm_voyage) return <Home setCurrentScreen={setCurrentScreen} />
         return (
           <ContainerScreen
             initialVoyage={containerVoyage}
@@ -62,6 +69,7 @@ export default function MainApp() {
           />
         )
       case 'general_cargo':
+        if (!isAdmin && !session?.perm_voyage) return <Home setCurrentScreen={setCurrentScreen} />
         return (
           <GeneralCargoScreen
             initialVoyage={gcVoyage}
@@ -70,26 +78,31 @@ export default function MainApp() {
           />
         )
       case 'storage':
-        if (session?.role !== 'admin' && !session?.perm_storage) return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_storage) return <Home setCurrentScreen={setCurrentScreen} />
         return <StorageScreen />
       case 'receipts_archive':
+        if (!isAdmin && !session?.perm_receipt_archive) return <Home setCurrentScreen={setCurrentScreen} />
         return <ReceiptArchive onViewReceipt={handleViewReceipt} />
       case 'automate':
-        if (session?.role !== 'admin' && !session?.perm_automate) return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_automate) return <Home setCurrentScreen={setCurrentScreen} />
         return <AutomateScreen onGenerateReceipt={handleGenerateReceipt} />
+      case 'tariff_c':
+        if (!isAdmin && !session?.perm_tariff_c) return <Home setCurrentScreen={setCurrentScreen} />
+        return <TariffCScreen />
       case 'cma':
-        if (session?.role !== 'admin' && !session?.perm_cma) return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_cma) return <Home setCurrentScreen={setCurrentScreen} />
         return <CMAScreen />
       case 'settings':
+        if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
         return <SettingsScreen />
       case 'audit_log':
-        if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_audit_log) return <Home setCurrentScreen={setCurrentScreen} />
         return <AuditLogScreen />
       case 'user_management':
-        if (session?.role !== 'admin') return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
       case 'staff_view':
-        if (session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_staff_view) return <Home setCurrentScreen={setCurrentScreen} />
         return <ManagerStaffScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />

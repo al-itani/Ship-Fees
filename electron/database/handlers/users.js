@@ -13,7 +13,9 @@ function getAll() {
     const users = db.prepare(`
       SELECT id, username, full_name, role, language, is_active, must_change_password,
              created_at, last_login, created_by, is_online, last_seen,
-             perm_storage, perm_automate, perm_cma
+             perm_storage, perm_automate, perm_cma, perm_tariff_c,
+             perm_berthing, perm_container, perm_gc, perm_receipt,
+             perm_voyage, perm_receipt_archive, perm_audit_log, perm_staff_view
       FROM users
       ORDER BY role DESC, username ASC
     `).all()
@@ -121,7 +123,11 @@ function getPermissions(user_id) {
   }
 }
 
-const COLUMN_PERMS = ['perm_storage', 'perm_automate', 'perm_cma']
+const COLUMN_PERMS = [
+  'perm_storage', 'perm_automate', 'perm_cma', 'perm_tariff_c',
+  'perm_berthing', 'perm_container', 'perm_gc', 'perm_receipt',
+  'perm_voyage', 'perm_receipt_archive', 'perm_audit_log', 'perm_staff_view',
+]
 
 function setPermission(user_id, permission_key, grant, admin_id) {
   try {

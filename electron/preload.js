@@ -67,4 +67,10 @@ contextBridge.exposeInMainWorld('api', {
   storageSave:    (data)                => ipcRenderer.invoke('storage:save', data),
   storageUpdate:  (id, data, userId)    => ipcRenderer.invoke('storage:update', id, data, userId),
   storageDelete:  (id, userId)          => ipcRenderer.invoke('storage:delete', id, userId),
+
+  tariffCOpenFile:             ()       => ipcRenderer.invoke('tariff-c:openFile'),
+  tariffCPickFolder:           ()       => ipcRenderer.invoke('tariff-c:pickFolder'),
+  tariffCReadFile:             (path)   => ipcRenderer.invoke('tariff-c:readFile', path),
+  tariffCGetNextBillingNumber: ()       => ipcRenderer.invoke('tariff-c:getNextBillingNumber'),
+  tariffCSaveReceipt:          (data)   => ipcRenderer.invoke('tariff-c:saveReceipt', data),
 })

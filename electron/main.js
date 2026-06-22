@@ -17,6 +17,7 @@ const settingsHandlers   = require('./handlers/settings')
 const aiHandlers         = require('./handlers/ai')
 const { getConfig }      = require('./configStore')
 const storageHandlers    = require('./database/handlers/storage')
+const tariffCHandlers    = require('./database/handlers/tariffC')
 const clientHandlers     = require('./client')
 
 const appConfig = getConfig()
@@ -404,6 +405,36 @@ ipcMain.handle('storage:update',
 ipcMain.handle('storage:delete',
   (_, id, userId) => C ? clientHandlers.storageDelete(id, userId) : storageHandlers.softDelete(id, userId)
 )
+
+// Tariff C
+ipcMain.handle('tariff-c:openFile', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+      properties: ['openFile'],
+    })
+    if (canceled || filePaths.length === 0) return { success: false, canceled: true }
+    return { success: true, filePath: filePaths[0] }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+ipcMain.handle('tariff-c:pickFolder', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+      properties: ['openDirectory'],
+    })
+    if (canceled || filePaths.length === 0) return { success: false, canceled: true }
+    return { success: true, folderPath: filePaths[0] }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+ipcMain.handle('tariff-c:readFile',              (_, filePath) => tariffCHandlers.readFile(filePath))
+ipcMain.handle('tariff-c:getNextBillingNumber',  ()            => tariffCHandlers.getNextBillingNumber())
+ipcMain.handle('tariff-c:saveReceipt',           (_, data)     => tariffCHandlers.saveReceipt(data))
 
 // AI document extraction
 ipcMain.handle('ai:extract',        (_, images) => aiHandlers.extract(images))

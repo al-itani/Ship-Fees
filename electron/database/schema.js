@@ -259,6 +259,16 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE container_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE gc_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE receipts ADD COLUMN nbr_of_stamps INTEGER NOT NULL DEFAULT 0`) } catch {}
+
+  // app_settings: generic key-value store for counters and global config
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `)
+  // Seed the Tariff C billing counter at 0 if not present
+  db.prepare(`INSERT OR IGNORE INTO app_settings (key, value) VALUES ('tariff_c_billing_counter', '0')`).run()
   try { db.exec(`ALTER TABLE users ADD COLUMN created_by TEXT`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN is_online INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN last_seen TEXT`) } catch {}
@@ -266,6 +276,30 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_storage INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_automate INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_cma INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_tariff_c INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_berthing INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_container INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_gc INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_receipt INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_voyage INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_receipt_archive INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_audit_log INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_staff_view INTEGER NOT NULL DEFAULT 0`) } catch {}
+
+  // One-time migration: grant previously-unrestricted modules to all existing non-admin users
+  try {
+    const migDone = db.prepare("SELECT value FROM app_settings WHERE key = 'perm_migration_v1'").get()
+    if (!migDone) {
+      db.exec(`
+        UPDATE users SET
+          perm_berthing = 1, perm_container = 1, perm_gc = 1,
+          perm_receipt = 1, perm_voyage = 1, perm_receipt_archive = 1
+        WHERE role != 'admin'
+      `)
+      db.exec(`UPDATE users SET perm_staff_view = 1 WHERE role = 'manager'`)
+      db.prepare("INSERT INTO app_settings (key, value) VALUES ('perm_migration_v1', '1')").run()
+    }
+  } catch {}
 
   // Reset presence on every startup — clears stale is_online from crashes or force-kills
   try { db.exec(`UPDATE users SET is_online = 0, last_seen = NULL`) } catch {}
