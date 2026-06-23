@@ -246,8 +246,10 @@ export default function ReceiptArchive({ onViewReceipt }) {
                   { col: 'bill_number',    label: t('bill_number'),    align: 'start' },
                   { col: 'display_name',   label: activeTab === 'tariff_c' ? t('agency_name') : t('vessel_name'), align: 'start' },
                   { col: 'display_agent',  label: activeTab === 'tariff_c' ? t('period_label') : t('shipping_agent'), align: 'start' },
-                  { col: 'ata',            label: t('ata_short'),      align: 'end'   },
-                  { col: 'atd',            label: t('atd_short'),      align: 'end'   },
+                  ...(activeTab !== 'tariff_c' ? [
+                    { col: 'ata', label: t('ata_short'), align: 'end' },
+                    { col: 'atd', label: t('atd_short'), align: 'end' },
+                  ] : []),
                   { col: 'final_price',    label: t('final_price'),    align: 'end'   },
                   { col: 'generated_by',   label: t('generated_by_label'), align: 'start' },
                   { col: 'generated_at',   label: t('generated_at'),   align: 'end'   },
@@ -284,12 +286,16 @@ export default function ReceiptArchive({ onViewReceipt }) {
                   <td style={{ ...tdStyle, color: 'var(--color-text-muted)', fontSize: 12 }}>
                     {r.display_agent || r.shipping_agent || '—'}
                   </td>
-                  <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12 }}>
-                    <span className="num-ltr">{fmtDate(r.ata)}</span>
-                  </td>
-                  <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12 }}>
-                    <span className="num-ltr">{fmtDate(r.atd)}</span>
-                  </td>
+                  {activeTab !== 'tariff_c' && (
+                    <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12 }}>
+                      <span className="num-ltr">{fmtDate(r.ata)}</span>
+                    </td>
+                  )}
+                  {activeTab !== 'tariff_c' && (
+                    <td style={{ ...tdStyle, textAlign: 'end', fontSize: 12 }}>
+                      <span className="num-ltr">{fmtDate(r.atd)}</span>
+                    </td>
+                  )}
                   <td style={{ ...tdStyle, textAlign: 'end' }}>
                     <span className="num-ltr" style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
                       {fmt(r.final_price)}
