@@ -231,6 +231,7 @@ export default function AutomateScreen({ onGenerateReceipt }) {
 
 
   function handleStartOver() {
+    batchRef.current?.reset()
     setPhase('batch')
     setForm(EMPTY_FORM)
     setBerthingRows([{ ...EMPTY_ROW }])

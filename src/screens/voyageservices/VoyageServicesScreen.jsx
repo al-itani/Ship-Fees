@@ -142,7 +142,6 @@ export default function VoyageServicesScreen({ onGenerateReceipt }) {
       {/* Container tab */}
       <div style={{ display: activeTab === 'container' ? 'block' : 'none' }}>
         <ContainerScreen
-          key={containerInitialVoyage || 'container'}
           initialVoyage={containerInitialVoyage}
           onVoyageConsumed={() => setContainerInitialVoyage(null)}
           onGenerateReceipt={onGenerateReceipt}
@@ -152,7 +151,6 @@ export default function VoyageServicesScreen({ onGenerateReceipt }) {
       {/* GC tab */}
       <div style={{ display: activeTab === 'gc' ? 'block' : 'none' }}>
         <GeneralCargoScreen
-          key={gcInitialVoyage || 'gc'}
           initialVoyage={gcInitialVoyage}
           onVoyageConsumed={() => setGcInitialVoyage(null)}
           onGenerateReceipt={onGenerateReceipt}

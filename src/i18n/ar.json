@@ -280,6 +280,7 @@
   "cma_generate": "إنشاء",
   "cma_export_excel": "تصدير إلى Excel",
   "cma_select_agent_export": "اختر الوكيل للتصدير",
+  "cma_all_agents": "جميع الوكلاء",
   "cma_hide_zeros": "إخفاء الوكلاء بدون نشاط",
   "cma_no_data": "لا توجد سجلات حاويات لهذه الفترة.",
   "cma_all_zeros_hidden": "جميع الوكلاء لديهم نشاط صفري في هذه الفترة.",
@@ -417,7 +418,6 @@
   "cannot_modify_superadmin": "لا يمكن تعديل هذا الحساب.",
   "confirm": "تأكيد",
 
-  "statistics_usage": "الإحصائيات والاستخدام",
   "stat_action_type": "نوع الإجراء",
   "stat_endpoint": "نقطة الوصول",
   "stat_detail": "التفاصيل",

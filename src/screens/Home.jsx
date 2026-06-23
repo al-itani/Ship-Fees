@@ -8,7 +8,6 @@ const ALL_MODULES = [
   { key: 'receipts_archive', icon: '🗂', labelKey: 'receipts_archive', descKey: 'receipts_archive_description', permKey: 'perm_receipt'         },
   { key: 'cma',              icon: '📊', labelKey: 'cma_receipt',      descKey: 'cma_receipt_description',      permKey: 'perm_cma'             },
   { key: 'tariff_c',         icon: '📦', labelKey: 'tariff_c',         descKey: 'tariff_c_description',         permKey: 'perm_tariff_c'        },
-  { key: 'audit_log',        icon: '📋', labelKey: 'audit_log',        descKey: 'audit_log_description',        permKey: 'perm_audit_log'       },
 ]
 
 export default function Home({ setCurrentScreen }) {

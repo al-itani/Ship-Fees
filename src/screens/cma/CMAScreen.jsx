@@ -48,7 +48,7 @@ export default function CMAScreen() {
     setLoading(false)
     if (!res.success) { showToast(res.error || t('cma_error_load'), 'error'); return }
     setReport(res.data)
-    if (res.data.length > 0) setExportAgent(res.data[0].agent)
+    if (res.data.length > 0) setExportAgent('__ALL__')
   }
 
   async function handleExport() {
@@ -114,6 +114,7 @@ export default function CMAScreen() {
                 border: '1px solid var(--color-border)', fontSize: 14, marginBottom: 20,
               }}
             >
+              <option value="__ALL__">— {t('cma_all_agents')} —</option>
               {report?.map(r => (
                 <option key={r.agent} value={r.agent}>{r.agent}</option>
               ))}

@@ -279,6 +279,7 @@
   "cma_generate": "Generate",
   "cma_export_excel": "Export to Excel",
   "cma_select_agent_export": "Select agent to export",
+  "cma_all_agents": "All Agents",
   "cma_hide_zeros": "Hide agents with no activity",
   "cma_no_data": "No container records found for this period.",
   "cma_all_zeros_hidden": "All agents have zero activity for this period.",
@@ -415,7 +416,6 @@
   "cannot_modify_superadmin": "This account cannot be modified.",
   "confirm": "Confirm",
 
-  "statistics_usage": "Statistics & Usage",
   "stat_action_type": "Action Type",
   "stat_endpoint": "Endpoint",
   "stat_detail": "Detail",

@@ -11,19 +11,15 @@ const navItems = [
   { key: 'receipts_archive', icon: '🗂', label: 'receipts_archive', permKey: 'perm_receipt'         },
   { key: 'cma',              icon: '📊', label: 'cma_receipt',     permKey: 'perm_cma'             },
   { key: 'tariff_c',         icon: '📦', label: 'tariff_c',        permKey: 'perm_tariff_c'        },
-  { key: 'audit_log',        icon: '📋', label: 'audit_log',       permKey: 'perm_audit_log'       },
 ]
 
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
-  { key: 'statistics',      icon: '📈', label: 'statistics_usage' },
   { key: 'audit_log',       icon: '📋', label: 'audit_log' },
-  { key: 'settings',        icon: '⚙️', label: 'settings' },
 ]
 
 const managerNavItems = [
   { key: 'staff_view',  icon: '👥', label: 'staff_view' },
-  { key: 'statistics',  icon: '📈', label: 'statistics_usage' },
 ]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {
@@ -112,22 +108,41 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
         <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {session?.full_name}
         </div>
-        <button
-          onClick={() => logout(session?.id)}
-          style={{
-            width: '100%',
-            padding: '8px 0',
-            background: 'rgba(255,255,255,0.08)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            borderRadius: 6,
-            color: 'rgba(255,255,255,0.8)',
-            cursor: 'pointer',
-            fontSize: 13,
-            marginBottom: 10,
-          }}
-        >
-          {t('logout')}
-        </button>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          <button
+            onClick={() => logout(session?.id)}
+            style={{
+              flex: 1,
+              padding: '8px 0',
+              background: 'rgba(255,255,255,0.08)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 6,
+              color: 'rgba(255,255,255,0.8)',
+              cursor: 'pointer',
+              fontSize: 13,
+            }}
+          >
+            {t('logout')}
+          </button>
+          {session?.role === 'admin' && (
+            <button
+              onClick={() => setCurrentScreen('settings')}
+              title={t('settings')}
+              style={{
+                padding: '8px 10px',
+                background: currentScreen === 'settings' ? 'var(--color-sidebar-active)' : 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 6,
+                color: 'rgba(255,255,255,0.8)',
+                cursor: 'pointer',
+                fontSize: 16,
+                lineHeight: 1,
+              }}
+            >
+              ⚙️
+            </button>
+          )}
+        </div>
         <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, textAlign: 'center' }}>
           {t('version')} {VERSION}
         </div>

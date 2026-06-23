@@ -102,6 +102,13 @@ const BatchImport = forwardRef(function BatchImport({ containerCodes, gcCodes, o
           : g
       ))
     },
+    reset() {
+      setFiles([])
+      setGroups([])
+      setStep('select')
+      setBusy(false)
+      setRunning(false)
+    },
   }))
 
   function showToast(msg, type) {
