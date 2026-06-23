@@ -65,9 +65,8 @@
     ],
     "npmRebuild": true,
     "publish": {
-      "provider": "github",
-      "owner": "al-itani",
-      "repo": "Ship-Fees"
+      "provider": "generic",
+      "url": "http://192.6.240.251:8080"
     }
   }
 }

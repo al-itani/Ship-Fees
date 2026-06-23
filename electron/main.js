@@ -6,12 +6,14 @@ const fs   = require('fs')
 // To release an update:
 //   1. Bump "version" in package.json
 //   2. npm run build  →  produces new .exe + latest.yml in dist-app/
-//   3. Create a GitHub Release on al-itani/Ship-Fees and upload both files
-//   4. Client PCs will detect the new version automatically on next launch
+//   3. Copy both files to C:\ShipFees\updates\ on the main PC
+//   4. Ensure start-updates.bat is running on main PC (serves :8080)
+//   5. Client PCs will detect the new version automatically on next launch
 // ─────────────────────────────────────────────────────────────────────────────
 let autoUpdater = null
 try {
   autoUpdater = require('electron-updater').autoUpdater
+  autoUpdater.setFeedURL({ provider: 'generic', url: 'http://192.6.240.251:8080' })
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
 
