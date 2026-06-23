@@ -2,6 +2,53 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 const fs   = require('fs')
 
+// ── Auto-updater ─────────────────────────────────────────────────────────────
+// To release an update:
+//   1. Bump "version" in package.json
+//   2. npm run build  →  produces new .exe + latest.yml in dist-app/
+//   3. Create a GitHub Release on al-itani/Ship-Fees and upload both files
+//   4. Client PCs will detect the new version automatically on next launch
+// ─────────────────────────────────────────────────────────────────────────────
+let autoUpdater = null
+try {
+  autoUpdater = require('electron-updater').autoUpdater
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = false
+
+  autoUpdater.on('update-available', (info) => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Available',
+      message: `Version ${info.version} is available.\nDownload and install now?`,
+      buttons: ['Download', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.downloadUpdate()
+    })
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Update Ready',
+      message: 'The update has been downloaded. Restart the app to apply it.',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+    }).then(({ response }) => {
+      if (response === 0) autoUpdater.quitAndInstall()
+    })
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('[updater] error:', err?.message || err)
+  })
+} catch (err) {
+  console.error('[updater] failed to load electron-updater:', err?.message || err)
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Initialize DB (creates file + schema + seeds on first run)
 require('./database/db')
 
@@ -550,6 +597,14 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+  // Check for updates after window is ready — runs in background, never blocks launch
+  if (!isDev && autoUpdater) {
+    setTimeout(() => {
+      try { autoUpdater.checkForUpdates() } catch (err) {
+        console.error('[updater] checkForUpdates failed:', err?.message || err)
+      }
+    }, 3000)
+  }
 })
 
 app.on('window-all-closed', () => {
