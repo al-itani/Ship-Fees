@@ -15,6 +15,7 @@ Windows desktop app for Port of Beirut staff. Replaces `ShipFees.xlsm`. Calculat
 - **xlsx (SheetJS)** — Excel export (CMA)
 - **date-fns** — date math
 - **electron-builder** — Windows NSIS installer → `dist-app/`
+- **electron-updater** — auto-update via GitHub Releases (publish config → `al-itani/Ship-Fees`)
 - **pdfjs-dist** — PDF rasterization in renderer (needs Chromium Canvas)
 
 ---
@@ -92,7 +93,7 @@ src/
     generalcargo/GeneralCargoScreen.jsx
     receipt/ReceiptPreview.jsx   Full-screen overlay via React createPortal
     receipt/ReceiptArchive.jsx   Archive list
-    cma/CMAScreen.jsx            CMA report + Excel export
+    cma/CMAScreen.jsx            CMA report + Excel export (single agent or all agents)
     users/UserManagementScreen.jsx   Admin CRUD (roles, permissions, reset password)
     users/ManagerStaffScreen.jsx     Manager read-only presence view (refreshes 30s)
     audit/AuditLogScreen.jsx     Paginated audit log with filters (admin only)
@@ -257,9 +258,10 @@ finalPrice    = Math.ceil(freshAmount)
 - Silent PDF export: `receipt:exportPDFBatch` → `C:\ShipFees\receipts\`
 
 ### Batch import — 4-step: Select → Group → Process → Summary
-- `src/screens/automate/BatchImport.jsx` (forwardRef; parent calls `batchRef.current.resolveGroup(id, result)`)
+- `src/screens/automate/BatchImport.jsx` (forwardRef; parent calls `batchRef.current.resolveGroup(id, result)` or `batchRef.current.reset()`)
 - `src/logic/batchGrouping.js` — Samsung filename `YYYYMMDD_HHMMSS`; photos within 12s grouped as same receipt; falls back to `mtimeMs`
 - Auto-inserts only when: zero uncertain fields + all codes matched + all required fields valid
+- "Done" button calls `batchRef.current.reset()` via `handleStartOver` in AutomateScreen — resets internal step/groups/files state
 
 ### Import-time filters
 - RS codes → dropped; P3/POS3/POS_3 berthing rows → dropped
@@ -282,6 +284,50 @@ P3 / POS3 / POS_3                                  → FREE (filtered out)
 
 ---
 
+## Sidebar & Navigation
+
+- **Top nav (`navItems`):** home, automate, voyage_services, storage, receipts_archive, cma, tariff_c — each gated by `permKey`
+- **Bottom admin section (`adminNavItems`):** user_management, audit_log — admin only
+- **Settings** is NOT a nav item; it's a ⚙️ icon button next to the logout button in the footer (admin only)
+- **Statistics/Usage screen** has been removed entirely (nav + routing + i18n keys gone)
+- **Home screen** (`Home.jsx`) shows module cards matching `navItems` — audit_log card removed
+
+### VoyageServicesScreen tab navigation
+- Container and GC tabs do **not** use `key` props — the `useEffect([initialVoyage])` inside each screen handles lookup without remounting
+- Double-remount bug fixed: `onVoyageConsumed` setting initialVoyage to null no longer triggers a second remount
+
+---
+
+## CMA Excel Export
+
+`cma:exportExcel` in `main.js` accepts `agent` parameter:
+- **Single agent:** `agent = "Agent Name"` → Voyages sheet + Summary sheet
+- **All agents:** `agent = "__ALL__"` → one sheet per agent (voyage detail) + "All Agents" summary sheet
+- Frontend picker defaults to `__ALL__` when report loads; "— All Agents —" is the first dropdown option
+
+---
+
+## Receipt Archive
+
+- `ReceiptArchive.jsx` has three tabs: Voyages, Tariff C, Storage
+- **Tariff C tab** hides ATA and ATD columns (those fields are not relevant for storage billing)
+
+---
+
+## Auto-Update
+
+`electron-updater` is wired in `electron/main.js`:
+- Fires 3 seconds after window opens, production only (`!isDev`)
+- `autoDownload: false` — user confirms before download
+- `update-available` → dialog with Download / Later
+- `update-downloaded` → dialog with Restart Now / Later
+- Errors logged silently, never shown to user
+- Publish target: GitHub Releases on `al-itani/Ship-Fees`
+
+**To release an update:** bump `version` in `package.json` → `npm run build` → create GitHub Release, upload `.exe` + `latest.yml` from `dist-app/`
+
+---
+
 ## Module Status
 
 | Module | Status |
@@ -298,5 +344,6 @@ P3 / POS3 / POS_3                                  → FREE (filtered out)
 | Audit Log | ✅ Complete |
 | Storage | ✅ Built (client-mode gap: storage endpoints missing from server.js → 404) |
 | Settings (API key mgmt) | ✅ Complete |
+| Auto-Update | ✅ Complete (electron-updater → GitHub Releases) |
 | Rates/Tariff Editor | 🔲 Not started |
 | Backup system | 🔲 Not started |

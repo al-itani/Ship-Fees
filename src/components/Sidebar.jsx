@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 
-const VERSION = '1.0.1'
+const VERSION = '1.0.3'
 
 const navItems = [
   { key: 'home',             icon: '🏠', label: 'home' },
@@ -18,9 +18,6 @@ const adminNavItems = [
   { key: 'audit_log',       icon: '📋', label: 'audit_log' },
 ]
 
-const managerNavItems = [
-  { key: 'staff_view',  icon: '👥', label: 'staff_view' },
-]
 
 export default function Sidebar({ currentScreen, setCurrentScreen }) {
   const { t } = useTranslation()
@@ -75,10 +72,10 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
         })}
       </nav>
 
-      {/* Admin-only tools */}
-      {session?.role === 'admin' && (
+      {/* Admin-only tools + manager user_management link */}
+      {(session?.role === 'admin' || session?.perm_view_users) && (
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
-          {adminNavItems.map(item => {
+          {(session?.role === 'admin' ? adminNavItems : [{ key: 'user_management', icon: '👥', label: 'user_management' }]).map(item => {
             const isSelected = currentScreen === item.key
             return (
               <div

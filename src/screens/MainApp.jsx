@@ -110,11 +110,8 @@ export default function MainApp() {
         if (!isAdmin && !session?.perm_audit_log) return <Home setCurrentScreen={setCurrentScreen} />
         return <AuditLogScreen />
       case 'user_management':
-        if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
+        if (!isAdmin && !session?.perm_view_users) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
-      case 'staff_view':
-        if (session?.role !== 'manager') return <Home setCurrentScreen={setCurrentScreen} />
-        return <ManagerStaffScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }

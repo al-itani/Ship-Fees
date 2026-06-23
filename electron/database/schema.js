@@ -317,6 +317,7 @@ module.exports = function initSchema(db) {
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_receipt_archive INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_audit_log INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE users ADD COLUMN perm_staff_view INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN perm_view_users INTEGER NOT NULL DEFAULT 0`) } catch {}
 
   // Promote old granular grants into the high-level grants now used by the UI.
   // Keep the old columns for compatibility with older app installs and clients.

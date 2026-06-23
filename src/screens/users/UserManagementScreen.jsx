@@ -16,6 +16,7 @@ const MODULE_PERMS = [
   { key: 'perm_cma',             labelKey: 'perm_cma'             },
   { key: 'perm_tariff_c',        labelKey: 'perm_tariff_c'        },
   { key: 'perm_audit_log',       labelKey: 'perm_audit_log'       },
+  { key: 'perm_view_users',      labelKey: 'perm_view_users'      },
 ]
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
@@ -214,6 +215,7 @@ function EditUserDialog({ user, onClose, onSaved, t, session, showConfirm }) {
     perm_receipt:         !!(user.perm_receipt || user.perm_receipt_archive),
     perm_voyage:          !!(user.perm_voyage || user.perm_berthing || user.perm_container || user.perm_gc),
     perm_audit_log:       !!user.perm_audit_log,
+    perm_view_users:      !!user.perm_view_users,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
@@ -383,6 +385,7 @@ function ResetPasswordDialog({ user, onClose, onSaved, t, session }) {
 export default function UserManagementScreen() {
   const { t } = useTranslation()
   const { session, updateSession } = useSession()
+  const isAdmin = session?.role === 'admin'
 
   const [users, setUsers]           = useState([])
   const [loading, setLoading]       = useState(true)
@@ -509,12 +512,10 @@ export default function UserManagementScreen() {
   }
 
   async function handleDelete(user) {
-    const check = await window.api.usersCheckRecords(user.id)
-    if (check.hasRecords) { showAlert(t('error'), t('has_records')); return }
-    if (!await showConfirm(t('confirm'), t('confirm_delete_user', { username: user.username }))) return
+    if (!await showConfirm(t('confirm'), t('confirm_disable_user', { username: user.username }))) return
     const res = await window.api.usersDelete(user.id, session.id)
     if (!res.success) { showAlert(t('error'), t(res.error) || res.error); return }
-    showToast(t('record_deleted'))
+    showToast(t('user_disabled'))
     load()
   }
 
@@ -579,13 +580,14 @@ export default function UserManagementScreen() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
               <span style={{ fontSize: 15, fontWeight: 700, color: '#1B2A4A' }}>{session.full_name}</span>
-              <span style={{
-                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
-                background: session.role === 'admin' ? '#1B2A4A' : session.role === 'manager' ? '#7C3AED' : '#F0F4FF',
-                color: session.role === 'admin' || session.role === 'manager' ? 'white' : '#1B2A4A',
-              }}>
-                {t(`role_${session.role}`)}
-              </span>
+              {session.role === 'admin' && (
+                <span style={{
+                  padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                  background: '#1B2A4A', color: 'white',
+                }}>
+                  {t('role_admin')}
+                </span>
+              )}
             </div>
             <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
               @{session.username}
@@ -677,7 +679,7 @@ export default function UserManagementScreen() {
                   {[
                     ['username',   t('username')],
                     ['full_name',  t('full_name')],
-                    ['role',       t('role')],
+                    ...(isAdmin ? [['role', t('role')]] : []),
                     ['is_online',  t('status')],
                     ['language',   t('language')],
                     ['last_login', t('last_login')],
@@ -712,15 +714,17 @@ export default function UserManagementScreen() {
                         {!isActive && <span style={{ marginInlineStart: 6, fontSize: 10, background: '#FEE2E2', color: '#DC2626', borderRadius: 4, padding: '2px 6px', fontWeight: 600 }}>{t('disabled')}</span>}
                       </td>
                       <td style={TD}>{user.full_name}</td>
-                      <td style={TD}>
-                        <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
-                          background: user.role === 'admin' ? '#1B2A4A' : user.role === 'manager' ? '#7C3AED' : '#F0F4FF',
-                          color: user.role === 'admin' || user.role === 'manager' ? 'white' : '#1B2A4A',
-                        }}>
-                          {t(`role_${user.role}`)}
-                        </span>
-                      </td>
+                      {isAdmin && (
+                        <td style={TD}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600,
+                            background: user.role === 'admin' ? '#1B2A4A' : user.role === 'manager' ? '#7C3AED' : '#F0F4FF',
+                            color: user.role === 'admin' || user.role === 'manager' ? 'white' : '#1B2A4A',
+                          }}>
+                            {t(`role_${user.role}`)}
+                          </span>
+                        </td>
+                      )}
                       <td style={TD}>
                         <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, ...presenceStyle }}>
                           {presenceLabel}
@@ -749,7 +753,7 @@ export default function UserManagementScreen() {
                               style={{ ...btnStyle('danger'), opacity: isSelf ? 0.4 : 1 }}
                               disabled={isSelf}
                               onClick={() => !isSelf && handleDelete(user)}
-                              title={t('delete')}
+                              title={t('disable_user')}
                             >
                               🗑
                             </button>

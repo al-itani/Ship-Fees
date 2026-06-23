@@ -376,6 +376,7 @@
   "perm_receipt_archive": "Receipt Archive Access",
   "perm_audit_log": "Audit Log Access",
   "perm_staff_view": "Staff Presence View",
+  "perm_view_users": "View Users (Read-Only)",
 
   "audit_log_description": "View all system activity and changes",
   "staff_view_description": "Monitor staff online presence and activity",

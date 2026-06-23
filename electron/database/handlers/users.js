@@ -26,8 +26,8 @@ function getAll() {
              created_at, last_login, created_by, is_online, last_seen,
              perm_storage, perm_automate, perm_cma, perm_tariff_c,
              perm_berthing, perm_container, perm_gc, perm_receipt,
-             perm_voyage, perm_receipt_archive, perm_audit_log, perm_staff_view
-             avatar_path, email, phone
+             perm_voyage, perm_receipt_archive, perm_audit_log, perm_staff_view,
+             perm_view_users, avatar_path, email, phone
       FROM users
       WHERE is_superadmin = 0
       ORDER BY role DESC, username ASC
@@ -147,6 +147,7 @@ const COLUMN_PERMS = [
   'perm_storage', 'perm_automate', 'perm_cma', 'perm_tariff_c',
   'perm_berthing', 'perm_container', 'perm_gc', 'perm_receipt',
   'perm_voyage', 'perm_receipt_archive', 'perm_audit_log', 'perm_staff_view',
+  'perm_view_users',
 ]
 
 function setPermission(user_id, permission_key, grant, admin_id) {
@@ -194,20 +195,23 @@ function deleteUser(id, admin_id) {
   try {
     if (isSuperadmin(id)) return { success: false, error: 'cannot_modify_superadmin' }
     if (id === admin_id) return { success: false, error: 'cannot_self_delete' }
-    const userRow = db.prepare('SELECT username FROM users WHERE id = ?').get(id)
+    const userRow = db.prepare('SELECT username, role, is_active FROM users WHERE id = ?').get(id)
     if (!userRow) return { success: false, error: 'user_not_found' }
 
-    const check = checkHasRecords(id)
-    if (!check.success) return check
-    if (check.hasRecords) return { success: false, error: 'has_records' }
+    // Guard: cannot deactivate the last active admin
+    if (userRow.role === 'admin') {
+      const activeAdmins = db.prepare(
+        "SELECT COUNT(*) as c FROM users WHERE role = 'admin' AND is_active = 1"
+      ).get().c
+      if (activeAdmins <= 1) return { success: false, error: 'last_admin' }
+    }
 
-    db.prepare('DELETE FROM users WHERE id = ?').run(id)
-    db.prepare('DELETE FROM user_permissions WHERE user_id = ?').run(id)
+    db.prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(id)
 
-    writeAudit(id, 'DELETE', { username: userRow.username },
-      { message: `Deleted user: ${userRow.username}` }, admin_id)
+    writeAudit(id, 'UPDATE', { is_active: userRow.is_active },
+      { message: `Deactivated user: ${userRow.username}` }, admin_id)
 
-    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_deleted', detail: { target: userRow.username } }) } catch {}
+    try { statsHandlers.log({ user_id: admin_id, action_type: 'user_disabled', detail: { target: userRow.username } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

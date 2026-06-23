@@ -42,6 +42,7 @@ function login(username, password) {
         perm_receipt_archive: user.perm_receipt_archive ?? 0,
         perm_audit_log:       user.perm_audit_log       ?? 0,
         perm_staff_view:      user.perm_staff_view      ?? 0,
+        perm_view_users:      user.perm_view_users      ?? 0,
         avatar_path:          user.avatar_path          || null,
         email:                user.email                || null,
         phone:                user.phone                || null,

@@ -377,6 +377,7 @@
   "perm_receipt_archive": "الوصول إلى أرشيف الوصولات",
   "perm_audit_log": "الوصول إلى سجل المراجعة",
   "perm_staff_view": "عرض حضور الموظفين",
+  "perm_view_users": "عرض المستخدمين (قراءة فقط)",
 
   "audit_log_description": "عرض جميع نشاطات النظام والتغييرات",
   "staff_view_description": "مراقبة حضور الموظفين واتصالهم",
