@@ -40,7 +40,7 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
   })
 
   return (
-    <div style={{ padding: 28 }}>
+    <div className="app-screen" style={{ padding: 28 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>

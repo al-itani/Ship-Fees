@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../../context/SessionContext.jsx'
+import { formatLocal } from '../../logic/formatDate.js'
 
 const PERMISSIONS = [
   { key: 'edit_others_records',  labelKey: 'perm_edit_others_records'  },
@@ -71,6 +72,13 @@ function Toast({ message, onDone }) {
 
 // ─── Modal wrapper ─────────────────────────────────────────────────
 function Modal({ title, onClose, children, width = 460 }) {
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
@@ -87,8 +95,113 @@ function Modal({ title, onClose, children, width = 460 }) {
   )
 }
 
+// ─── Avatar component ──────────────────────────────────────────────
+function Avatar({ avatarPath, fullName, size = 48 }) {
+  const [src, setSrc] = useState(null)
+  useEffect(() => {
+    if (!avatarPath) { setSrc(null); return }
+    window.api.usersGetAvatarBase64(avatarPath).then(res => {
+      if (res.success) setSrc(res.dataUrl)
+    })
+  }, [avatarPath])
+  const initials = (fullName || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  if (src) {
+    return <img src={src} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover' }} />
+  }
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      color: 'white', fontWeight: 700, fontSize: size * 0.38, flexShrink: 0,
+    }}>{initials}</div>
+  )
+}
+
+// ─── Profile Edit dialog ──────────────────────────────────────────
+function ProfileDialog({ session, onClose, onSaved, t, updateSession }) {
+  const [fullName, setFullName] = useState(session.full_name || '')
+  const [email, setEmail]       = useState(session.email || '')
+  const [phone, setPhone]       = useState(session.phone || '')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
+  const fileRef = useRef(null)
+
+  async function handleSave() {
+    if (!fullName.trim()) { setError(t('required_fields_missing')); return }
+    setSaving(true); setError('')
+    try {
+      const res = await window.api.usersUpdateProfile(session.id, { full_name: fullName, email, phone })
+      if (!res.success) { setError(t(res.error) || res.error); return }
+      updateSession({ full_name: fullName.trim(), email: email.trim() || null, phone: phone.trim() || null })
+      onSaved(t('profile_updated'))
+    } finally { setSaving(false) }
+  }
+
+  async function handleAvatarPick() {
+    fileRef.current?.click()
+  }
+
+  async function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const ext = file.name.split('.').pop().toLowerCase()
+    if (!['jpg', 'jpeg', 'png'].includes(ext)) return
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = reader.result.split(',')[1]
+      const res = await window.api.usersUploadAvatar({ userId: session.id, base64, ext })
+      if (res.success) {
+        updateSession({ avatar_path: res.path })
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  return (
+    <Modal title={t('edit_profile')} onClose={onClose} width={440}>
+      <div style={{ display: 'grid', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Avatar avatarPath={session.avatar_path} fullName={session.full_name} size={64} />
+          <div>
+            <button onClick={handleAvatarPick} style={{ padding: '5px 14px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              {t('upload_avatar')}
+            </button>
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png" style={{ display: 'none' }} onChange={handleAvatarChange} />
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>{t('username')}</label>
+          <input style={{ ...inputStyle, background: '#F5F7FA', color: '#888' }} value={session.username} readOnly />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('full_name')}</label>
+          <input style={inputStyle} value={fullName} onChange={e => setFullName(e.target.value)} />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('email')}</label>
+          <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="user@example.com" />
+        </div>
+        <div>
+          <label style={labelStyle}>{t('phone')}</label>
+          <input style={inputStyle} value={phone} onChange={e => setPhone(e.target.value)} placeholder="+961 ..." dir="ltr" />
+        </div>
+        {error && <div style={{ color: 'var(--color-danger)', fontSize: 13 }}>{error}</div>}
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 13 }}>
+            {t('cancel')}
+          </button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'white', cursor: saving ? 'wait' : 'pointer', fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+            {t('save_changes')}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ─── Edit User dialog ─────────────────────────────────────────────
-function EditUserDialog({ user, onClose, onSaved, t, session }) {
+function EditUserDialog({ user, onClose, onSaved, t, session, showConfirm }) {
   const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole]         = useState(user.role)
   const [language, setLanguage] = useState(user.language)
@@ -114,7 +227,7 @@ function EditUserDialog({ user, onClose, onSaved, t, session }) {
   async function handleSave() {
     if (!fullName.trim()) { setError(t('required_fields_missing')); return }
     if (role === 'admin' && session.role === 'admin' && user.role !== 'admin') {
-      if (!window.confirm(t('warn_second_admin'))) return
+      if (!await showConfirm(t('confirm'), t('warn_second_admin'))) return
     }
     setSaving(true); setError('')
     try {
@@ -269,7 +382,7 @@ function ResetPasswordDialog({ user, onClose, onSaved, t, session }) {
 // ─── Main screen ──────────────────────────────────────────────────
 export default function UserManagementScreen() {
   const { t } = useTranslation()
-  const { session } = useSession()
+  const { session, updateSession } = useSession()
 
   const [users, setUsers]           = useState([])
   const [loading, setLoading]       = useState(true)
@@ -282,6 +395,46 @@ export default function UserManagementScreen() {
   const [editUser, setEditUser]         = useState(null)
   const [resetUser, setResetUser]       = useState(null)
   const [showAddForm, setShowAddForm]   = useState(false)
+  const [showProfile, setShowProfile]   = useState(false)
+
+  // In-app confirm / alert modals
+  const [confirmDialog, setConfirmDialog] = useState(null)
+  const [alertDialog, setAlertDialog]     = useState(null)
+  const confirmResolveRef = useRef(null)
+
+  function showConfirm(title, message) {
+    return new Promise(resolve => {
+      confirmResolveRef.current = resolve
+      setConfirmDialog({ title, message })
+    })
+  }
+  function resolveConfirm(result) {
+    setConfirmDialog(null)
+    confirmResolveRef.current?.(result)
+    confirmResolveRef.current = null
+  }
+  function showAlert(title, message) {
+    setAlertDialog({ title, message })
+  }
+
+  useEffect(() => {
+    if (!confirmDialog) return
+    function onKey(e) {
+      if (e.key === 'Enter')  { e.preventDefault(); resolveConfirm(true) }
+      if (e.key === 'Escape') { e.preventDefault(); resolveConfirm(false) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [confirmDialog])
+
+  useEffect(() => {
+    if (!alertDialog) return
+    function onKey(e) {
+      if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); setAlertDialog(null) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [alertDialog])
 
   // Add User form state
   const [newUsername, setNewUsername]   = useState('')
@@ -313,6 +466,7 @@ export default function UserManagementScreen() {
   }
 
   const filtered = users.filter(u => {
+    if (u.id === session?.id) return false
     if (!search) return true
     const q = search.toLowerCase()
     return u.username.includes(q) || u.full_name.toLowerCase().includes(q) || u.role.includes(q)
@@ -332,7 +486,7 @@ export default function UserManagementScreen() {
 
   function fmtDate(ts) {
     if (!ts) return t('never')
-    return ts.slice(0, 16).replace('T', ' ')
+    return formatLocal(ts)
   }
 
   function sortArrow(key) {
@@ -343,11 +497,11 @@ export default function UserManagementScreen() {
   async function handleToggleActive(user) {
     const isActive = !user.is_active
     const confirmMsg = isActive ? t('confirm_enable_user', { username: user.username }) : t('confirm_disable_user', { username: user.username })
-    if (!window.confirm(confirmMsg)) return
+    if (!await showConfirm(t('confirm'), confirmMsg)) return
 
     const res = await window.api.usersSetActive(user.id, isActive, session.id)
     if (!res.success) {
-      window.alert(t(res.error) || res.error)
+      showAlert(t('error'), t(res.error) || res.error)
       return
     }
     showToast(isActive ? t('user_enabled') : t('user_disabled'))
@@ -356,10 +510,10 @@ export default function UserManagementScreen() {
 
   async function handleDelete(user) {
     const check = await window.api.usersCheckRecords(user.id)
-    if (check.hasRecords) { window.alert(t('has_records')); return }
-    if (!window.confirm(t('confirm_delete_user', { username: user.username }))) return
+    if (check.hasRecords) { showAlert(t('error'), t('has_records')); return }
+    if (!await showConfirm(t('confirm'), t('confirm_delete_user', { username: user.username }))) return
     const res = await window.api.usersDelete(user.id, session.id)
-    if (!res.success) { window.alert(t(res.error) || res.error); return }
+    if (!res.success) { showAlert(t('error'), t(res.error) || res.error); return }
     showToast(t('record_deleted'))
     load()
   }
@@ -371,7 +525,7 @@ export default function UserManagementScreen() {
     if (!newFullName.trim()) { setAddError(t('required_fields_missing')); return }
     if (newPwd.length < 6)  { setAddError(t('password_too_short')); return }
     if (newRole === 'admin') {
-      if (!window.confirm(t('warn_second_admin'))) return
+      if (!await showConfirm(t('confirm'), t('warn_second_admin'))) return
     }
     setAdding(true)
     const res = await window.api.usersCreate({
@@ -397,7 +551,7 @@ export default function UserManagementScreen() {
   })
 
   return (
-    <div style={{ padding: 28, maxWidth: 1100 }}>
+    <div className="app-screen" style={{ padding: 28, maxWidth: 1100 }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
@@ -417,6 +571,36 @@ export default function UserManagementScreen() {
           </button>
         )}
       </div>
+
+      {/* Your Profile card — pinned at top */}
+      {session && (
+        <div style={{ ...card, padding: 20, display: 'flex', alignItems: 'center', gap: 18 }}>
+          <Avatar avatarPath={session.avatar_path} fullName={session.full_name} size={52} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: '#1B2A4A' }}>{session.full_name}</span>
+              <span style={{
+                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                background: session.role === 'admin' ? '#1B2A4A' : session.role === 'manager' ? '#7C3AED' : '#F0F4FF',
+                color: session.role === 'admin' || session.role === 'manager' ? 'white' : '#1B2A4A',
+              }}>
+                {t(`role_${session.role}`)}
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+              @{session.username}
+              {session.email && <span style={{ marginInlineStart: 12 }}>{session.email}</span>}
+              {session.phone && <span style={{ marginInlineStart: 12 }} dir="ltr" className="num-ltr">{session.phone}</span>}
+            </div>
+          </div>
+          <button
+            onClick={() => setShowProfile(true)}
+            style={{ padding: '7px 16px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#1B2A4A', whiteSpace: 'nowrap' }}
+          >
+            {t('edit_profile')}
+          </button>
+        </div>
+      )}
 
       {/* Add User Form — admin only */}
       {showAddForm && session?.role === 'admin' && (
@@ -581,10 +765,19 @@ export default function UserManagementScreen() {
         )}
       </div>
 
+      {/* Profile dialog */}
+      {showProfile && session && (
+        <ProfileDialog
+          session={session} t={t} updateSession={updateSession}
+          onClose={() => setShowProfile(false)}
+          onSaved={msg => { setShowProfile(false); showToast(msg) }}
+        />
+      )}
+
       {/* Dialogs — admin only */}
       {session?.role === 'admin' && editUser && (
         <EditUserDialog
-          user={editUser} t={t} session={session}
+          user={editUser} t={t} session={session} showConfirm={showConfirm}
           onClose={() => setEditUser(null)}
           onSaved={msg => { setEditUser(null); showToast(msg); load() }}
         />
@@ -598,6 +791,79 @@ export default function UserManagementScreen() {
       )}
 
       {toast && <Toast message={toast} onDone={() => setToast('')} />}
+
+      {/* In-app confirm modal */}
+      {confirmDialog && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 10, width: 380,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.25)', padding: 28,
+          }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700 }}>
+              {confirmDialog.title}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+              {confirmDialog.message}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => resolveConfirm(false)}
+                style={{
+                  padding: '9px 18px', borderRadius: 6, fontSize: 13,
+                  border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer',
+                }}
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={() => resolveConfirm(true)}
+                style={{
+                  padding: '9px 20px', borderRadius: 6, border: 'none',
+                  background: 'var(--color-danger)', color: 'white',
+                  fontWeight: 600, cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                {t('confirm_save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-app alert modal */}
+      {alertDialog && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 10, width: 380,
+            boxShadow: '0 12px 48px rgba(0,0,0,0.25)', padding: 28,
+          }}>
+            <h3 style={{ margin: '0 0 14px', fontSize: 16, fontWeight: 700 }}>
+              {alertDialog.title}
+            </h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: '0 0 20px', lineHeight: 1.5 }}>
+              {alertDialog.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setAlertDialog(null)}
+                style={{
+                  padding: '9px 20px', borderRadius: 6, border: 'none',
+                  background: 'var(--color-primary)', color: 'white',
+                  fontWeight: 600, cursor: 'pointer', fontSize: 13,
+                }}
+              >
+                {t('ok') || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

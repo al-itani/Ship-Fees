@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs')
 const db = require('../db')
+const statsHandlers = require('./stats')
 
 function login(username, password) {
   try {
@@ -11,6 +12,8 @@ function login(username, password) {
     if (!valid) return { success: false, error: 'invalid_login' }
 
     db.prepare("UPDATE users SET last_login = datetime('now'), is_online = 1, last_seen = datetime('now') WHERE id = ?").run(user.id)
+
+    try { statsHandlers.log({ user_id: user.id, username: user.username, action_type: 'login' }) } catch {}
 
     const permissions = db.prepare('SELECT permission_key FROM user_permissions WHERE user_id = ?')
       .all(user.id).map(r => r.permission_key)
@@ -39,6 +42,9 @@ function login(username, password) {
         perm_receipt_archive: user.perm_receipt_archive ?? 0,
         perm_audit_log:       user.perm_audit_log       ?? 0,
         perm_staff_view:      user.perm_staff_view      ?? 0,
+        avatar_path:          user.avatar_path          || null,
+        email:                user.email                || null,
+        phone:                user.phone                || null,
       },
     }
   } catch (err) {
@@ -50,6 +56,7 @@ function changePassword(userId, newPassword) {
   try {
     const hash = bcrypt.hashSync(newPassword, 10)
     db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, userId)
+    try { statsHandlers.log({ user_id: userId, action_type: 'password_change' }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -59,6 +66,7 @@ function changePassword(userId, newPassword) {
 function logout(userId) {
   try {
     db.prepare("UPDATE users SET is_online = 0 WHERE id = ?").run(userId)
+    try { statsHandlers.log({ user_id: userId, action_type: 'logout' }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

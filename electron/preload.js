@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('api', {
   receiptGetAll:               () => ipcRenderer.invoke('receipt:getAll'),
   receiptGetById:              (id) => ipcRenderer.invoke('receipt:getById', id),
   receiptDelete:               (id, userId) => ipcRenderer.invoke('receipt:delete', id, userId),
+  receiptExistsForVoyage:      (voyageNumber) => ipcRenderer.invoke('receipt:existsForVoyage', voyageNumber),
   receiptPrepareBerthingOnly:  (voyageNumber, username) => ipcRenderer.invoke('receipt:prepareBerthingOnly', voyageNumber, username),
   receiptExportPDF:      (opts) => ipcRenderer.invoke('receipt:exportPDF', opts),
   receiptExportPDFBatch: (opts) => ipcRenderer.invoke('receipt:exportPDFBatch', opts),
@@ -45,6 +46,12 @@ contextBridge.exposeInMainWorld('api', {
   usersCheckRecords:   (userId)                        => ipcRenderer.invoke('users:checkRecords', userId),
   usersDelete:         (id, adminId)                   => ipcRenderer.invoke('users:delete', id, adminId),
   usersHeartbeat:      (userId)                        => ipcRenderer.invoke('users:heartbeat', userId),
+  usersUpdateProfile:  (userId, data)                  => ipcRenderer.invoke('users:updateProfile', userId, data),
+  usersUploadAvatar:   (data)                          => ipcRenderer.invoke('users:uploadAvatar', data),
+  usersGetAvatarBase64:(avatarPath)                    => ipcRenderer.invoke('users:getAvatarBase64', avatarPath),
+
+  statsLog:             (payload) => ipcRenderer.invoke('stats:log', payload),
+  statsGetStats:        (filters) => ipcRenderer.invoke('stats:getStats', filters),
 
   auditGetEntries:      (filters) => ipcRenderer.invoke('audit:getEntries', filters),
   auditGetFilterOptions: ()       => ipcRenderer.invoke('audit:getFilterOptions'),
@@ -60,6 +67,9 @@ contextBridge.exposeInMainWorld('api', {
 
   cmaGetReport:   (year, month)          => ipcRenderer.invoke('cma:getReport', year, month),
   cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
+
+  dialogConfirm: (opts) => ipcRenderer.invoke('dialog:confirm', opts),
+  dialogMessage: (opts) => ipcRenderer.invoke('dialog:message', opts),
 
   getConfig: () => ipcRenderer.invoke('app:getConfig'),
 

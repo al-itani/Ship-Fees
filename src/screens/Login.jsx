@@ -108,12 +108,13 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !username.trim() || !password}
             style={{
               width: '100%', height: 44, borderRadius: 6, border: 'none',
               background: 'var(--color-primary)', color: 'white',
-              fontSize: 15, fontWeight: 600, cursor: loading ? 'wait' : 'pointer',
-              opacity: loading ? 0.7 : 1,
+              fontSize: 15, fontWeight: 600,
+              cursor: (loading || !username.trim() || !password) ? 'not-allowed' : 'pointer',
+              opacity: (loading || !username.trim() || !password) ? 0.5 : 1,
             }}
           >
             {loading ? '...' : t('login')}

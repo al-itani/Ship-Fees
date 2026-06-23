@@ -1,5 +1,6 @@
 const db = require('../db')
 const { z } = require('zod')
+const statsHandlers = require('./stats')
 
 const berthingSchema = z.object({
   voyage_number:    z.string().min(1),
@@ -119,6 +120,7 @@ function save(data) {
       logAction('berthing_records', result.lastInsertRowid, 'INSERT',
         `Berthing saved — Voyage ${d.voyage_number}, ${money(d.final_fee)}`, d.voyage_number, d.created_by)
     }
+    try { statsHandlers.log({ user_id: d.created_by, action_type: 'berthing_created', detail: { voyage: d.voyage_number } }) } catch {}
     return { success: true, id: result.lastInsertRowid }
   } catch (err) {
     return { success: false, error: err.message }
@@ -176,6 +178,7 @@ function update(id, data) {
       logAction('berthing_records', id, 'UPDATE',
         `Edited berthing record — Voyage ${d.voyage_number}`, d.voyage_number, d.updated_by)
     }
+    try { statsHandlers.log({ user_id: d.updated_by, action_type: 'berthing_updated', detail: { voyage: d.voyage_number } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }
@@ -196,6 +199,7 @@ function softDelete(id, userId, opts) {
       logAction('berthing_records', id, 'DELETE',
         `Deleted berthing record — Voyage ${old.voyage_number}`, old.voyage_number, userId)
     }
+    try { statsHandlers.log({ user_id: userId, action_type: 'berthing_deleted', detail: { voyage: old.voyage_number } }) } catch {}
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

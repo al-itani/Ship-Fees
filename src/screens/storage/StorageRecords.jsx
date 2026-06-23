@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from '../../context/SessionContext.jsx'
 import StorageResultCard from './StorageResultCard.jsx'
+import { formatLocal } from '../../logic/formatDate.js'
 
 const CARGO_LABELS = {
   vehicle:         'Vehicle',
@@ -84,7 +85,7 @@ export default function StorageRecords({ refreshKey, onEdit }) {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('Delete this storage record? It will be hidden but not permanently erased.')) return
+    if (!await window.api.dialogConfirm({ title: 'Confirm', message: 'Delete this storage record? It will be hidden but not permanently erased.' })) return
     setDeleting(true)
     setDeleteError('')
     try {
@@ -136,7 +137,7 @@ export default function StorageRecords({ refreshKey, onEdit }) {
                 detail.departure_date && ['Date of Departure',  fmtDate(detail.departure_date)],
                 detail.notes          && ['Notes',          detail.notes],
                 ['Saved by',       detail.created_by],
-                ['Saved at',       fmtDate(detail.created_at)],
+                ['Saved at',       formatLocal(detail.created_at)],
               ].filter(Boolean).map(([label, value]) => (
                 <div key={label} style={{ display: 'flex', gap: 12 }}>
                   <span style={{ fontSize: 13, color: 'var(--color-text-muted)', minWidth: 130, flexShrink: 0 }}>{label}</span>
@@ -262,7 +263,7 @@ export default function StorageRecords({ refreshKey, onEdit }) {
                   </td>
                   <td style={{ ...tdBase, direction: 'ltr' }}>{r.days}</td>
                   <td style={{ ...tdBase, direction: 'ltr', color: 'var(--color-primary)', fontWeight: 600 }}>{fmt(r.fee)}</td>
-                  <td style={tdBase}>{fmtDate(r.created_at)}</td>
+                  <td style={tdBase}>{formatLocal(r.created_at)}</td>
                   <td style={tdBase}>{r.created_by}</td>
                 </tr>
               ))}
