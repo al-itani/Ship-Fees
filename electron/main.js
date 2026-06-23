@@ -43,6 +43,7 @@ try {
 
   autoUpdater.on('error', (err) => {
     console.error('[updater] error:', err?.message || err)
+    dialog.showMessageBox({ type: 'error', title: 'Updater Error', message: err?.message || String(err) })
   })
 } catch (err) {
   console.error('[updater] failed to load electron-updater:', err?.message || err)

@@ -470,6 +470,7 @@ export default function UserManagementScreen() {
 
   const filtered = users.filter(u => {
     if (u.id === session?.id) return false
+    if (!isAdmin && !u.is_active) return false
     if (!search) return true
     const q = search.toLowerCase()
     return u.username.includes(q) || u.full_name.toLowerCase().includes(q) || u.role.includes(q)
