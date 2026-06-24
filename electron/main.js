@@ -590,7 +590,7 @@ ipcMain.handle('app:getConfig', () => ({ mode: appConfig.mode, serverUrl: appCon
 
 // Auth — restore remembered session on launch
 ipcMain.handle('auth:restoreSession', (_, userId) =>
-  C ? C.restoreSession(userId) : authHandlers.restoreSession(userId)
+  C ? clientHandlers.restoreSession(userId) : authHandlers.restoreSession(userId)
 )
 
 // Berthing — voyage existence check for duplicate warning

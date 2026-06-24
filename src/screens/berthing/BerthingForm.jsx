@@ -596,7 +596,7 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
         <button onClick={handleSaveClick} disabled={saving || !hasAnyBreakdown}
           style={{
             padding: '12px 28px', borderRadius: 6, border: 'none',

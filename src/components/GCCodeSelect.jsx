@@ -56,24 +56,24 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActiveIdx(i => Math.min(i + 1, filtered.length))
+      setActiveIdx(i => Math.min(i + 1, filtered.length)) // custom=0, filtered=1..n
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActiveIdx(i => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (activeIdx === filtered.length) handleSelect(CUSTOM)
-      else if (activeIdx >= 0 && filtered[activeIdx]) handleSelect(filtered[activeIdx])
+      if (activeIdx === 0) handleSelect(CUSTOM)
+      else if (activeIdx >= 1 && filtered[activeIdx - 1]) handleSelect(filtered[activeIdx - 1])
       else if (filtered.length === 1) handleSelect(filtered[0])
       else setOpen(false)
     } else if (e.key === 'Tab') {
       const exact = filtered.find(c => norm(c.code) === norm(query))
       if (exact) {
         handleSelect(exact)
-      } else if (activeIdx === filtered.length) {
+      } else if (activeIdx === 0) {
         handleSelect(CUSTOM)
-      } else if (activeIdx >= 0 && filtered[activeIdx]) {
-        handleSelect(filtered[activeIdx])
+      } else if (activeIdx >= 1 && filtered[activeIdx - 1]) {
+        handleSelect(filtered[activeIdx - 1])
       } else if (filtered.length === 1 && query) {
         handleSelect(filtered[0])
       }
@@ -105,10 +105,17 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
       />
       {open && (
         <div className="searchable-select-dropdown" style={{ width: '100%' }}>
+          <div
+            className={`searchable-select-option${activeIdx === 0 ? ' active' : ''}`}
+            onMouseDown={() => handleSelect(CUSTOM)}
+            style={{ borderBottom: '1px solid #E8EBF0', color: '#666', fontStyle: 'italic' }}
+          >
+            + {t('custom_entry')}
+          </div>
           {filtered.map((c, i) => (
             <div
               key={c.code}
-              className={`searchable-select-option${i === activeIdx ? ' active' : ''}`}
+              className={`searchable-select-option${i + 1 === activeIdx ? ' active' : ''}`}
               onMouseDown={() => handleSelect(c)}
             >
               <strong style={{ color: 'var(--color-primary)' }}>{c.code}</strong>
@@ -120,13 +127,6 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
               {t('no_options')}
             </div>
           )}
-          <div
-            className={`searchable-select-option${activeIdx === filtered.length ? ' active' : ''}`}
-            onMouseDown={() => handleSelect(CUSTOM)}
-            style={{ borderTop: '1px solid #E8EBF0', color: '#666', fontStyle: 'italic' }}
-          >
-            + {t('custom_entry')}
-          </div>
         </div>
       )}
     </div>

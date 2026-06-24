@@ -362,7 +362,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
               </tr>
             </thead>
             <tbody>
-              {rawData.berthingRows.map((row, i) => (
+              {rawData.berthingRows.filter(r => r.days > 0).map((row, i) => (
                 <tr key={row.id || i}>
                   <td style={T_CELL}>{voyageNumber}</td>
                   <td style={T_CELL}>{row.position}</td>

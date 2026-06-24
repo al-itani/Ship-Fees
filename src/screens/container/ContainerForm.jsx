@@ -286,7 +286,10 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
                 ref={codeInputRef}
                 codes={codes}
                 value={line.codeObj}
-                onChange={codeObj => setLine(prev => ({ ...prev, codeObj, price: '', customCode: '' }))}
+                onChange={codeObj => setLine(prev => ({
+                  ...prev, codeObj, price: '', customCode: '',
+                  type: codeObj?.code === 'ELCT1' ? '20ft' : codeObj?.code === 'ELCT2' ? '40ft' : prev.type,
+                }))}
               />
             )}
           </div>
