@@ -305,13 +305,10 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
                 PORT OF BEIRUT
               </div>
               <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>
-                Gestion et Exploitation du Port du Liban &mdash; إدارة واستثمار مرفأ بيروت
+                Gestion et Exploitation du Port du Liban
               </div>
               <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, color: '#1B2A4A' }}>
                 {t('bill_of_services')}
-              </div>
-              <div style={{ fontSize: 11, color: '#777', marginTop: 4, direction: 'rtl' }}>
-                فاتورة أولية &nbsp;|&nbsp; إعداد: ابراهيم العيتاني
               </div>
             </div>
             <div style={{ width: 80 }} />
@@ -537,7 +534,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
                 {!calc.isGC && (
                   <SummaryRow label={t('container_tax')} value="$0.22" />
                 )}
-                <SummaryRow label={t('fresh_amount')} value={fmt(calc.freshAmount)} border />
+                <SummaryRow label={t('fresh_amount')} value={fmtInt(calc.finalPrice)} border />
                 <SummaryRow label={t('final_price')} value={fmtInt(calc.finalPrice)} highlight border />
               </tbody>
             </table>

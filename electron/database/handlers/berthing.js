@@ -206,4 +206,50 @@ function softDelete(id, userId, opts) {
   }
 }
 
-module.exports = { getRates, getAgents, save, getAll, update, softDelete }
+function voyageExists(voyageNumber) {
+  try {
+    const row = db.prepare(
+      'SELECT 1 FROM berthing_records WHERE voyage_number = ? AND is_deleted = 0 LIMIT 1'
+    ).get(voyageNumber)
+    return { success: true, exists: !!row }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+function getByVoyage(voyageNumber) {
+  try {
+    const rows = db.prepare(`
+      SELECT id, position, days, loa, fee_after_discount, maintenance_fee, min_fee, final_fee,
+             l_index, d1_days, d2_days, d3_days, raw_fee, discount_factor,
+             vessel_name, vessel_type, roro_cargo_type, flag, shipping_agent, ata, atd,
+             vessel_category, maintenance
+      FROM berthing_records
+      WHERE voyage_number = ? AND is_deleted = 0
+      ORDER BY created_at ASC
+    `).all(voyageNumber)
+    return { success: true, data: rows }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+function saveShipName(name) {
+  try {
+    db.prepare('INSERT OR IGNORE INTO ship_names (name) VALUES (?)').run(name)
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+function getAllShipNames() {
+  try {
+    const rows = db.prepare('SELECT name FROM ship_names ORDER BY name ASC').all()
+    return { success: true, data: rows.map(r => r.name) }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getRates, getAgents, save, getAll, update, softDelete, voyageExists, getByVoyage, saveShipName, getAllShipNames }

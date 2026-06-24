@@ -30,6 +30,10 @@ export default function CMAScreen() {
   const [loading, setLoading] = useState(false)
   const [hideZeros, setHideZeros] = useState(true)
   const [toast, setToast]     = useState(null)
+  const [currency, setCurrency] = useState('both') // 'usd' | 'lbp' | 'both'
+
+  const LOCAL_LBP  = 479260
+  const TRANS_LBP  = 311519
 
   // Export picker state
   const [showPicker, setShowPicker]   = useState(false)
@@ -212,14 +216,25 @@ export default function CMAScreen() {
         )}
 
         {report && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-text-muted)', cursor: 'pointer', marginInlineStart: 'auto' }}>
-            <input
-              type="checkbox"
-              checked={hideZeros}
-              onChange={e => setHideZeros(e.target.checked)}
-            />
-            {t('cma_hide_zeros')}
-          </label>
+          <>
+            {/* Currency toggle */}
+            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--color-border)', borderRadius: 6, overflow: 'hidden' }}>
+              {['usd', 'lbp', 'both'].map(opt => (
+                <button key={opt} onClick={() => setCurrency(opt)} style={{
+                  padding: '6px 14px', border: 'none', fontSize: 13, fontWeight: currency === opt ? 700 : 400,
+                  background: currency === opt ? 'var(--color-primary)' : 'white',
+                  color: currency === opt ? 'white' : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                }}>
+                  {t(`cma_currency_${opt}`)}
+                </button>
+              ))}
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-text-muted)', cursor: 'pointer', marginInlineStart: 'auto' }}>
+              <input type="checkbox" checked={hideZeros} onChange={e => setHideZeros(e.target.checked)} />
+              {t('cma_hide_zeros')}
+            </label>
+          </>
         )}
       </div>
 
@@ -242,39 +257,63 @@ export default function CMAScreen() {
                     <th style={{ ...TH, textAlign: 'right' }}>{t('cma_40ft_trans')}</th>
                     <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_teus')}</th>
                     <th style={{ ...TH, textAlign: 'right' }}>{t('cma_trans_teus')}</th>
-                    <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_fee')}</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_trans_fee')}</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_total')}</th>
+                    {(currency === 'usd' || currency === 'both') && <>
+                      <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_fee')}</th>
+                      <th style={{ ...TH, textAlign: 'right' }}>{t('cma_trans_fee')}</th>
+                      <th style={{ ...TH, textAlign: 'right' }}>{t('cma_total')}</th>
+                    </>}
+                    {(currency === 'lbp' || currency === 'both') && <>
+                      <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_fee_lbp')}</th>
+                      <th style={{ ...TH, textAlign: 'right' }}>{t('cma_trans_fee_lbp')}</th>
+                      <th style={{ ...TH, textAlign: 'right' }}>{t('cma_total_lbp')}</th>
+                    </>}
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleRows.map(r => (
-                    <tr key={r.agent} style={{ transition: 'background 0.1s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={TD}>{r.agent}</td>
-                      <td style={TDR}><span className="num-ltr">{r.local_20}</span></td>
-                      <td style={TDR}><span className="num-ltr">{r.local_40}</span></td>
-                      <td style={TDR}><span className="num-ltr">{r.trans_20}</span></td>
-                      <td style={TDR}><span className="num-ltr">{r.trans_40}</span></td>
-                      <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', fontWeight: 600 }}>
-                        <span className="num-ltr">{r.local_teus}</span>
-                      </td>
-                      <td style={{ ...TDR, fontWeight: 600 }}>
-                        <span className="num-ltr">{r.trans_teus}</span>
-                      </td>
-                      <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', color: '#1B2A4A' }}>
-                        <span className="num-ltr">${fmt2(r.local_fee)}</span>
-                      </td>
-                      <td style={{ ...TDR, color: '#1B2A4A' }}>
-                        <span className="num-ltr">${fmt2(r.trans_fee)}</span>
-                      </td>
-                      <td style={{ ...TDR, fontWeight: 700, color: '#1B2A4A' }}>
-                        <span className="num-ltr">${fmt2(r.total)}</span>
-                      </td>
-                    </tr>
-                  ))}
+                  {visibleRows.map(r => {
+                    const localLbp = r.local_teus * LOCAL_LBP
+                    const transLbp = r.trans_teus * TRANS_LBP
+                    return (
+                      <tr key={r.agent} style={{ transition: 'background 0.1s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <td style={TD}>{r.agent}</td>
+                        <td style={TDR}><span className="num-ltr">{r.local_20}</span></td>
+                        <td style={TDR}><span className="num-ltr">{r.local_40}</span></td>
+                        <td style={TDR}><span className="num-ltr">{r.trans_20}</span></td>
+                        <td style={TDR}><span className="num-ltr">{r.trans_40}</span></td>
+                        <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', fontWeight: 600 }}>
+                          <span className="num-ltr">{r.local_teus}</span>
+                        </td>
+                        <td style={{ ...TDR, fontWeight: 600 }}>
+                          <span className="num-ltr">{r.trans_teus}</span>
+                        </td>
+                        {(currency === 'usd' || currency === 'both') && <>
+                          <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', color: '#1B2A4A' }}>
+                            <span className="num-ltr">${fmt2(r.local_fee)}</span>
+                          </td>
+                          <td style={{ ...TDR, color: '#1B2A4A' }}>
+                            <span className="num-ltr">${fmt2(r.trans_fee)}</span>
+                          </td>
+                          <td style={{ ...TDR, fontWeight: 700, color: '#1B2A4A' }}>
+                            <span className="num-ltr">${fmt2(r.total)}</span>
+                          </td>
+                        </>}
+                        {(currency === 'lbp' || currency === 'both') && <>
+                          <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', color: '#1B2A4A' }}>
+                            <span className="num-ltr">{localLbp.toLocaleString('en-US')}</span>
+                          </td>
+                          <td style={{ ...TDR, color: '#1B2A4A' }}>
+                            <span className="num-ltr">{transLbp.toLocaleString('en-US')}</span>
+                          </td>
+                          <td style={{ ...TDR, fontWeight: 700, color: '#1B2A4A' }}>
+                            <span className="num-ltr">{(localLbp + transLbp).toLocaleString('en-US')}</span>
+                          </td>
+                        </>}
+                      </tr>
+                    )
+                  })}
                 </tbody>
                 <tfoot>
                   <tr>
@@ -287,9 +326,16 @@ export default function CMAScreen() {
                     <td style={TDF}><span className="num-ltr">{totals.trans_40}</span></td>
                     <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{totals.local_teus}</span></td>
                     <td style={TDF}><span className="num-ltr">{totals.trans_teus}</span></td>
-                    <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">${fmt2(totals.local_fee)}</span></td>
-                    <td style={TDF}><span className="num-ltr">${fmt2(totals.trans_fee)}</span></td>
-                    <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">${fmt2(totals.total)}</span></td>
+                    {(currency === 'usd' || currency === 'both') && <>
+                      <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">${fmt2(totals.local_fee)}</span></td>
+                      <td style={TDF}><span className="num-ltr">${fmt2(totals.trans_fee)}</span></td>
+                      <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">${fmt2(totals.total)}</span></td>
+                    </>}
+                    {(currency === 'lbp' || currency === 'both') && <>
+                      <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{(totals.local_teus * LOCAL_LBP).toLocaleString('en-US')}</span></td>
+                      <td style={TDF}><span className="num-ltr">{(totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
+                      <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">{(totals.local_teus * LOCAL_LBP + totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
+                    </>}
                   </tr>
                 </tfoot>
               </table>
@@ -301,7 +347,8 @@ export default function CMAScreen() {
       {/* Rates footnote */}
       {report && report.length > 0 && (
         <div style={{ marginTop: 12, fontSize: 11, color: 'var(--color-text-muted)' }}>
-          {t('cma_rates_note')}
+          <div>{t('cma_rates_note')}</div>
+          <div style={{ marginTop: 2 }}>{t('cma_rates_note_lbp')}</div>
         </div>
       )}
     </div>

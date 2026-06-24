@@ -415,6 +415,9 @@ module.exports = function initSchema(db) {
     }
   } catch {}
 
+  // Ship name autocomplete table
+  db.exec(`CREATE TABLE IF NOT EXISTS ship_names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)`)
+
   // user_permissions table — stores per-user permission grants
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_permissions (

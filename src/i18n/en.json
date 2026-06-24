@@ -193,6 +193,15 @@
   "settings_key_valid": "Valid format",
   "settings_key_empty": "No key saved",
   "settings_key_hint": "Starts with sk-ant-…",
+  "settings_reset_db": "Reset Database",
+  "settings_reset_db_title": "Danger Zone",
+  "settings_reset_db_hint": "Permanently deletes all berthing records, container services, GC services, receipts, voyages, and audit log. This cannot be undone.",
+  "settings_reset_confirm_prompt": "Type RESET to confirm",
+  "settings_reset_confirm_placeholder": "RESET",
+  "settings_reset_confirm_btn": "Delete All Records",
+  "settings_reset_success": "Database reset successfully.",
+  "settings_reset_error": "Reset failed: {{error}}",
+  "settings_reset_wrong_word": "Type RESET (uppercase) to confirm.",
 
   "automate": "Automate",
   "automate_description": "AI-powered document import",
@@ -296,6 +305,13 @@
   "cma_trans_fee": "Trans Fee ($)",
   "cma_total": "Total ($)",
   "cma_rates_note": "Rates: Local $13.92/TEU · Transit $9.05/TEU · 20ft = 1 TEU · 40ft = 2 TEUs",
+  "cma_rates_note_lbp": "LBP equiv. (1$ = 89,500 L.L): Local 1,245,840 L.L/TEU · Transit 810,475 L.L/TEU",
+  "cma_currency_usd": "USD",
+  "cma_currency_lbp": "LBP",
+  "cma_currency_both": "Both",
+  "cma_local_fee_lbp": "Local Fee (LBP)",
+  "cma_trans_fee_lbp": "Trans Fee (LBP)",
+  "cma_total_lbp": "Total (LBP)",
 
   "user_management": "User Management",
   "audit_log": "Audit Log",
@@ -441,5 +457,13 @@
   "stat_action_storage_saved": "Storage Saved",
   "stat_action_batch_import": "Batch Import",
 
-  "preview": "Preview"
+  "preview": "Preview",
+  "remember_me": "Remember me",
+  "voyage_duplicate_warning": "Voyage {{number}} already has records. You are adding to an existing voyage.",
+
+  "berthing_lines_label": "Berthing Lines",
+  "add_berthing_line": "Add Line",
+  "remove_berthing_line": "Remove",
+  "berthing_total_preview": "Total berthing fee",
+  "berthing_min_note": "minimum applied at receipt"
 }

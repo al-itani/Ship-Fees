@@ -5,23 +5,23 @@ import BerthingRecords from './BerthingRecords.jsx'
 
 export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, onGenerateReceipt, initialVoyageNumber }) {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab]   = useState('new-entry')
-  const [editRecord, setEditRecord] = useState(null)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [activeTab, setActiveTab]             = useState('new-entry')
+  const [editVoyageNumber, setEditVoyageNumber] = useState(null)
+  const [refreshKey, setRefreshKey]           = useState(0)
 
-  function handleEdit(record) {
-    setEditRecord(record)
+  function handleEdit(voyageNumber) {
+    setEditVoyageNumber(voyageNumber)
     setActiveTab('new-entry')
   }
 
   function handleSaved() {
-    setEditRecord(null)
+    setEditVoyageNumber(null)
     setActiveTab('records')
     setRefreshKey(k => k + 1)
   }
 
   function handleCancelEdit() {
-    setEditRecord(null)
+    setEditVoyageNumber(null)
   }
 
   const tabStyle = (key) => ({
@@ -30,7 +30,6 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
     fontSize: 14,
     fontWeight: activeTab === key ? 700 : 400,
     color: activeTab === key ? 'var(--color-primary)' : 'var(--color-text-muted)',
-    borderBottom: activeTab === key ? '2px solid var(--color-primary)' : '2px solid transparent',
     background: 'none',
     border: 'none',
     borderBottomWidth: 2,
@@ -41,14 +40,12 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
 
   return (
     <div className="app-screen" style={{ padding: 28 }}>
-      {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 700, color: 'var(--color-text)' }}>
           ⚓ {t('berthing')}
         </h2>
       </div>
 
-      {/* Tabs */}
       <div style={{
         display: 'flex',
         borderBottom: '1px solid var(--color-border)',
@@ -58,16 +55,16 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
         padding: '0 4px',
       }}>
         <button style={tabStyle('new-entry')} onClick={() => setActiveTab('new-entry')}>
-          {editRecord ? `✏️ ${t('edit')}` : `+ ${t('new_entry')}`}
+          {editVoyageNumber ? `✏️ ${t('edit')}` : `+ ${t('new_entry')}`}
         </button>
-        <button style={tabStyle('records')} onClick={() => { setActiveTab('records'); setEditRecord(null) }}>
+        <button style={tabStyle('records')} onClick={() => { setActiveTab('records'); setEditVoyageNumber(null) }}>
           {t('records')}
         </button>
       </div>
 
       {activeTab === 'new-entry' && (
         <BerthingForm
-          editRecord={editRecord}
+          editVoyageNumber={editVoyageNumber}
           onSaved={handleSaved}
           onCancelEdit={handleCancelEdit}
           onGoToContainers={onGoToContainers}

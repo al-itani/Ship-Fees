@@ -193,6 +193,15 @@
   "settings_key_valid": "صيغة صحيحة",
   "settings_key_empty": "لا يوجد مفتاح",
   "settings_key_hint": "يبدأ بـ sk-ant-…",
+  "settings_reset_db": "إعادة تعيين قاعدة البيانات",
+  "settings_reset_db_title": "منطقة الخطر",
+  "settings_reset_db_hint": "يحذف نهائياً جميع سجلات الرسو وخدمات الحاويات والبضائع العامة والوصولات والرحلات وسجل المراجعة. لا يمكن التراجع عن هذا الإجراء.",
+  "settings_reset_confirm_prompt": "اكتب RESET للتأكيد",
+  "settings_reset_confirm_placeholder": "RESET",
+  "settings_reset_confirm_btn": "حذف جميع السجلات",
+  "settings_reset_success": "تمت إعادة تعيين قاعدة البيانات بنجاح.",
+  "settings_reset_error": "فشلت إعادة التعيين: {{error}}",
+  "settings_reset_wrong_word": "اكتب RESET (بحروف كبيرة) للتأكيد.",
 
   "automate": "أتمتة",
   "automate_description": "استيراد مستندات بالذكاء الاصطناعي",
@@ -297,6 +306,13 @@
   "cma_trans_fee": "رسوم عبور ($)",
   "cma_total": "الإجمالي ($)",
   "cma_rates_note": "الأسعار: محلي $13.92/TEU · عبور $9.05/TEU · 20ft = 1 TEU · 40ft = 2 TEU",
+  "cma_rates_note_lbp": "المعادل بالليرة (1$ = 89,500 ل.ل): محلي 1,245,840 ل.ل/TEU · عبور 810,475 ل.ل/TEU",
+  "cma_currency_usd": "دولار",
+  "cma_currency_lbp": "ليرة",
+  "cma_currency_both": "كلاهما",
+  "cma_local_fee_lbp": "رسوم محلية (ل.ل.)",
+  "cma_trans_fee_lbp": "رسوم عبور (ل.ل.)",
+  "cma_total_lbp": "الإجمالي (ل.ل.)",
 
   "user_management": "إدارة المستخدمين",
   "audit_log": "سجل المراجعة",
@@ -443,5 +459,13 @@
   "stat_action_storage_saved": "حفظ تخزين",
   "stat_action_batch_import": "استيراد دفعة",
 
-  "preview": "معاينة"
+  "preview": "معاينة",
+  "remember_me": "تذكرني",
+  "voyage_duplicate_warning": "الرحلة {{number}} لديها سجلات مسبقاً. أنت تضيف إلى رحلة موجودة.",
+
+  "berthing_lines_label": "سطور الرسو",
+  "add_berthing_line": "إضافة سطر",
+  "remove_berthing_line": "حذف",
+  "berthing_total_preview": "إجمالي رسوم الرسو",
+  "berthing_min_note": "الحد الأدنى مُطبَّق عند الوصل"
 }

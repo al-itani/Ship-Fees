@@ -45,7 +45,10 @@ try {
 
   autoUpdater.on('error', (err) => {
     console.error('[updater] error:', err?.message || err)
-    dialog.showMessageBox({ type: 'error', title: 'Updater Error', message: err?.message || String(err) })
+    try {
+      const entry = `[${new Date().toISOString()}] ${err?.message || err}\n${err?.stack || ''}\n\n`
+      fs.appendFileSync('C:\\ShipFees\\updater-error.log', entry, 'utf8')
+    } catch {}
   })
 } catch (err) {
   console.error('[updater] failed to load electron-updater:', err?.message || err)
@@ -594,6 +597,50 @@ ipcMain.handle('ai:extract', async (_, images) => {
 ipcMain.handle('ai:testConnection', () => aiHandlers.testConnection())
 
 ipcMain.handle('app:getConfig', () => ({ mode: appConfig.mode, serverUrl: appConfig.serverUrl, token: appConfig.token }))
+
+// Auth — restore remembered session on launch
+ipcMain.handle('auth:restoreSession', (_, userId) =>
+  C ? { success: false } : authHandlers.restoreSession(userId)
+)
+
+// Berthing — voyage existence check for duplicate warning
+ipcMain.handle('berthing:voyageExists', (_, voyageNumber) =>
+  C ? { success: true, exists: false } : berthingHandlers.voyageExists(voyageNumber)
+)
+
+// Berthing — all non-deleted rows for a voyage (for multi-line edit)
+ipcMain.handle('berthing:getByVoyage', (_, voyageNumber) =>
+  C ? { success: true, data: [] } : berthingHandlers.getByVoyage(voyageNumber)
+)
+
+// Berthing — ship name autocomplete
+ipcMain.handle('berthing:saveShipName', (_, name) =>
+  C ? { success: true } : berthingHandlers.saveShipName(name)
+)
+ipcMain.handle('berthing:getAllShipNames', () =>
+  C ? { success: true, data: [] } : berthingHandlers.getAllShipNames()
+)
+
+// DB Reset — admin only; deletes all billing rows (audit_log wiped last)
+ipcMain.handle('db:reset', (_, adminUserId, adminUsername) => {
+  if (C) return { success: false, error: 'Not available in client mode' }
+  try {
+    const db = require('./database/db')
+    // ponytail: 'DELETE' satisfies the CHECK constraint; the summary field identifies this as a full reset
+    db.prepare(
+      `INSERT INTO audit_log (table_name, record_id, action, old_data, new_data, user_id)
+       VALUES ('system', 0, 'DELETE', NULL, ?, ?)`
+    ).run(JSON.stringify({ summary: 'RESET_DATABASE', performed_by: adminUsername, timestamp: new Date().toISOString() }), adminUserId || null)
+    db.transaction(() => {
+      for (const t of ['receipts', 'container_services', 'gc_services', 'berthing_records', 'voyages', 'audit_log']) {
+        db.prepare(`DELETE FROM ${t}`).run()
+      }
+    })()
+    return { success: true }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
 
 app.whenReady().then(() => {
   createWindow()

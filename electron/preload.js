@@ -1,15 +1,20 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('api', {
-  login:              (username, password) => ipcRenderer.invoke('auth:login', username, password),
-  changePassword:     (userId, newPassword) => ipcRenderer.invoke('auth:changePassword', userId, newPassword),
-  authLogout:         (userId) => ipcRenderer.invoke('auth:logout', userId),
+  login:                (username, password) => ipcRenderer.invoke('auth:login', username, password),
+  changePassword:       (userId, newPassword) => ipcRenderer.invoke('auth:changePassword', userId, newPassword),
+  authLogout:           (userId) => ipcRenderer.invoke('auth:logout', userId),
+  authRestoreSession:   (userId) => ipcRenderer.invoke('auth:restoreSession', userId),
 
   getRates:           () => ipcRenderer.invoke('berthing:getRates'),
   getAgents:          () => ipcRenderer.invoke('berthing:getAgents'),
   saveBerthing:       (data) => ipcRenderer.invoke('berthing:save', data),
-  getBerthingRecords: () => ipcRenderer.invoke('berthing:getAll'),
-  updateBerthing:     (id, data) => ipcRenderer.invoke('berthing:update', id, data),
+  getBerthingRecords:   () => ipcRenderer.invoke('berthing:getAll'),
+  berthingVoyageExists:  (vn) => ipcRenderer.invoke('berthing:voyageExists', vn),
+  berthingGetByVoyage:      (vn)   => ipcRenderer.invoke('berthing:getByVoyage', vn),
+  berthingSaveShipName:     (name) => ipcRenderer.invoke('berthing:saveShipName', name),
+  berthingGetAllShipNames:  ()     => ipcRenderer.invoke('berthing:getAllShipNames'),
+  updateBerthing:       (id, data) => ipcRenderer.invoke('berthing:update', id, data),
   deleteBerthing:     (id, userId, opts) => ipcRenderer.invoke('berthing:delete', id, userId, opts),
 
   containerLookupVoyage: (voyageNumber) => ipcRenderer.invoke('container:lookupVoyage', voyageNumber),
@@ -84,4 +89,6 @@ contextBridge.exposeInMainWorld('api', {
   tariffCReadFile:             (path)   => ipcRenderer.invoke('tariff-c:readFile', path),
   tariffCGetNextBillingNumber: ()       => ipcRenderer.invoke('tariff-c:getNextBillingNumber'),
   tariffCSaveReceipt:          (data)   => ipcRenderer.invoke('tariff-c:saveReceipt', data),
+
+  dbReset: (adminUserId, adminUsername) => ipcRenderer.invoke('db:reset', adminUserId, adminUsername),
 })

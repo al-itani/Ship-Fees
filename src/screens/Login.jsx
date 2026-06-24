@@ -7,11 +7,12 @@ import portLogo from '../assets/port-logo.jpg'
 export default function Login() {
   const { t } = useTranslation()
   const { login } = useSession()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [lang, setLang]         = useState('en')
+  const [username, setUsername]   = useState('')
+  const [password, setPassword]   = useState('')
+  const [error, setError]         = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [lang, setLang]           = useState('en')
+  const [rememberMe, setRememberMe] = useState(false)
 
   function toggleLang() {
     const next = lang === 'en' ? 'ar' : 'en'
@@ -29,6 +30,8 @@ export default function Login() {
     try {
       const res = await window.api.login(username.trim(), password)
       if (res.success) {
+        if (rememberMe) localStorage.setItem('rememberedUserId', String(res.user.id))
+        else localStorage.removeItem('rememberedUserId')
         login({ ...res.user, language: lang })
       } else {
         setError(t(res.error) || t('invalid_login'))
@@ -105,6 +108,11 @@ export default function Login() {
               {error}
             </div>
           )}
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 16, cursor: 'pointer' }}>
+            <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
+            {t('remember_me')}
+          </label>
 
           <button
             type="submit"
