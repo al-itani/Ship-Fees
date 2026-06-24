@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+import ShipsScreen from './ships/ShipsScreen.jsx'
 import Sidebar from '../components/Sidebar.jsx'
 import TopBar from '../components/TopBar.jsx'
 import Home from './Home.jsx'
@@ -20,11 +22,23 @@ import { useSession } from '../context/SessionContext.jsx'
 
 export default function MainApp() {
   const { session } = useSession()
+  const { t } = useTranslation()
   const [currentScreen, setCurrentScreen]     = useState('home')
+  const [screenKey, setScreenKey]             = useState(0)
   const [containerVoyage, setContainerVoyage] = useState(null)
   const [gcVoyage, setGcVoyage]               = useState(null)
   // { type, voyageNumber, readOnly } or { type, receipt }
   const [receiptState, setReceiptState]       = useState(null)
+  const [updateReady, setUpdateReady]         = useState(false)
+
+  useEffect(() => {
+    window.api.onUpdateReady?.(() => setUpdateReady(true))
+  }, [])
+
+  function navigate(screen) {
+    setCurrentScreen(screen)
+    setScreenKey(k => k + 1)
+  }
 
   function handleGoToContainers(voyageNumber) {
     setContainerVoyage(voyageNumber)
@@ -112,6 +126,9 @@ export default function MainApp() {
       case 'user_management':
         if (!isAdmin && !session?.perm_view_users) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
+      case 'ships':
+        if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
+        return <ShipsScreen />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }
@@ -119,10 +136,30 @@ export default function MainApp() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar currentScreen={currentScreen} setCurrentScreen={setCurrentScreen} />
+      <Sidebar currentScreen={currentScreen} setCurrentScreen={navigate} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <TopBar currentScreen={currentScreen} />
-        <div style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+        {updateReady && (
+          <div style={{
+            background: '#1B2A4A', color: 'white',
+            padding: '10px 24px', display: 'flex',
+            alignItems: 'center', justifyContent: 'space-between',
+            fontSize: 13, flexShrink: 0,
+          }}>
+            <span>{t('update_ready_banner')}</span>
+            <button
+              onClick={() => window.api.updaterInstall?.()}
+              style={{
+                padding: '6px 16px', borderRadius: 5, border: 'none',
+                background: 'white', color: '#1B2A4A',
+                fontWeight: 700, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              {t('restart_now')}
+            </button>
+          </div>
+        )}
+        <div key={screenKey} style={{ flex: 1, overflow: 'auto', background: 'var(--color-bg)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
           {renderScreen()}
         </div>
       </div>

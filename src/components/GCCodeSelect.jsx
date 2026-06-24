@@ -41,6 +41,8 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
     setActiveIdx(-1)
   }
 
+  const CUSTOM = { code: '__CUSTOM__', description: '', _custom: true }
+
   function handleKeyDown(e) {
     if (e.key === 'Escape') {
       setOpen(false)
@@ -54,19 +56,22 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
     }
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActiveIdx(i => Math.min(i + 1, filtered.length - 1))
+      setActiveIdx(i => Math.min(i + 1, filtered.length))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActiveIdx(i => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (activeIdx >= 0 && filtered[activeIdx]) handleSelect(filtered[activeIdx])
+      if (activeIdx === filtered.length) handleSelect(CUSTOM)
+      else if (activeIdx >= 0 && filtered[activeIdx]) handleSelect(filtered[activeIdx])
       else if (filtered.length === 1) handleSelect(filtered[0])
       else setOpen(false)
     } else if (e.key === 'Tab') {
       const exact = filtered.find(c => norm(c.code) === norm(query))
       if (exact) {
         handleSelect(exact)
+      } else if (activeIdx === filtered.length) {
+        handleSelect(CUSTOM)
       } else if (activeIdx >= 0 && filtered[activeIdx]) {
         handleSelect(filtered[activeIdx])
       } else if (filtered.length === 1 && query) {
@@ -98,7 +103,7 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
           background: 'white', boxSizing: 'border-box',
         }}
       />
-      {open && filtered.length > 0 && (
+      {open && (
         <div className="searchable-select-dropdown" style={{ width: '100%' }}>
           {filtered.map((c, i) => (
             <div
@@ -110,12 +115,17 @@ const GCCodeSelect = forwardRef(function GCCodeSelect({ codes = [], value, onCha
               {' — '}{c.description}
             </div>
           ))}
-        </div>
-      )}
-      {open && filtered.length === 0 && query && (
-        <div className="searchable-select-dropdown" style={{ width: '100%' }}>
-          <div className="searchable-select-option" style={{ color: 'var(--color-text-muted)' }}>
-            {t('no_options')}
+          {filtered.length === 0 && query && (
+            <div className="searchable-select-option" style={{ color: 'var(--color-text-muted)' }}>
+              {t('no_options')}
+            </div>
+          )}
+          <div
+            className={`searchable-select-option${activeIdx === filtered.length ? ' active' : ''}`}
+            onMouseDown={() => handleSelect(CUSTOM)}
+            style={{ borderTop: '1px solid #E8EBF0', color: '#666', fontStyle: 'italic' }}
+          >
+            + {t('custom_entry')}
           </div>
         </div>
       )}

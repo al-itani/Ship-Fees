@@ -10,45 +10,34 @@ const fs   = require('fs')
 //   4. Ensure start-updates.bat is running on main PC (serves :8080)
 //   5. Client PCs will detect the new version automatically on next launch
 // ─────────────────────────────────────────────────────────────────────────────
+const LOG_FILE = 'C:\\ShipFees\\updater.log'
+function updLog(...args) {
+  try {
+    fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${args.join(' ')}\n`, 'utf8')
+  } catch {}
+}
+
 let autoUpdater = null
 try {
   autoUpdater = require('electron-updater').autoUpdater
+  // Wire internal electron-updater logger to file so we can diagnose fetch errors
+  autoUpdater.logger = { info: updLog, warn: updLog, error: updLog, debug: () => {} }
   autoUpdater.setFeedURL({ provider: 'generic', url: 'http://192.6.240.251:8080' })
-  autoUpdater.autoDownload = false
+  autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = false
 
-  autoUpdater.on('update-available', (info) => {
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Available',
-      message: `Version ${info.version} is available.\nDownload and install now?`,
-      buttons: ['Download', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-    }).then(({ response }) => {
-      if (response === 0) autoUpdater.downloadUpdate()
-    })
-  })
+  autoUpdater.on('checking-for-update',   () => updLog('checking for update…'))
+  autoUpdater.on('update-not-available',  (i) => updLog('no update — current is latest', JSON.stringify(i)))
+  autoUpdater.on('update-available',      (i) => updLog('update available — downloading silently', JSON.stringify(i)))
 
   autoUpdater.on('update-downloaded', () => {
-    dialog.showMessageBox({
-      type: 'info',
-      title: 'Update Ready',
-      message: 'The update has been downloaded. Restart the app to apply it.',
-      buttons: ['Restart Now', 'Later'],
-      defaultId: 0,
-      cancelId: 1,
-    }).then(({ response }) => {
-      if (response === 0) autoUpdater.quitAndInstall()
-    })
+    updLog('update downloaded — notifying renderer')
+    const win = BrowserWindow.getAllWindows()[0]
+    if (win?.webContents) win.webContents.send('updater:ready')
   })
 
   autoUpdater.on('error', (err) => {
-    console.error('[updater] error:', err?.message || err)
-    try {
-      const entry = `[${new Date().toISOString()}] ${err?.message || err}\n${err?.stack || ''}\n\n`
-      fs.appendFileSync('C:\\ShipFees\\updater-error.log', entry, 'utf8')
-    } catch {}
+    updLog('ERROR', err?.message || err, err?.stack || '')
   })
 } catch (err) {
   console.error('[updater] failed to load electron-updater:', err?.message || err)
@@ -72,6 +61,7 @@ const { getConfig }      = require('./configStore')
 const storageHandlers    = require('./database/handlers/storage')
 const tariffCHandlers    = require('./database/handlers/tariffC')
 const statsHandlers      = require('./database/handlers/stats')
+const shipsHandlers      = require('./database/handlers/ships')
 const clientHandlers     = require('./client')
 
 const appConfig = getConfig()
@@ -600,7 +590,7 @@ ipcMain.handle('app:getConfig', () => ({ mode: appConfig.mode, serverUrl: appCon
 
 // Auth — restore remembered session on launch
 ipcMain.handle('auth:restoreSession', (_, userId) =>
-  C ? { success: false } : authHandlers.restoreSession(userId)
+  C ? C.restoreSession(userId) : authHandlers.restoreSession(userId)
 )
 
 // Berthing — voyage existence check for duplicate warning
@@ -620,6 +610,12 @@ ipcMain.handle('berthing:saveShipName', (_, name) =>
 ipcMain.handle('berthing:getAllShipNames', () =>
   C ? { success: true, data: [] } : berthingHandlers.getAllShipNames()
 )
+
+// Ships master list
+ipcMain.handle('ships:getAll',    ()              => C ? { success: true, data: [] } : shipsHandlers.getAll())
+ipcMain.handle('ships:create',    (_, name, loa, userId) => C ? { success: false } : shipsHandlers.create(name, loa, userId))
+ipcMain.handle('ships:update',    (_, id, name, loa, userId) => C ? { success: false } : shipsHandlers.update(id, name, loa, userId))
+ipcMain.handle('ships:delete',    (_, id, userId) => C ? { success: false } : shipsHandlers.softDelete(id, userId))
 
 // DB Reset — admin only; deletes all billing rows (audit_log wiped last)
 ipcMain.handle('db:reset', (_, adminUserId, adminUsername) => {
@@ -655,6 +651,10 @@ app.whenReady().then(() => {
       }
     }, 3000)
   }
+})
+
+ipcMain.handle('updater:install', () => {
+  if (autoUpdater) autoUpdater.quitAndInstall()
 })
 
 app.on('window-all-closed', () => {

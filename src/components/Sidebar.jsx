@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 
-const VERSION = '1.0.6'
+const VERSION = '1.0.9'
 
 const navItems = [
   { key: 'home',             icon: '🏠', label: 'home' },
@@ -16,6 +16,7 @@ const navItems = [
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
   { key: 'audit_log',       icon: '📋', label: 'audit_log' },
+  { key: 'ships',           icon: '🚢', label: 'ships' },
 ]
 
 

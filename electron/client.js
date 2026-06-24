@@ -36,6 +36,15 @@ async function login(username, password) {
   }
 }
 
+async function restoreSession(userId) {
+  try {
+    const user = await apiCall('/api/auth/restoreSession', { userId })
+    return { success: true, user }
+  } catch (err) {
+    return { success: false }
+  }
+}
+
 // currentPassword is accepted for API surface parity; the handler doesn't validate it.
 async function changePassword(userId, currentPassword, newPassword) {
   return apiCall('/api/auth/changePassword', { userId, newPassword })
@@ -216,6 +225,7 @@ async function settingsSave(data) {
 module.exports = {
   // Auth
   login,
+  restoreSession,
   changePassword,
   // Berthing
   berthingGetRates,

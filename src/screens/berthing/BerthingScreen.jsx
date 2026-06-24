@@ -69,6 +69,7 @@ export default function BerthingScreen({ onGoToContainers, onGoToGeneralCargo, o
           onCancelEdit={handleCancelEdit}
           onGoToContainers={onGoToContainers}
           onGoToGeneralCargo={onGoToGeneralCargo}
+          onGenerateReceipt={onGenerateReceipt}
           initialVoyageNumber={initialVoyageNumber}
         />
       )}

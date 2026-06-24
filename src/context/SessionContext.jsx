@@ -26,6 +26,9 @@ export function SessionProvider({ children }) {
         localStorage.removeItem('rememberedUserId')
       }
       setRestoring(false)
+    }).catch(() => {
+      localStorage.removeItem('rememberedUserId')
+      setRestoring(false)
     })
   }, [])
 

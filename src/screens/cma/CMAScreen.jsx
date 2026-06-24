@@ -71,16 +71,17 @@ export default function CMAScreen() {
     : []
 
   const totals = visibleRows.reduce((acc, r) => ({
-    local_20:   acc.local_20   + r.local_20,
-    local_40:   acc.local_40   + r.local_40,
-    trans_20:   acc.trans_20   + r.trans_20,
-    trans_40:   acc.trans_40   + r.trans_40,
-    local_teus: acc.local_teus + r.local_teus,
-    trans_teus: acc.trans_teus + r.trans_teus,
-    local_fee:  acc.local_fee  + r.local_fee,
-    trans_fee:  acc.trans_fee  + r.trans_fee,
-    total:      acc.total      + r.total,
-  }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
+    local_20:       acc.local_20       + r.local_20,
+    local_40:       acc.local_40       + r.local_40,
+    trans_20:       acc.trans_20       + r.trans_20,
+    trans_40:       acc.trans_40       + r.trans_40,
+    local_teus:     acc.local_teus     + r.local_teus,
+    std_local_teus: acc.std_local_teus + (r.std_local_teus ?? r.local_teus),
+    trans_teus:     acc.trans_teus     + r.trans_teus,
+    local_fee:      acc.local_fee      + r.local_fee,
+    trans_fee:      acc.trans_fee      + r.trans_fee,
+    total:          acc.total          + r.total,
+  }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, std_local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
 
   return (
     <div className="app-screen" style={{ padding: 28, maxWidth: 1100 }}>
@@ -271,7 +272,7 @@ export default function CMAScreen() {
                 </thead>
                 <tbody>
                   {visibleRows.map(r => {
-                    const localLbp = r.local_teus * LOCAL_LBP
+                    const localLbp = (r.std_local_teus ?? r.local_teus) * LOCAL_LBP
                     const transLbp = r.trans_teus * TRANS_LBP
                     return (
                       <tr key={r.agent} style={{ transition: 'background 0.1s' }}
@@ -332,9 +333,9 @@ export default function CMAScreen() {
                       <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">${fmt2(totals.total)}</span></td>
                     </>}
                     {(currency === 'lbp' || currency === 'both') && <>
-                      <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{(totals.local_teus * LOCAL_LBP).toLocaleString('en-US')}</span></td>
+                      <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{(totals.std_local_teus * LOCAL_LBP).toLocaleString('en-US')}</span></td>
                       <td style={TDF}><span className="num-ltr">{(totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
-                      <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">{(totals.local_teus * LOCAL_LBP + totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
+                      <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">{(totals.std_local_teus * LOCAL_LBP + totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
                     </>}
                   </tr>
                 </tfoot>

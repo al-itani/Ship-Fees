@@ -91,4 +91,12 @@ contextBridge.exposeInMainWorld('api', {
   tariffCSaveReceipt:          (data)   => ipcRenderer.invoke('tariff-c:saveReceipt', data),
 
   dbReset: (adminUserId, adminUsername) => ipcRenderer.invoke('db:reset', adminUserId, adminUsername),
+
+  onUpdateReady:  (cb) => ipcRenderer.on('updater:ready', () => cb()),
+  updaterInstall: ()   => ipcRenderer.invoke('updater:install'),
+
+  shipsGetAll:  ()                    => ipcRenderer.invoke('ships:getAll'),
+  shipsCreate:  (name, loa, userId)   => ipcRenderer.invoke('ships:create', name, loa, userId),
+  shipsUpdate:  (id, name, loa, userId) => ipcRenderer.invoke('ships:update', id, name, loa, userId),
+  shipsDelete:  (id, userId)          => ipcRenderer.invoke('ships:delete', id, userId),
 })

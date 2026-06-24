@@ -58,7 +58,7 @@ function lookupVoyage(voyageNumber) {
 function getCodes() {
   try {
     const rows = db.prepare(`
-      SELECT code, description, default_rate_20, default_rate_40, is_taxable, is_fixed, is_overtime
+      SELECT code, description, default_rate_20, default_rate_40, is_taxable, is_fixed, is_overtime, unit
       FROM container_codes
       WHERE is_active = 1 AND is_fixed = 0
       ORDER BY code

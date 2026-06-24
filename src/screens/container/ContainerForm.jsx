@@ -8,7 +8,7 @@ function fmt(n) {
   return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-const EMPTY_LINE = { codeObj: null, type: '', qty: '', price: '' }
+const EMPTY_LINE = { codeObj: null, type: '', qty: '', price: '', customCode: '' }
 
 const thStyle = {
   padding: '9px 16px', textAlign: 'start', fontWeight: 600,
@@ -49,7 +49,7 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
 
   // Auto-fill price when code or type changes
   useEffect(() => {
-    if (!line.codeObj) return
+    if (!line.codeObj || line.codeObj._custom) return
     const { codeObj, type } = line
     // FH-CMA + 40ft is a blocked combination — leave price empty
     if (codeObj.code === 'FH-CMA' && type === '40ft') {
@@ -99,9 +99,11 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
   }
 
   function handleAddLine() {
+    const isCustom = !!line.codeObj?._custom
     if (!line.codeObj)   { setLineError(t('line_code_required')); return }
+    if (isCustom && !line.customCode.trim()) { setLineError(t('line_code_required')); return }
     if (!line.type)      { setLineError(t('line_type_required')); return }
-    if (fhCmaError)      { setLineError(fhCmaError); return }
+    if (!isCustom && fhCmaError) { setLineError(fhCmaError); return }
     if (!line.qty || parseFloat(line.qty) <= 0) { setLineError(t('line_qty_required')); return }
     if (line.price === '' || isNaN(parseFloat(line.price)) || parseFloat(line.price) < 0) {
       setLineError(t('line_price_required')); return
@@ -110,14 +112,15 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
     setLineError('')
     const qty   = parseFloat(line.qty)
     const price = parseFloat(line.price)
+    const code  = isCustom ? line.customCode.trim() : line.codeObj.code
     setPendingLines(prev => [...prev, {
-      service_code:  line.codeObj.code,
-      description:   line.codeObj.description,
+      service_code:   code,
+      description:    code,
       container_type: line.type,
-      quantity:      qty,
+      quantity:       qty,
       price_per_unit: price,
-      line_total:    qty * price,
-      is_taxable:    line.codeObj.is_taxable || 0,
+      line_total:     qty * price,
+      is_taxable:     isCustom ? 0 : (line.codeObj.is_taxable || 0),
     }])
     setLine(EMPTY_LINE)
     setTimeout(() => codeInputRef.current?.focus(), 50)
@@ -256,12 +259,36 @@ export default function ContainerForm({ voyageInfo, onChangeVoyage, onGenerateRe
           {/* Code */}
           <div>
             <label style={labelStyle}>{t('service_code')}</label>
-            <ContainerCodeSelect
-              ref={codeInputRef}
-              codes={codes}
-              value={line.codeObj}
-              onChange={codeObj => setLine(prev => ({ ...prev, codeObj, price: '' }))}
-            />
+            {line.codeObj?._custom ? (
+              <div style={{ position: 'relative' }}>
+                <input
+                  autoFocus
+                  type="text"
+                  style={{ ...fieldStyle, width: '100%', paddingInlineEnd: 32 }}
+                  value={line.customCode}
+                  placeholder={t('custom_entry')}
+                  onChange={e => setLine(prev => ({ ...prev, customCode: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddLine() }}
+                />
+                <button
+                  tabIndex={-1}
+                  onClick={() => setLine(prev => ({ ...prev, codeObj: null, customCode: '' }))}
+                  style={{
+                    position: 'absolute', insetInlineEnd: 8, top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: 16, lineHeight: 1,
+                  }}
+                >×</button>
+              </div>
+            ) : (
+              <ContainerCodeSelect
+                ref={codeInputRef}
+                codes={codes}
+                value={line.codeObj}
+                onChange={codeObj => setLine(prev => ({ ...prev, codeObj, price: '', customCode: '' }))}
+              />
+            )}
           </div>
 
           {/* Type */}

@@ -61,7 +61,7 @@ function getDataForReceipt(voyageNumber) {
     if (!header) return { success: false, error: 'no_berthing_records' }
 
     const berthingRows = db.prepare(`
-      SELECT id, position, loa, days, fee_after_discount, maintenance_fee, min_fee, final_fee
+      SELECT id, position, loa, days, fee_after_discount, maintenance_fee, min_fee, final_fee, discount_factor
       FROM berthing_records
       WHERE voyage_number = ? AND is_deleted = 0
       ORDER BY created_at ASC
@@ -78,11 +78,13 @@ function getDataForReceipt(voyageNumber) {
       `).all(voyageNumber)
     } else {
       serviceRows = db.prepare(`
-        SELECT id, service_code, description, container_type, quantity, price_per_unit, line_total,
-               is_taxable, is_fixed, is_auto
-        FROM container_services
-        WHERE voyage_number = ? AND is_deleted = 0
-        ORDER BY (CASE WHEN is_fixed=1 OR is_auto=1 THEN 1 ELSE 0 END) ASC, created_at ASC
+        SELECT cs.id, cs.service_code, cs.description, cs.container_type, cs.quantity,
+               cs.price_per_unit, cs.line_total, cs.is_taxable, cs.is_fixed, cs.is_auto,
+               cc.unit
+        FROM container_services cs
+        LEFT JOIN container_codes cc ON cc.code = cs.service_code
+        WHERE cs.voyage_number = ? AND cs.is_deleted = 0
+        ORDER BY (CASE WHEN cs.is_fixed=1 OR cs.is_auto=1 THEN 1 ELSE 0 END) ASC, cs.created_at ASC
       `).all(voyageNumber)
     }
 

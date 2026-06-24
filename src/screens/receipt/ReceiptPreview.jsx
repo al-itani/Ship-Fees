@@ -407,6 +407,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
               <tr>
                 <th style={{ ...T_HEAD, textAlign: 'left' }}>{t('voyage_number')}</th>
                 <th style={{ ...T_HEAD, textAlign: 'left' }}>{t('service_code')}</th>
+                {!calc.isGC && <th style={{ ...T_HEAD, textAlign: 'center' }}>{t('container_type')}</th>}
                 <th style={{ ...T_HEAD, textAlign: 'right' }}>{t('quantity')}</th>
                 <th style={{ ...T_HEAD, textAlign: 'right' }}>{t('price_per_unit')}</th>
                 <th style={{ ...T_HEAD, textAlign: 'right' }}>{t('total_fee')}</th>
@@ -422,7 +423,11 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
                     {row.description && row.description !== row.service_code
                       ? <span style={{ color: '#888', fontWeight: 400 }}> {row.description}</span>
                       : null}
+                    {!calc.isGC && row.unit
+                      ? <span style={{ color: '#888', fontSize: 10 }}> ({row.unit})</span>
+                      : null}
                   </td>
+                  {!calc.isGC && <td style={{ ...T_CELL, textAlign: 'center' }}>{row.container_type || '20ft'}</td>}
                   <td style={{ ...T_CELL, textAlign: 'right' }}>
                     <span className="num-ltr">{row.quantity}</span>
                   </td>
@@ -438,7 +443,7 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
               {/* System lines divider */}
               {calc.systemServiceLines.length > 0 && (
                 <tr>
-                  <td colSpan={5} style={{
+                  <td colSpan={calc.isGC ? 5 : 6} style={{
                     padding: '5px 10px', background: '#F4F6FB',
                     fontSize: 10, color: '#6C757D',
                     fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
@@ -458,7 +463,11 @@ export default function ReceiptPreview({ voyageNumber, readOnly, onClose, autoEx
                     {row.description && row.description !== row.service_code
                       ? <span style={{ color: '#888', fontWeight: 400 }}> {row.description}</span>
                       : null}
+                    {!calc.isGC && row.unit
+                      ? <span style={{ color: '#888', fontSize: 10 }}> ({row.unit})</span>
+                      : null}
                   </td>
+                  {!calc.isGC && <td style={{ ...T_CELL, textAlign: 'center' }}>{row.container_type || '20ft'}</td>}
                   <td style={{ ...T_CELL, textAlign: 'right' }}>
                     <span className="num-ltr">{row.quantity}</span>
                   </td>

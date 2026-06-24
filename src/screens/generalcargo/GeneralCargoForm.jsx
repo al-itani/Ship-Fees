@@ -14,7 +14,7 @@ function calcLineTotal(qty, rate, minimum) {
   return minimum > 0 ? Math.max(raw, minimum) : raw
 }
 
-const EMPTY_LINE = { codeObj: null, qty: '', rate: '' }
+const EMPTY_LINE = { codeObj: null, qty: '', rate: '', customCode: '', customUnit: '' }
 
 const thStyle = {
   padding: '9px 16px', textAlign: 'start', fontWeight: 600,
@@ -57,7 +57,7 @@ export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerat
 
   // Auto-fill rate when code changes
   useEffect(() => {
-    if (!line.codeObj) return
+    if (!line.codeObj || line.codeObj._custom) return
     let rate
     if (line.codeObj.code?.trim().toUpperCase() === 'FCLEAN') {
       const loa = voyageInfo?.berthing?.loa
@@ -85,11 +85,11 @@ export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerat
 
   const qtyNum  = parseFloat(line.qty)
   const rateNum = parseFloat(line.rate)
-  const minimum = line.codeObj?.minimum || 0
+  const minimum = line.codeObj?._custom ? 0 : (line.codeObj?.minimum || 0)
   const lineTotal = !isNaN(qtyNum) && !isNaN(rateNum) && qtyNum > 0
     ? calcLineTotal(qtyNum, rateNum, minimum)
     : null
-  const minimumApplied = lineTotal !== null && minimum > 0 && (qtyNum * rateNum) < minimum
+  const minimumApplied = !line.codeObj?._custom && lineTotal !== null && minimum > 0 && (qtyNum * rateNum) < minimum
 
   const pendingSubtotal = pendingLines.reduce((s, l) => s + l.line_total, 0)
 
@@ -99,27 +99,30 @@ export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerat
   }
 
   function handleAddLine() {
-    if (!line.codeObj)   { setLineError(t('line_code_required')); return }
+    const isCustom = !!line.codeObj?._custom
+    if (!line.codeObj) { setLineError(t('line_code_required')); return }
+    if (isCustom && !line.customCode.trim()) { setLineError(t('line_code_required')); return }
     if (!line.qty || parseFloat(line.qty) <= 0) { setLineError(t('line_qty_required')); return }
     if (line.rate === '' || isNaN(parseFloat(line.rate))) { setLineError(t('line_rate_required')); return }
 
     setLineError('')
     const qty  = parseFloat(line.qty)
     const rate = parseFloat(line.rate)
-    const min  = line.codeObj.minimum || 0
+    const min  = isCustom ? 0 : (line.codeObj.minimum || 0)
     const total = calcLineTotal(qty, rate, min)
-    const minApplied = min > 0 && (qty * rate) < min ? 1 : 0
+    const minApplied = isCustom ? 0 : (min > 0 && (qty * rate) < min ? 1 : 0)
+    const code = isCustom ? line.customCode.trim() : line.codeObj.code
 
     setPendingLines(prev => [...prev, {
-      service_code:    line.codeObj.code,
-      description:     line.codeObj.description,
-      unit:            line.codeObj.unit || '',
+      service_code:    code,
+      description:     code,
+      unit:            isCustom ? (line.customUnit || '') : (line.codeObj.unit || ''),
       quantity:        qty,
       rate,
       minimum:         min,
       line_total:      total,
       minimum_applied: minApplied,
-      is_taxable:      line.codeObj.is_taxable || 0,
+      is_taxable:      isCustom ? 0 : (line.codeObj.is_taxable || 0),
     }])
     setLine(EMPTY_LINE)
     setTimeout(() => codeInputRef.current?.focus(), 50)
@@ -258,24 +261,59 @@ export default function GeneralCargoForm({ voyageInfo, onChangeVoyage, onGenerat
           {/* Code */}
           <div>
             <label style={labelStyle}>{t('service_code')}</label>
-            <GCCodeSelect
-              ref={codeInputRef}
-              codes={codes}
-              value={line.codeObj}
-              onChange={codeObj => setLine(prev => ({ ...prev, codeObj, rate: '' }))}
-            />
+            {line.codeObj?._custom ? (
+              <div style={{ position: 'relative' }}>
+                <input
+                  autoFocus
+                  type="text"
+                  style={{ ...fieldStyle, width: '100%', paddingInlineEnd: 32 }}
+                  value={line.customCode}
+                  placeholder={t('custom_entry')}
+                  onChange={e => setLine(prev => ({ ...prev, customCode: e.target.value }))}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddLine() }}
+                />
+                <button
+                  tabIndex={-1}
+                  onClick={() => setLine(prev => ({ ...prev, codeObj: null, customCode: '', customUnit: '' }))}
+                  style={{
+                    position: 'absolute', insetInlineEnd: 8, top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: 16, lineHeight: 1,
+                  }}
+                >×</button>
+              </div>
+            ) : (
+              <GCCodeSelect
+                ref={codeInputRef}
+                codes={codes}
+                value={line.codeObj}
+                onChange={codeObj => setLine(prev => ({ ...prev, codeObj, rate: '', customCode: '', customUnit: '' }))}
+              />
+            )}
           </div>
 
-          {/* Unit — read-only */}
+          {/* Unit */}
           <div>
             <label style={labelStyle}>{t('gc_unit')}</label>
-            <div style={{
-              ...fieldStyle, display: 'flex', alignItems: 'center',
-              background: '#F8FAFF', color: 'var(--color-text-muted)',
-              fontSize: 13,
-            }}>
-              {line.codeObj?.unit || '—'}
-            </div>
+            {line.codeObj?._custom ? (
+              <input
+                type="text"
+                style={{ ...fieldStyle, width: '100%' }}
+                value={line.customUnit}
+                placeholder="—"
+                onChange={e => setLine(prev => ({ ...prev, customUnit: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') handleAddLine() }}
+              />
+            ) : (
+              <div style={{
+                ...fieldStyle, display: 'flex', alignItems: 'center',
+                background: '#F8FAFF', color: 'var(--color-text-muted)',
+                fontSize: 13,
+              }}>
+                {line.codeObj?.unit || '—'}
+              </div>
+            )}
           </div>
 
           {/* Qty */}

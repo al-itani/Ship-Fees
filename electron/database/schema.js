@@ -418,6 +418,64 @@ module.exports = function initSchema(db) {
   // Ship name autocomplete table
   db.exec(`CREATE TABLE IF NOT EXISTS ship_names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)`)
 
+  // Ships master list (for dropdown + LOA auto-fill in BerthingForm)
+  db.exec(`CREATE TABLE IF NOT EXISTS ships (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    loa        REAL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    is_deleted INTEGER NOT NULL DEFAULT 0
+  )`)
+
+  // Ensure CC1 GC code exists with correct unit
+  try {
+    db.prepare(`INSERT OR IGNORE INTO gc_codes (code, description, rate, minimum, unit, is_taxable, is_fixed, is_active) VALUES ('CC1', 'CC1', 60, 0, 'load', 0, 0, 1)`).run()
+    db.prepare(`UPDATE gc_codes SET unit = 'load' WHERE code = 'CC1' AND (unit IS NULL OR unit = '')`).run()
+  } catch {}
+
+  // Add unit column to container_codes
+  try { db.exec(`ALTER TABLE container_codes ADD COLUMN unit TEXT`) } catch {}
+
+  // Ensure N5-N9 and CC1 exist in container_codes with units (N6 may already exist from seed)
+  try {
+    const upsertCC = db.prepare(`
+      INSERT INTO container_codes (code, description, default_rate_20, default_rate_40, is_taxable, is_fixed, is_active, unit)
+      VALUES (?, ?, ?, ?, 0, 0, 1, ?)
+      ON CONFLICT(code) DO UPDATE SET unit = excluded.unit WHERE unit IS NULL OR unit = ''
+    `)
+    for (const [code, r20, r40, unit] of [
+      ['N5',   20.0,  20.0, 'ton'],
+      ['N6',   40.0,  40.0, 'ton'],
+      ['N7',   60.0,  60.0, 'ton'],
+      ['N8',   80.0,  80.0, 'ton'],
+      ['N9',  100.0, 100.0, 'ton'],
+      ['CC1',  60.0,  60.0, 'load'],
+    ]) upsertCC.run(code, code, r20, r40, unit)
+  } catch {}
+
+  // Swap P2 and En Rade minimums (guard: old P2/L1 min was 75, new is 150)
+  try {
+    const p2L1min = db.prepare(`SELECT min_fee FROM berthing_minimums WHERE position = 'P2' AND l_index = 1`).get()
+    if (p2L1min && p2L1min.min_fee === 75) {
+      db.transaction(() => {
+        db.exec(`UPDATE berthing_minimums SET position = 'SWAP_TEMP' WHERE position = 'P2'`)
+        db.exec(`UPDATE berthing_minimums SET position = 'P2' WHERE position = 'En Rade'`)
+        db.exec(`UPDATE berthing_minimums SET position = 'En Rade' WHERE position = 'SWAP_TEMP'`)
+      })()
+    }
+  } catch {}
+
+  // Add missing shipping agents
+  try {
+    db.prepare(`INSERT OR IGNORE INTO shipping_agents (name) VALUES ('MARCO Maritime &Comm.Services')`).run()
+  } catch {}
+
+  // Add VOBO and TOUR vessel categories (50% discount)
+  try {
+    db.prepare(`INSERT OR IGNORE INTO vessel_categories (name, discount_factor) VALUES ('VOBO', 0.50)`).run()
+    db.prepare(`INSERT OR IGNORE INTO vessel_categories (name, discount_factor) VALUES ('TOUR', 0.50)`).run()
+  } catch {}
+
   // user_permissions table — stores per-user permission grants
   db.exec(`
     CREATE TABLE IF NOT EXISTS user_permissions (

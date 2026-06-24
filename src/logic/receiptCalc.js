@@ -36,9 +36,10 @@ export function calculateReceipt({ berthingRows, serviceRows, moduleType, vessel
   // For single-position non-Quay voyages, use that position's minimum.
   const payingRows = berthingRows.filter(r => r.position !== 'Congestion')
   const combinedFee = r2(payingRows.reduce((s, r) => s + (r.fee_after_discount || 0) + (r.maintenance_fee || 0), 0))
+  const hasDiscount = payingRows.some(r => (r.discount_factor ?? 1) < 1)
   const quayRow = payingRows.find(r => (r.position || 'Quay') === 'Quay')
   const refRow = quayRow || payingRows[0]
-  const applicableMin = refRow ? (refRow.min_fee || 0) : 0
+  const applicableMin = (!hasDiscount && refRow) ? (refRow.min_fee || 0) : 0
   const rawBerthingTotal = r2(Math.max(combinedFee, applicableMin))
   const roroDiscount  = isRoRo ? r2(rawBerthingTotal * 0.35) : 0
   const berthingTotal = r2(rawBerthingTotal - roroDiscount)

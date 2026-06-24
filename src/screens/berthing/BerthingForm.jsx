@@ -10,6 +10,7 @@ const POSITIONS = ['Quay', 'P2', 'En Rade', 'Congestion']
 const VESSEL_CATEGORIES = [
   'Lebanese', 'Wooden Coasters', 'Sailboats', 'Passenger', 'Tourist',
   'Ro-Ro', 'Military', 'Lebanese Government (Non-Commercial)',
+  'VOBO', 'TOUR',
 ]
 const VESSEL_TYPES = ['Container', 'General Cargo', 'RoRo', 'Petrolien']
 
@@ -52,11 +53,11 @@ const EMPTY_FORM = {
 }
 const EMPTY_LINE = { position: '', days: '' }
 
-export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, onGoToContainers, onGoToGeneralCargo, initialVoyageNumber }) {
+export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, onGoToContainers, onGoToGeneralCargo, onGenerateReceipt, initialVoyageNumber }) {
   const { t } = useTranslation()
   const { session, ratesData, agents } = useSession()
 
-  const [shipNames, setShipNames]   = useState([])
+  const [ships, setShips]           = useState([])
   const [form, setForm]             = useState(EMPTY_FORM)
   const [lines, setLines]           = useState([{ ...EMPTY_LINE }])
   const [breakdowns, setBreakdowns] = useState([null])
@@ -72,8 +73,8 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
   const isEditing = !!editVoyageNumber
 
   useEffect(() => {
-    window.api.berthingGetAllShipNames().then(res => {
-      if (res.success) setShipNames(res.data)
+    window.api.shipsGetAll().then(res => {
+      if (res.success) setShips(res.data)
     })
   }, [])
 
@@ -383,10 +384,17 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
       <div style={twoCol}>
         <div style={groupStyle}>
           <label style={labelStyle}>{t('vessel_name')} * <UncWarn field="vessel_name" /></label>
-          <input list="ship-names-list" style={fieldStyle(errors.vesselName, uncertainFields.has('vessel_name'))} type="text"
-            value={form.vesselName} onChange={e => set('vesselName', e.target.value)} {...uf('vessel_name')} />
-          <datalist id="ship-names-list">
-            {shipNames.map(n => <option key={n} value={n} />)}
+          <input list="ships-datalist" style={fieldStyle(errors.vesselName, uncertainFields.has('vessel_name'))} type="text"
+            value={form.vesselName}
+            onChange={e => {
+              const name = e.target.value
+              set('vesselName', name)
+              const match = ships.find(s => s.name.toLowerCase() === name.toLowerCase())
+              if (match && match.loa != null && !form.loa) set('loa', String(match.loa))
+            }}
+            {...uf('vessel_name')} />
+          <datalist id="ships-datalist">
+            {ships.map(s => <option key={s.id} value={s.name} />)}
           </datalist>
         </div>
         <div style={groupStyle}>
@@ -514,12 +522,22 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
                 style={{ ...fieldStyle(false), height: 40 }} />
               <div style={{
                 height: 40, display: 'flex', alignItems: 'center', paddingInlineStart: 4,
-                fontSize: 14, fontWeight: 600,
-                color: bd ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                gap: 6, flexWrap: 'wrap',
               }}>
-                <span className="num-ltr">
-                  {bd ? '$' + bd.finalFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}
-                </span>
+                {bd ? (
+                  <>
+                    <span className="num-ltr" style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-primary)' }}>
+                      {'$' + bd.finalFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    {bd.discountFactor < 1 && (
+                      <span style={{ fontSize: 11, color: '#27ae60', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {Math.round((1 - bd.discountFactor) * 100)}% off
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-muted)' }}>—</span>
+                )}
               </div>
               <button onClick={() => removeLine(i)} disabled={lines.length <= 1}
                 title={t('remove_berthing_line')}
@@ -633,8 +651,15 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', marginBottom: 4, background: '#F8FAFF', borderRadius: 6 }}>
                       <span style={{ fontWeight: 500, minWidth: 80 }}>{line.position}</span>
                       <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>{line.days} {t('days')}</span>
-                      <span className="num-ltr" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
-                        ${bd.finalFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {bd.discountFactor < 1 && (
+                          <span className="num-ltr" style={{ fontSize: 11, color: '#9CA3AF', textDecoration: 'line-through' }}>
+                            ${bd.rawFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        <span className="num-ltr" style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                          ${bd.finalFee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
                       </span>
                     </div>
                   )
@@ -669,12 +694,12 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
               <div style={{ fontSize: 22, marginBottom: 12 }}>✅</div>
               <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700 }}>{t('record_saved')}</h3>
               <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                {postSaveVesselType === 'General Cargo' ? t('open_gc_prompt') : t('open_containers_prompt')}
+                {(postSaveVesselType === 'General Cargo' || postSaveVesselType === 'Petrolien') ? t('open_gc_prompt') : t('open_containers_prompt')}
                 {' '}
                 <strong style={{ color: 'var(--color-primary)' }}>{postSaveVoyage}</strong>?
               </p>
             </div>
-            <div style={{ padding: '16px 28px 24px', display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid #F0F0F0' }}>
+            <div style={{ padding: '16px 28px 24px', display: 'flex', gap: 10, justifyContent: 'flex-end', borderTop: '1px solid #F0F0F0', flexWrap: 'wrap' }}>
               <button
                 onClick={() => {
                   setPostSaveVoyage(null); setPostSaveVesselType(null)
@@ -683,7 +708,18 @@ export default function BerthingForm({ editVoyageNumber, onSaved, onCancelEdit, 
                 style={{ padding: '10px 20px', borderRadius: 6, fontSize: 14, border: '1px solid var(--color-border)', background: 'white', cursor: 'pointer' }}>
                 + {t('new_entry')}
               </button>
-              {postSaveVesselType === 'General Cargo' ? (
+              <button
+                onClick={async () => {
+                  const vn = postSaveVoyage
+                  setPostSaveVoyage(null); setPostSaveVesselType(null)
+                  const res = await window.api.receiptPrepareBerthingOnly(vn, session.username)
+                  if (!res.success) { showToast(res.error || 'Error', 'error'); return }
+                  onGenerateReceipt?.(vn)
+                }}
+                style={{ padding: '10px 20px', borderRadius: 6, border: '1px solid var(--color-primary)', fontSize: 14, background: 'white', color: 'var(--color-primary)', fontWeight: 600, cursor: 'pointer' }}>
+                🧾 {t('generate_receipt')}
+              </button>
+              {(postSaveVesselType === 'General Cargo' || postSaveVesselType === 'Petrolien') ? (
                 <button
                   onClick={() => { const vn = postSaveVoyage; setPostSaveVoyage(null); setPostSaveVesselType(null); onGoToGeneralCargo?.(vn) }}
                   style={{ padding: '10px 24px', borderRadius: 6, border: 'none', fontSize: 14, background: 'var(--color-primary)', color: 'white', fontWeight: 600, cursor: 'pointer' }}>

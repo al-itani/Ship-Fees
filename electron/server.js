@@ -64,6 +64,16 @@ app.post('/api/auth/login', (req, res) => {
     res.json({ success: false, error: err.message })
   }
 })
+app.post('/api/auth/restoreSession', (req, res) => {
+  const { userId } = req.body
+  try {
+    const result = authHandlers.restoreSession(userId)
+    if (!result.success) return res.json({ success: false, error: 'restore_failed' })
+    res.json({ success: true, data: result.user })
+  } catch (err) {
+    res.json({ success: false, error: err.message })
+  }
+})
 // Real signature is changePassword(userId, newPassword) — no current-password check.
 app.post('/api/auth/changePassword', (req, res) => {
   const { userId, newPassword } = req.body
