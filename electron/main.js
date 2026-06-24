@@ -316,6 +316,10 @@ ipcMain.handle('cma:getReport',
     : cmaHandlers.getReport(year, month)
 )
 
+ipcMain.handle('cma:getGCReport',
+  (_, year, month) => C ? { success: false, error: 'not_supported' } : cmaHandlers.getGCReport(year, month)
+)
+
 ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
   try {
     const XLSX = require('xlsx')

@@ -71,6 +71,7 @@ contextBridge.exposeInMainWorld('api', {
   aiTestConnection: ()       => ipcRenderer.invoke('ai:testConnection'),
 
   cmaGetReport:   (year, month)          => ipcRenderer.invoke('cma:getReport', year, month),
+  cmaGetGCReport: (year, month)          => ipcRenderer.invoke('cma:getGCReport', year, month),
   cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
 
   dialogConfirm: (opts) => ipcRenderer.invoke('dialog:confirm', opts),

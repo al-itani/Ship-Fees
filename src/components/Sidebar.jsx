@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 
-const VERSION = '1.0.10'
+const VERSION = '1.0.11'
 
 const navItems = [
   { key: 'home',             icon: '🏠', label: 'home' },

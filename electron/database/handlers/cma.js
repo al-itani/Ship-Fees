@@ -105,4 +105,47 @@ function getVoyageDetail(year, month, agent) {
   }
 }
 
-module.exports = { getReport, getVoyageDetail, LOCAL_CODES, TRANS_CODES }
+const N_CODES = ['N1','N2','N3','N4','N5','N6','N7','N8','N9','N10']
+const nIn = N_CODES.map(() => '?').join(',')
+
+function getGCReport(year, month) {
+  try {
+    const yyyy = String(year)
+    const mm   = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_agents AS (
+        SELECT br.voyage_number, br.shipping_agent
+        FROM berthing_records br
+        WHERE br.is_deleted = 0
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT va.voyage_number, va.shipping_agent, gs.service_code, gs.line_total
+      FROM voyage_agents va
+      JOIN gc_services gs ON gs.voyage_number = va.voyage_number AND gs.is_deleted = 0
+      WHERE gs.service_code IN (${nIn})
+      ORDER BY va.voyage_number, gs.service_code
+    `).all(yyyy, mm, ...N_CODES)
+
+    const voyageMap = new Map()
+    for (const row of rows) {
+      if (!voyageMap.has(row.voyage_number)) {
+        voyageMap.set(row.voyage_number, { voyage_number: row.voyage_number, shipping_agent: row.shipping_agent, lines: [] })
+      }
+      voyageMap.get(row.voyage_number).lines.push({
+        service_code: row.service_code,
+        original: row.line_total,
+        billable: +(row.line_total * 0.35).toFixed(2),
+      })
+    }
+    const data = Array.from(voyageMap.values()).map(v => ({
+      ...v,
+      subtotal: +v.lines.reduce((s, l) => s + l.billable, 0).toFixed(2),
+    }))
+    return { success: true, data }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
+module.exports = { getReport, getVoyageDetail, getGCReport, LOCAL_CODES, TRANS_CODES }
