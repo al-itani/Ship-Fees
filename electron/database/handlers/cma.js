@@ -207,4 +207,165 @@ function getGCReport(year, month) {
   }
 }
 
-module.exports = { getReport, getVoyageDetail, getGCReport, getTrsReport, LOCAL_CODES, TRANS_CODES }
+// ── Normal Receipt (Tab 1) — C1/C5/C1-E/C123/C321-E/C524/C425 + Transit ─────
+const NORMAL_CODES  = ['C1', 'C5', 'C1-E', 'C123', 'C321-E', 'C524', 'C425']
+const normIn        = NORMAL_CODES.map(() => '?').join(',')
+const NORM_PARAMS   = [...NORMAL_CODES, ...NORMAL_CODES, ...TRANS_CODES, ...TRANS_CODES]
+
+const NORM_SELECT = `
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${normIn})  AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS local_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${normIn})  AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS local_40,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${transIn}) AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS trans_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${transIn}) AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS trans_40
+`
+
+function computeNormDerived(row) {
+  const localTeus = row.local_20 + row.local_40 * 2
+  const transTeus = row.trans_20 + row.trans_40 * 2
+  const localFee  = +(localTeus * STD_RATE).toFixed(2)
+  const transFee  = +(transTeus * TRANS_RATE).toFixed(2)
+  return {
+    ...row,
+    local_teus: localTeus,
+    trans_teus: transTeus,
+    local_fee:  localFee,
+    trans_fee:  transFee,
+    total:      +(localFee + transFee).toFixed(2),
+    local_lbp:  +(localTeus * 479260).toFixed(2),
+    trans_lbp:  +(transTeus * 311519).toFixed(2),
+  }
+}
+
+function getNormalReport(year, month) {
+  try {
+    const yyyy = String(year), mm = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_agents AS (
+        SELECT br.voyage_number, br.shipping_agent
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT va.shipping_agent AS agent, ${NORM_SELECT}
+      FROM voyage_agents va
+      LEFT JOIN container_services cs ON cs.voyage_number = va.voyage_number AND cs.is_deleted = 0
+      GROUP BY va.shipping_agent
+      ORDER BY va.shipping_agent
+    `).all(yyyy, mm, ...NORM_PARAMS)
+    return { success: true, data: rows.map(computeNormDerived) }
+  } catch (err) { return { success: false, error: err.message } }
+}
+
+function getNormalVoyageDetail(year, month, agent) {
+  try {
+    const yyyy = String(year), mm = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_list AS (
+        SELECT br.voyage_number, br.shipping_agent, br.vessel_name, br.bill_number
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND br.shipping_agent = ?
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT vl.vessel_name, vl.shipping_agent AS agent, vl.voyage_number, vl.bill_number, ${NORM_SELECT}
+      FROM voyage_list vl
+      LEFT JOIN container_services cs ON cs.voyage_number = vl.voyage_number AND cs.is_deleted = 0
+      GROUP BY vl.voyage_number
+      ORDER BY vl.voyage_number
+    `).all(agent, yyyy, mm, ...NORM_PARAMS)
+    return { success: true, data: rows.map(computeNormDerived) }
+  } catch (err) { return { success: false, error: err.message } }
+}
+
+function getNormalTrsReport(year, month) {
+  try {
+    const yyyy = String(year), mm = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_list AS (
+        SELECT br.voyage_number, br.shipping_agent
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT vl.voyage_number, vl.shipping_agent AS agent, ${NORM_SELECT}
+      FROM voyage_list vl
+      LEFT JOIN container_services cs ON cs.voyage_number = vl.voyage_number AND cs.is_deleted = 0
+      GROUP BY vl.voyage_number
+      ORDER BY vl.voyage_number
+    `).all(yyyy, mm, ...NORM_PARAMS)
+    return { success: true, data: rows.map(computeNormDerived) }
+  } catch (err) { return { success: false, error: err.message } }
+}
+
+// ── FRP Receipt (Tab 2) — FRP/FRV/FCP/FCV/FRP-E/FCP-E, local only ───────────
+const FRP_ONLY_CODES  = ['FRP', 'FRV', 'FCP', 'FCV', 'FRP-E', 'FCP-E']
+const frpOnlyIn       = FRP_ONLY_CODES.map(() => '?').join(',')
+const FRP_ONLY_PARAMS = [...FRP_ONLY_CODES, ...FRP_ONLY_CODES]
+
+const FRP_ONLY_SELECT = `
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${frpOnlyIn}) AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS frp_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${frpOnlyIn}) AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS frp_40
+`
+
+function computeFrpDerived(row) {
+  const frpTeus = row.frp_20 + row.frp_40 * 2
+  return { ...row, frp_teus: frpTeus, fee: +(frpTeus * FRP_RATE).toFixed(2) }
+}
+
+function getFrpReport(year, month) {
+  try {
+    const yyyy = String(year), mm = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_agents AS (
+        SELECT br.voyage_number, br.shipping_agent
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT va.shipping_agent AS agent, ${FRP_ONLY_SELECT}
+      FROM voyage_agents va
+      LEFT JOIN container_services cs ON cs.voyage_number = va.voyage_number AND cs.is_deleted = 0
+      GROUP BY va.shipping_agent
+      ORDER BY va.shipping_agent
+    `).all(yyyy, mm, ...FRP_ONLY_PARAMS)
+    return { success: true, data: rows.map(computeFrpDerived) }
+  } catch (err) { return { success: false, error: err.message } }
+}
+
+function getFrpVoyageDetail(year, month, agent) {
+  try {
+    const yyyy = String(year), mm = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_list AS (
+        SELECT br.voyage_number, br.shipping_agent, br.vessel_name, br.bill_number
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND br.shipping_agent = ?
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT vl.vessel_name, vl.shipping_agent AS agent, vl.voyage_number, vl.bill_number, ${FRP_ONLY_SELECT}
+      FROM voyage_list vl
+      LEFT JOIN container_services cs ON cs.voyage_number = vl.voyage_number AND cs.is_deleted = 0
+      GROUP BY vl.voyage_number
+      ORDER BY vl.voyage_number
+    `).all(agent, yyyy, mm, ...FRP_ONLY_PARAMS)
+    return { success: true, data: rows.map(computeFrpDerived) }
+  } catch (err) { return { success: false, error: err.message } }
+}
+
+module.exports = {
+  getReport, getVoyageDetail, getGCReport, getTrsReport,
+  getNormalReport, getNormalVoyageDetail, getNormalTrsReport,
+  getFrpReport, getFrpVoyageDetail,
+  LOCAL_CODES, TRANS_CODES,
+}

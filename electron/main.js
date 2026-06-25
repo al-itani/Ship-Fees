@@ -482,6 +482,223 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
   }
 })
 
+ipcMain.handle('cma:getNormalReport',
+  (_, year, month) => cmaHandlers.getNormalReport(year, month)
+)
+ipcMain.handle('cma:getNormalTrsReport',
+  (_, year, month) => cmaHandlers.getNormalTrsReport(year, month)
+)
+ipcMain.handle('cma:getFrpReport',
+  (_, year, month) => cmaHandlers.getFrpReport(year, month)
+)
+
+ipcMain.handle('cma:exportNormalExcel', async (event, { year, month, agent }) => {
+  try {
+    const XLSX = require('xlsx')
+    const LOCAL_LBP_RATE = 479260
+    const TRANS_LBP_RATE = 311519
+    const colWidths = (rows, headers) =>
+      headers.map(h => ({ wch: Math.max(h.length, ...rows.map(r => String(r[h] ?? '').length)) + 2 }))
+    const addTotalsRow = (mapped, headers, labelCol, label) => {
+      const tot = { [labelCol]: label }
+      for (const h of headers) {
+        if (h === labelCol) continue
+        tot[h] = +mapped.reduce((s, r) => s + (typeof r[h] === 'number' ? r[h] : 0), 0).toFixed(2)
+      }
+      mapped.push(tot)
+    }
+    const voyageHeaders = ['Vessel Name','Agent','Voyage #','Bill #','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)','Local Fee (LL)','Trans Fee (LL)','Total (LL)']
+    const toRow = r => {
+      const localLbp = r.local_teus * LOCAL_LBP_RATE
+      const transLbp = r.trans_teus * TRANS_LBP_RATE
+      return {
+        'Vessel Name':    r.vessel_name || '',
+        'Agent':          r.agent,
+        'Voyage #':       r.voyage_number,
+        'Bill #':         r.bill_number || '',
+        '20ft Local':     r.local_20,
+        '40ft Local':     r.local_40,
+        '20ft Trans':     r.trans_20,
+        '40ft Trans':     r.trans_40,
+        'Local TEUs':     r.local_teus,
+        'Trans TEUs':     r.trans_teus,
+        'Local Fee ($)':  r.local_fee,
+        'Trans Fee ($)':  r.trans_fee,
+        'Total ($)':      r.total,
+        'Local Fee (LL)': localLbp,
+        'Trans Fee (LL)': transLbp,
+        'Total (LL)':     localLbp + transLbp,
+      }
+    }
+
+    const wb = XLSX.utils.book_new()
+    let defaultFilename
+
+    if (agent === '__ALL__') {
+      const reportResult = cmaHandlers.getNormalReport(year, month)
+      if (!reportResult.success) return reportResult
+      const summaryHeaders = ['Agent','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)','Local Fee (LL)','Trans Fee (LL)','Total (LL)']
+      const summaryRows = []
+      for (const agentRow of reportResult.data) {
+        const detail = cmaHandlers.getNormalVoyageDetail(year, month, agentRow.agent)
+        if (!detail.success || detail.data.length === 0) continue
+        const mapped = detail.data.map(toRow)
+        addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
+        const ws = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
+        ws['!cols'] = colWidths(mapped, voyageHeaders)
+        const sheetName = agentRow.agent.replace(/[/\\?*[\]:]/g, '').slice(0, 31) || `Agent_${summaryRows.length + 1}`
+        XLSX.utils.book_append_sheet(wb, ws, sheetName)
+        const localLbp = agentRow.local_teus * LOCAL_LBP_RATE
+        const transLbp = agentRow.trans_teus * TRANS_LBP_RATE
+        summaryRows.push({
+          'Agent': agentRow.agent, '20ft Local': agentRow.local_20, '40ft Local': agentRow.local_40,
+          '20ft Trans': agentRow.trans_20, '40ft Trans': agentRow.trans_40,
+          'Local TEUs': agentRow.local_teus, 'Trans TEUs': agentRow.trans_teus,
+          'Local Fee ($)': agentRow.local_fee, 'Trans Fee ($)': agentRow.trans_fee, 'Total ($)': agentRow.total,
+          'Local Fee (LL)': localLbp, 'Trans Fee (LL)': transLbp, 'Total (LL)': localLbp + transLbp,
+        })
+      }
+      addTotalsRow(summaryRows, summaryHeaders, 'Agent', 'TOTAL')
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows, { header: summaryHeaders })
+      wsSummary['!cols'] = colWidths(summaryRows, summaryHeaders)
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'All Agents')
+      defaultFilename = `CMA_NORMAL_ALL_AGENTS_${MONTHS[month - 1]}_${year}.xlsx`
+    } else {
+      const result = cmaHandlers.getNormalVoyageDetail(year, month, agent)
+      if (!result.success) return result
+      const mapped = result.data.map(toRow)
+      addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
+      const wsVoyages = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
+      wsVoyages['!cols'] = colWidths(mapped, voyageHeaders)
+      const totals = result.data.reduce((acc, r) => ({
+        local_teus: acc.local_teus + r.local_teus, trans_teus: acc.trans_teus + r.trans_teus,
+        local_fee: acc.local_fee + r.local_fee, trans_fee: acc.trans_fee + r.trans_fee, total: acc.total + r.total,
+        local_20: acc.local_20 + r.local_20, local_40: acc.local_40 + r.local_40,
+        trans_20: acc.trans_20 + r.trans_20, trans_40: acc.trans_40 + r.trans_40,
+      }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
+      const localLbp = totals.local_teus * LOCAL_LBP_RATE
+      const transLbp = totals.trans_teus * TRANS_LBP_RATE
+      const summaryRow = {
+        'Vessel Name': `${agent} — ${MONTHS[month - 1]} ${year}`, 'Agent': agent,
+        'Voyage #': `${result.data.length} voyage(s)`, 'Bill #': '',
+        '20ft Local': totals.local_20, '40ft Local': totals.local_40,
+        '20ft Trans': totals.trans_20, '40ft Trans': totals.trans_40,
+        'Local TEUs': totals.local_teus, 'Trans TEUs': totals.trans_teus,
+        'Local Fee ($)': +totals.local_fee.toFixed(2), 'Trans Fee ($)': +totals.trans_fee.toFixed(2),
+        'Total ($)': +totals.total.toFixed(2),
+        'Local Fee (LL)': localLbp, 'Trans Fee (LL)': transLbp, 'Total (LL)': localLbp + transLbp,
+      }
+      const wsSummary = XLSX.utils.json_to_sheet([summaryRow], { header: voyageHeaders })
+      wsSummary['!cols'] = colWidths([summaryRow], voyageHeaders)
+      XLSX.utils.book_append_sheet(wb, wsVoyages, 'Voyages')
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
+      const agentSafe = agent.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      defaultFilename = `CMA_NORMAL_${agentSafe}_${MONTHS[month - 1]}_${year}.xlsx`
+    }
+
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      defaultPath: defaultFilename,
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+    })
+    if (canceled || !filePath) return { success: false, canceled: true }
+    XLSX.writeFile(wb, filePath)
+    return { success: true, filePath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.handle('cma:exportFrpExcel', async (event, { year, month, agent }) => {
+  try {
+    const XLSX = require('xlsx')
+    const colWidths = (rows, headers) =>
+      headers.map(h => ({ wch: Math.max(h.length, ...rows.map(r => String(r[h] ?? '').length)) + 2 }))
+    const addTotalsRow = (mapped, headers, labelCol, label) => {
+      const tot = { [labelCol]: label }
+      for (const h of headers) {
+        if (h === labelCol) continue
+        tot[h] = +mapped.reduce((s, r) => s + (typeof r[h] === 'number' ? r[h] : 0), 0).toFixed(2)
+      }
+      mapped.push(tot)
+    }
+    const voyageHeaders = ['Vessel Name','Agent','Voyage #','Bill #','20ft','40ft','TEUs','Fee ($)']
+    const toRow = r => ({
+      'Vessel Name': r.vessel_name || '',
+      'Agent':       r.agent,
+      'Voyage #':    r.voyage_number,
+      'Bill #':      r.bill_number || '',
+      '20ft':        r.frp_20,
+      '40ft':        r.frp_40,
+      'TEUs':        r.frp_teus,
+      'Fee ($)':     r.fee,
+    })
+
+    const wb = XLSX.utils.book_new()
+    let defaultFilename
+
+    if (agent === '__ALL__') {
+      const reportResult = cmaHandlers.getFrpReport(year, month)
+      if (!reportResult.success) return reportResult
+      const summaryHeaders = ['Agent','20ft','40ft','TEUs','Fee ($)']
+      const summaryRows = []
+      for (const agentRow of reportResult.data) {
+        const detail = cmaHandlers.getFrpVoyageDetail(year, month, agentRow.agent)
+        if (!detail.success || detail.data.length === 0) continue
+        const mapped = detail.data.map(toRow)
+        addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
+        const ws = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
+        ws['!cols'] = colWidths(mapped, voyageHeaders)
+        const sheetName = agentRow.agent.replace(/[/\\?*[\]:]/g, '').slice(0, 31) || `Agent_${summaryRows.length + 1}`
+        XLSX.utils.book_append_sheet(wb, ws, sheetName)
+        summaryRows.push({
+          'Agent': agentRow.agent, '20ft': agentRow.frp_20, '40ft': agentRow.frp_40,
+          'TEUs': agentRow.frp_teus, 'Fee ($)': agentRow.fee,
+        })
+      }
+      addTotalsRow(summaryRows, summaryHeaders, 'Agent', 'TOTAL')
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows, { header: summaryHeaders })
+      wsSummary['!cols'] = colWidths(summaryRows, summaryHeaders)
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'All Agents')
+      defaultFilename = `CMA_FRP_ALL_AGENTS_${MONTHS[month - 1]}_${year}.xlsx`
+    } else {
+      const result = cmaHandlers.getFrpVoyageDetail(year, month, agent)
+      if (!result.success) return result
+      const mapped = result.data.map(toRow)
+      addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
+      const wsVoyages = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
+      wsVoyages['!cols'] = colWidths(mapped, voyageHeaders)
+      const totals = result.data.reduce((acc, r) => ({
+        frp_20: acc.frp_20 + r.frp_20, frp_40: acc.frp_40 + r.frp_40,
+        frp_teus: acc.frp_teus + r.frp_teus, fee: acc.fee + r.fee,
+      }), { frp_20:0, frp_40:0, frp_teus:0, fee:0 })
+      const summaryRow = {
+        'Vessel Name': `${agent} — ${MONTHS[month - 1]} ${year}`, 'Agent': agent,
+        'Voyage #': `${result.data.length} voyage(s)`, 'Bill #': '',
+        '20ft': totals.frp_20, '40ft': totals.frp_40,
+        'TEUs': totals.frp_teus, 'Fee ($)': +totals.fee.toFixed(2),
+      }
+      const wsSummary = XLSX.utils.json_to_sheet([summaryRow], { header: voyageHeaders })
+      wsSummary['!cols'] = colWidths([summaryRow], voyageHeaders)
+      XLSX.utils.book_append_sheet(wb, wsVoyages, 'Voyages')
+      XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary')
+      const agentSafe = agent.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '')
+      defaultFilename = `CMA_FRP_${agentSafe}_${MONTHS[month - 1]}_${year}.xlsx`
+    }
+
+    const win = BrowserWindow.fromWebContents(event.sender)
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      defaultPath: defaultFilename,
+      filters: [{ name: 'Excel Files', extensions: ['xlsx'] }],
+    })
+    if (canceled || !filePath) return { success: false, canceled: true }
+    XLSX.writeFile(wb, filePath)
+    return { success: true, filePath }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
 // User Management
 ipcMain.handle('users:getAll',
   () => C ? clientHandlers.usersGetAll() : usersHandlers.getAll()
