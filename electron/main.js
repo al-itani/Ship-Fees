@@ -65,8 +65,9 @@ const { getConfig }      = require('./configStore')
 const storageHandlers    = require('./database/handlers/storage')
 const tariffCHandlers    = require('./database/handlers/tariffC')
 const statsHandlers      = require('./database/handlers/stats')
-const shipsHandlers      = require('./database/handlers/ships')
-const clientHandlers     = require('./client')
+const shipsHandlers         = require('./database/handlers/ships')
+const pendingCodesHandlers  = require('./database/handlers/pendingCodes')
+const clientHandlers        = require('./client')
 
 const appConfig = getConfig()
 if (appConfig.mode !== 'client') require('./server').startServer()
@@ -876,6 +877,12 @@ ipcMain.handle('ships:getAll',    ()              => C ? { success: true, data: 
 ipcMain.handle('ships:create',    (_, name, loa, userId) => C ? { success: false } : shipsHandlers.create(name, loa, userId))
 ipcMain.handle('ships:update',    (_, id, name, loa, userId) => C ? { success: false } : shipsHandlers.update(id, name, loa, userId))
 ipcMain.handle('ships:delete',    (_, id, userId) => C ? { success: false } : shipsHandlers.softDelete(id, userId))
+
+// Pending codes
+ipcMain.handle('pending_codes:getAll',   () => pendingCodesHandlers.getAll())
+ipcMain.handle('pending_codes:getCount', () => pendingCodesHandlers.getCount())
+ipcMain.handle('pending_codes:approve',  (_, id, reviewerId) => pendingCodesHandlers.approve(id, reviewerId))
+ipcMain.handle('pending_codes:reject',   (_, id, reviewerId) => pendingCodesHandlers.reject(id, reviewerId))
 
 // DB Reset — admin only; deletes all billing rows (audit_log wiped last)
 ipcMain.handle('db:reset', (_, adminUserId, adminUsername) => {

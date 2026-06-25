@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { useSession } from '../context/SessionContext.jsx'
 
-const VERSION = '1.0.15'
+const VERSION = '1.0.16'
 
 const navItems = [
   { key: 'home',             icon: '🏠', label: 'home' },
@@ -16,11 +16,11 @@ const navItems = [
 const adminNavItems = [
   { key: 'user_management', icon: '👥', label: 'user_management' },
   { key: 'audit_log',       icon: '📋', label: 'audit_log' },
-  { key: 'ships',           icon: '🚢', label: 'ships' },
+  { key: 'pending_codes',   icon: '🔖', label: 'pending_codes', badge: true },
 ]
 
 
-export default function Sidebar({ currentScreen, setCurrentScreen }) {
+export default function Sidebar({ currentScreen, setCurrentScreen, pendingCount = 0 }) {
   const { t } = useTranslation()
   const { session, logout } = useSession()
 
@@ -78,6 +78,7 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 4 }}>
           {(session?.role === 'admin' ? adminNavItems : [{ key: 'user_management', icon: '👥', label: 'user_management' }]).map(item => {
             const isSelected = currentScreen === item.key
+            const badgeCount = item.badge ? pendingCount : 0
             return (
               <div
                 key={item.key}
@@ -94,7 +95,15 @@ export default function Sidebar({ currentScreen, setCurrentScreen }) {
                 onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
               >
                 <span style={{ fontSize: 16 }}>{item.icon}</span>
-                <span>{t(item.label)}</span>
+                <span style={{ flex: 1 }}>{t(item.label)}</span>
+                {badgeCount > 0 && (
+                  <span style={{
+                    background: '#ef4444', color: 'white',
+                    borderRadius: 10, padding: '1px 6px',
+                    fontSize: 11, fontWeight: 700, lineHeight: 1.5,
+                    flexShrink: 0,
+                  }}>{badgeCount}</span>
+                )}
               </div>
             )
           })}

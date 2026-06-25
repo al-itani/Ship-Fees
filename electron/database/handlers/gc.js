@@ -1,5 +1,6 @@
 const db = require('../db')
 const statsHandlers = require('./stats')
+const pendingCodesHandlers = require('./pendingCodes')
 
 function writeAudit(tableName, recordId, action, oldData, newData, userId) {
   db.prepare(`
@@ -118,6 +119,9 @@ function saveSession(data) {
 
     doSave()
     try { statsHandlers.log({ user_id: created_by, action_type: 'gc_saved', detail: { voyage: voyageNumber, lines: lines.length } }) } catch {}
+    if (!data.suppressAudit) {
+      try { pendingCodesHandlers.submitUnknownCodes(lines, 'gc', created_by) } catch {}
+    }
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

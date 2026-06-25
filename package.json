@@ -1,6 +1,6 @@
 {
   "name": "ship-fees",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "description": "Ship Fees — Port of Beirut",
   "main": "electron/main.js",
   "scripts": {

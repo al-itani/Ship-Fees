@@ -107,4 +107,9 @@ contextBridge.exposeInMainWorld('api', {
   shipsCreate:  (name, loa, userId)   => ipcRenderer.invoke('ships:create', name, loa, userId),
   shipsUpdate:  (id, name, loa, userId) => ipcRenderer.invoke('ships:update', id, name, loa, userId),
   shipsDelete:  (id, userId)          => ipcRenderer.invoke('ships:delete', id, userId),
+
+  pendingCodesGetAll:   ()                    => ipcRenderer.invoke('pending_codes:getAll'),
+  pendingCodesGetCount: ()                    => ipcRenderer.invoke('pending_codes:getCount'),
+  pendingCodesApprove:  (id, reviewerId)      => ipcRenderer.invoke('pending_codes:approve', id, reviewerId),
+  pendingCodesReject:   (id, reviewerId)      => ipcRenderer.invoke('pending_codes:reject', id, reviewerId),
 })

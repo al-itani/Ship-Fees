@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import ShipsScreen from './ships/ShipsScreen.jsx'
 import Sidebar from '../components/Sidebar.jsx'
+import PendingCodesScreen from './pendingcodes/PendingCodesScreen.jsx'
 import TopBar from '../components/TopBar.jsx'
 import Home from './Home.jsx'
 import BerthingScreen from './berthing/BerthingScreen.jsx'
@@ -30,10 +30,12 @@ export default function MainApp() {
   // { type, voyageNumber, readOnly } or { type, receipt }
   const [receiptState, setReceiptState]       = useState(null)
   const [updateReady, setUpdateReady]         = useState(false)
+  const [pendingCount, setPendingCount]       = useState(0)
 
   useEffect(() => {
     window.api.onUpdateReady?.(() => setUpdateReady(true))
     window.api.checkUpdateReady?.().then(ready => { if (ready) setUpdateReady(true) })
+    window.api.pendingCodesGetCount?.().then(r => { if (r?.success) setPendingCount(r.count) })
   }, [])
 
   function navigate(screen) {
@@ -127,9 +129,9 @@ export default function MainApp() {
       case 'user_management':
         if (!isAdmin && !session?.perm_view_users) return <Home setCurrentScreen={setCurrentScreen} />
         return <UserManagementScreen />
-      case 'ships':
+      case 'pending_codes':
         if (!isAdmin) return <Home setCurrentScreen={setCurrentScreen} />
-        return <ShipsScreen />
+        return <PendingCodesScreen onCountChange={setPendingCount} />
       default:
         return <Home setCurrentScreen={setCurrentScreen} />
     }
@@ -137,7 +139,7 @@ export default function MainApp() {
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <Sidebar currentScreen={currentScreen} setCurrentScreen={navigate} />
+      <Sidebar currentScreen={currentScreen} setCurrentScreen={navigate} pendingCount={pendingCount} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <TopBar currentScreen={currentScreen} />
         {updateReady && (

@@ -418,6 +418,23 @@ module.exports = function initSchema(db) {
   // Ship name autocomplete table
   db.exec(`CREATE TABLE IF NOT EXISTS ship_names (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL)`)
 
+  // Pending codes — unknown codes submitted by users, awaiting admin review
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pending_codes (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      code         TEXT NOT NULL,
+      description  TEXT,
+      price        REAL,
+      unit         TEXT,
+      type         TEXT NOT NULL CHECK(type IN ('container', 'gc')),
+      submitted_by INTEGER,
+      submitted_at TEXT DEFAULT (datetime('now')),
+      status       TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
+      reviewed_by  INTEGER,
+      reviewed_at  TEXT
+    )
+  `)
+
   // Ships master list (for dropdown + LOA auto-fill in BerthingForm)
   db.exec(`CREATE TABLE IF NOT EXISTS ships (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
