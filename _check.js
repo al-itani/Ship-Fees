@@ -1,0 +1,5 @@
+﻿const db = require('better-sqlite3')('C:/ShipFees/data/ship_fees.db')
+const count = db.prepare('SELECT COUNT(*) as c FROM ships WHERE is_deleted = 0').get()
+const sample = db.prepare('SELECT name, loa FROM ships WHERE is_deleted = 0 ORDER BY name ASC LIMIT 5').all()
+process.stdout.write(JSON.stringify({ total: count.c, sample }) + '\n')
+process.exit(0)

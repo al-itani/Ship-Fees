@@ -160,6 +160,16 @@ app.post('/api/cma/getReport', (req, res) => {
   handle(res, () => cmaHandlers.getReport(year, month))
 })
 
+app.post('/api/cma/getGCReport', (req, res) => {
+  const { year, month } = req.body
+  handle(res, () => cmaHandlers.getGCReport(year, month))
+})
+
+app.post('/api/cma/getTrsReport', (req, res) => {
+  const { year, month } = req.body
+  handle(res, () => cmaHandlers.getTrsReport(year, month))
+})
+
 // ── Users ────────────────────────────────────────────────────────────────
 app.post('/api/users/getAll', (req, res) => handle(res, () => usersHandlers.getAll()))
 // Real signature is create({ username, full_name, role, language, temp_password, admin_id }).

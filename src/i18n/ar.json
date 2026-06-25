@@ -317,6 +317,8 @@
   "cma_local_fee_lbp": "رسوم محلية (ل.ل.)",
   "cma_trans_fee_lbp": "رسوم عبور (ل.ل.)",
   "cma_total_lbp": "الإجمالي (ل.ل.)",
+  "cma_report": "تقرير",
+  "cma_detailed_report": "تقرير مفصل",
   "cma_receipt_tab": "وصل CMA",
   "gc_receipt_tab": "وصل بضائع عامة",
   "gc_receipt_code": "رمز الخدمة",

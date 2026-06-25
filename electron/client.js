@@ -159,6 +159,14 @@ async function cmaGetReport(month, year) {
   return apiCall('/api/cma/getReport', { month, year })
 }
 
+async function cmaGetGCReport(month, year) {
+  return apiCall('/api/cma/getGCReport', { month, year })
+}
+
+async function cmaGetTrsReport(month, year) {
+  return apiCall('/api/cma/getTrsReport', { month, year })
+}
+
 // ── Users ─────────────────────────────────────────────────────────────────
 async function usersGetAll() {
   return apiCall('/api/users/getAll')
@@ -257,6 +265,8 @@ module.exports = {
   prepareBerthingOnly,
   // CMA
   cmaGetReport,
+  cmaGetGCReport,
+  cmaGetTrsReport,
   // Users
   usersGetAll,
   usersCreate,

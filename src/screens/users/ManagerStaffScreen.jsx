@@ -26,7 +26,7 @@ function getPresence(user) {
   if (!user.is_online) return 'offline'
   if (!user.last_seen) return 'offline'
   const diffMin = (Date.now() - new Date(user.last_seen + 'Z').getTime()) / 60000
-  if (diffMin < 3) return 'online'
+  if (diffMin < 5) return 'online'
   if (diffMin < 30) return 'idle'
   return 'offline'
 }
@@ -50,7 +50,7 @@ export default function ManagerStaffScreen() {
 
   useEffect(() => {
     load()
-    const interval = setInterval(load, 30000)
+    const interval = setInterval(load, 15000)
     return () => clearInterval(interval)
   }, [load])
 

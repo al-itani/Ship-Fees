@@ -220,7 +220,7 @@ function deleteUser(id, admin_id) {
 
 function heartbeat(userId) {
   try {
-    db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(userId)
+    db.prepare("UPDATE users SET is_online = 1, last_seen = datetime('now') WHERE id = ?").run(userId)
     return { success: true }
   } catch (err) {
     return { success: false, error: err.message }

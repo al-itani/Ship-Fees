@@ -70,9 +70,10 @@ contextBridge.exposeInMainWorld('api', {
   aiExtract:        (images) => ipcRenderer.invoke('ai:extract', images),
   aiTestConnection: ()       => ipcRenderer.invoke('ai:testConnection'),
 
-  cmaGetReport:   (year, month)          => ipcRenderer.invoke('cma:getReport', year, month),
-  cmaGetGCReport: (year, month)          => ipcRenderer.invoke('cma:getGCReport', year, month),
-  cmaExportExcel: (year, month, agent)   => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
+  cmaGetReport:    (year, month)         => ipcRenderer.invoke('cma:getReport', year, month),
+  cmaGetGCReport:  (year, month)         => ipcRenderer.invoke('cma:getGCReport', year, month),
+  cmaGetTrsReport: (year, month)         => ipcRenderer.invoke('cma:getTrsReport', year, month),
+  cmaExportExcel:  (year, month, agent)  => ipcRenderer.invoke('cma:exportExcel', { year, month, agent }),
 
   dialogConfirm: (opts) => ipcRenderer.invoke('dialog:confirm', opts),
   dialogMessage: (opts) => ipcRenderer.invoke('dialog:message', opts),
@@ -93,7 +94,8 @@ contextBridge.exposeInMainWorld('api', {
 
   dbReset: (adminUserId, adminUsername) => ipcRenderer.invoke('db:reset', adminUserId, adminUsername),
 
-  onUpdateReady:  (cb) => ipcRenderer.on('updater:ready', () => cb()),
+  onUpdateReady:   (cb) => ipcRenderer.on('updater:ready', () => cb()),
+  checkUpdateReady: ()  => ipcRenderer.invoke('updater:isReady'),
   updaterInstall: ()   => ipcRenderer.invoke('updater:install'),
 
   shipsGetAll:  ()                    => ipcRenderer.invoke('ships:getAll'),

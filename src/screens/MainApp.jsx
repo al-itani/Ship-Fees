@@ -33,6 +33,7 @@ export default function MainApp() {
 
   useEffect(() => {
     window.api.onUpdateReady?.(() => setUpdateReady(true))
+    window.api.checkUpdateReady?.().then(ready => { if (ready) setUpdateReady(true) })
   }, [])
 
   function navigate(screen) {

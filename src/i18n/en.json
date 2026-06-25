@@ -316,6 +316,8 @@
   "cma_local_fee_lbp": "Local Fee (LBP)",
   "cma_trans_fee_lbp": "Trans Fee (LBP)",
   "cma_total_lbp": "Total (LBP)",
+  "cma_report": "Report",
+  "cma_detailed_report": "Detailed Report",
   "cma_receipt_tab": "CMA Receipt",
   "gc_receipt_tab": "GC Receipt",
   "gc_receipt_code": "Service Code",

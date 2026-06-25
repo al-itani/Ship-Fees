@@ -105,6 +105,64 @@ function getVoyageDetail(year, month, agent) {
   }
 }
 
+const TRS_SELECT = `
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${stdIn})   AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS std_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${stdIn})   AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS std_40,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${frpIn})   AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS frp_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${frpIn})   AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS frp_40,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${transIn}) AND cs.container_type = '20ft' THEN cs.quantity ELSE 0 END), 0) AS trans_20,
+  COALESCE(SUM(CASE WHEN cs.service_code IN (${transIn}) AND cs.container_type = '40ft' THEN cs.quantity ELSE 0 END), 0) AS trans_40
+`
+
+function computeTrsDerived(row) {
+  const stdTeus   = row.std_20  + row.std_40  * 2
+  const frpTeus   = row.frp_20  + row.frp_40  * 2
+  const transTeus = row.trans_20 + row.trans_40 * 2
+
+  const localFee = +(stdTeus * STD_RATE + frpTeus * FRP_RATE).toFixed(2)
+  const transFee = +(transTeus * TRANS_RATE).toFixed(2)
+
+  return {
+    ...row,
+    local_20:   row.std_20  + row.frp_20,
+    local_40:   row.std_40  + row.frp_40,
+    local_teus: stdTeus + frpTeus,
+    trans_teus: transTeus,
+    std_teus:   stdTeus,
+    frp_teus:   frpTeus,
+    local_fee:  localFee,
+    trans_fee:  transFee,
+    total:      +(localFee + transFee).toFixed(2),
+    local_lbp:  +(stdTeus * 479260).toFixed(2),
+    trans_lbp:  +(transTeus * 311519).toFixed(2),
+  }
+}
+
+function getTrsReport(year, month) {
+  try {
+    const yyyy = String(year)
+    const mm   = String(month).padStart(2, '0')
+    const rows = db.prepare(`
+      WITH voyage_list AS (
+        SELECT br.voyage_number, br.shipping_agent
+        FROM berthing_records br
+        JOIN voyages v ON br.voyage_number = v.voyage_number
+        WHERE br.is_deleted = 0 AND v.module_type = 'Container' AND v.is_deleted = 0
+          AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
+        GROUP BY br.voyage_number
+      )
+      SELECT vl.voyage_number, vl.shipping_agent AS agent, ${TRS_SELECT}
+      FROM voyage_list vl
+      LEFT JOIN container_services cs ON cs.voyage_number = vl.voyage_number AND cs.is_deleted = 0
+      GROUP BY vl.voyage_number
+      ORDER BY vl.voyage_number
+    `).all(yyyy, mm, ...CODE_PARAMS)
+    return { success: true, data: rows.map(computeTrsDerived) }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+}
+
 const N_CODES = ['N1','N2','N3','N4','N5','N6','N7','N8','N9','N10']
 const nIn = N_CODES.map(() => '?').join(',')
 
@@ -114,23 +172,24 @@ function getGCReport(year, month) {
     const mm   = String(month).padStart(2, '0')
     const rows = db.prepare(`
       WITH voyage_agents AS (
-        SELECT br.voyage_number, br.shipping_agent
+        SELECT br.voyage_number, br.shipping_agent, br.vessel_name
         FROM berthing_records br
+        JOIN voyages v ON v.voyage_number = br.voyage_number AND v.is_deleted = 0 AND v.module_type = 'Container'
         WHERE br.is_deleted = 0
           AND strftime('%Y', br.ata) = ? AND strftime('%m', br.ata) = ?
         GROUP BY br.voyage_number
       )
-      SELECT va.voyage_number, va.shipping_agent, gs.service_code, gs.line_total
+      SELECT va.voyage_number, va.shipping_agent, va.vessel_name, cs.service_code, cs.line_total
       FROM voyage_agents va
-      JOIN gc_services gs ON gs.voyage_number = va.voyage_number AND gs.is_deleted = 0
-      WHERE gs.service_code IN (${nIn})
-      ORDER BY va.voyage_number, gs.service_code
+      JOIN container_services cs ON cs.voyage_number = va.voyage_number AND cs.is_deleted = 0
+      WHERE cs.service_code IN (${nIn})
+      ORDER BY va.voyage_number, cs.service_code
     `).all(yyyy, mm, ...N_CODES)
 
     const voyageMap = new Map()
     for (const row of rows) {
       if (!voyageMap.has(row.voyage_number)) {
-        voyageMap.set(row.voyage_number, { voyage_number: row.voyage_number, shipping_agent: row.shipping_agent, lines: [] })
+        voyageMap.set(row.voyage_number, { voyage_number: row.voyage_number, shipping_agent: row.shipping_agent, vessel_name: row.vessel_name, lines: [] })
       }
       voyageMap.get(row.voyage_number).lines.push({
         service_code: row.service_code,
@@ -148,4 +207,4 @@ function getGCReport(year, month) {
   }
 }
 
-module.exports = { getReport, getVoyageDetail, getGCReport, LOCAL_CODES, TRANS_CODES }
+module.exports = { getReport, getVoyageDetail, getGCReport, getTrsReport, LOCAL_CODES, TRANS_CODES }

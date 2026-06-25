@@ -39,7 +39,9 @@ export default function CMAScreen() {
   }
 
   // ── CMA state ────────────────────────────────────────────────────────────
+  const [detailed, setDetailed]   = useState(false)
   const [report, setReport]       = useState(null)
+  const [trsData, setTrsData]     = useState(null)
   const [loading, setLoading]     = useState(false)
   const [hideZeros, setHideZeros] = useState(true)
   const [currency, setCurrency]   = useState('both')
@@ -53,11 +55,19 @@ export default function CMAScreen() {
   async function handleGenerateCMA() {
     setLoading(true)
     setReport(null)
-    const res = await window.api.cmaGetReport(year, month)
-    setLoading(false)
-    if (!res.success) { showToast(res.error || t('cma_error_load'), 'error'); return }
-    setReport(res.data)
-    if (res.data.length > 0) setExportAgent('__ALL__')
+    setTrsData(null)
+    if (detailed) {
+      const res = await window.api.cmaGetTrsReport(year, month)
+      setLoading(false)
+      if (!res.success) { showToast(res.error || t('cma_error_load'), 'error'); return }
+      setTrsData(res.data)
+    } else {
+      const res = await window.api.cmaGetReport(year, month)
+      setLoading(false)
+      if (!res.success) { showToast(res.error || t('cma_error_load'), 'error'); return }
+      setReport(res.data)
+      if (res.data.length > 0) setExportAgent('__ALL__')
+    }
   }
 
   async function handleExport() {
@@ -88,20 +98,41 @@ export default function CMAScreen() {
     total:          acc.total          + r.total,
   }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, std_local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
 
-  // ── GC state ─────────────────────────────────────────────────────────────
-  const [cmaPrinting, setCmaPrinting] = useState(false)
+  const visibleTrsRows = trsData
+    ? (hideZeros ? trsData.filter(r => r.local_20 > 0 || r.local_40 > 0 || r.trans_20 > 0 || r.trans_40 > 0) : trsData)
+    : []
 
-  async function handlePrintCMA() {
-    setCmaPrinting(true)
-    await new Promise(r => setTimeout(r, 80))
-    window.print()
-    setCmaPrinting(false)
-  }
+  const trsTotals = visibleTrsRows.reduce((acc, r) => ({
+    local_20:   acc.local_20   + r.local_20,
+    local_40:   acc.local_40   + r.local_40,
+    trans_20:   acc.trans_20   + r.trans_20,
+    trans_40:   acc.trans_40   + r.trans_40,
+    local_teus: acc.local_teus + r.local_teus,
+    trans_teus: acc.trans_teus + r.trans_teus,
+    total:      acc.total      + r.total,
+    total_lbp:  acc.total_lbp  + r.local_lbp + r.trans_lbp,
+  }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, total:0, total_lbp:0 })
 
   // ── GC state ─────────────────────────────────────────────────────────────
   const [gcReport, setGcReport]   = useState(null)
   const [gcLoading, setGcLoading] = useState(false)
   const [gcPrinting, setGcPrinting] = useState(false)
+
+  const [trsPrinting, setTrsPrinting] = useState(false)
+
+  async function handlePrintTRS() {
+    setTrsPrinting(true)
+    await new Promise(r => setTimeout(r, 80))
+    window.print()
+    setTrsPrinting(false)
+  }
+
+  async function handleExportTRS() {
+    const res = await window.api.cmaExportExcel(year, month, '__ALL__')
+    if (res.canceled) return
+    if (res.success) showToast(t('cma_export_success'))
+    else showToast(res.error || t('cma_export_failed'), 'error')
+  }
 
   async function handleGenerateGC() {
     setGcLoading(true)
@@ -137,95 +168,79 @@ export default function CMAScreen() {
         </div>
       )}
 
-      {/* CMA PDF print overlay */}
-      {cmaPrinting && visibleRows.length > 0 && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'white', zIndex: 9999,
-          overflowY: 'auto', padding: '40px 60px',
-        }}>
-          <div style={{ maxWidth: 900, margin: '0 auto', fontFamily: 'serif' }}>
+      {/* TRS print overlay */}
+      {trsPrinting && trsData && (
+        <div style={{ position: 'fixed', inset: 0, background: 'white', zIndex: 9999, overflowY: 'auto', padding: '40px 60px' }}>
+          <div style={{ maxWidth: 920, margin: '0 auto', fontFamily: 'serif' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, borderBottom: '2px solid #1B2A4A', paddingBottom: 16 }}>
               <img src={portLogo} alt="Port of Beirut" style={{ height: 64, width: 'auto' }} />
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: 18, fontWeight: 700, color: '#1B2A4A' }}>Port of Beirut — مرفأ بيروت</div>
-                <div style={{ fontSize: 15, fontWeight: 600, marginTop: 6 }}>{t('cma_receipt')}</div>
-                <div style={{ fontSize: 13, color: '#555', marginTop: 4 }}>{MONTHS[month - 1]} {year}</div>
+                <div style={{ fontSize: 15, fontWeight: 600, marginTop: 6 }}>{t('cma_detailed_report')} — {MONTHS[month - 1]} {year}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', border: '1px solid #D0D8EC', borderRadius: 8, overflow: 'hidden', marginBottom: 20 }}>
+              <div style={{ flex: 1, padding: '14px 20px', textAlign: 'center', background: '#F8FAFF' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Total TEUs</div>
+                <div className="num-ltr" style={{ fontSize: 20, fontWeight: 700, color: '#1B2A4A' }}>{(trsTotals.local_teus + trsTotals.trans_teus).toLocaleString('en-US')}</div>
+              </div>
+              <div style={{ flex: 1, padding: '14px 20px', textAlign: 'center', background: '#F8FAFF', borderInlineStart: '1px solid #D0D8EC' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('cma_total')}</div>
+                <div className="num-ltr" style={{ fontSize: 20, fontWeight: 700, color: '#1B2A4A' }}>${fmt2(trsTotals.total)}</div>
+              </div>
+              <div style={{ flex: 1, padding: '14px 20px', textAlign: 'center', background: '#F8FAFF', borderInlineStart: '1px solid #D0D8EC' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#555', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('cma_total_lbp')}</div>
+                <div className="num-ltr" style={{ fontSize: 20, fontWeight: 700, color: '#1B2A4A' }}>{trsTotals.total_lbp.toLocaleString('en-US')}</div>
               </div>
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr>
                   <th style={{ ...TH, textAlign: 'left', fontSize: 10 }}>{t('shipping_agent')}</th>
+                  <th style={{ ...TH, textAlign: 'left', fontSize: 10 }}>{t('voyage_number')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_20ft_local')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_40ft_local')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_20ft_trans')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_40ft_trans')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10, borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_teus')}</th>
                   <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_trans_teus')}</th>
-                  {(currency === 'usd' || currency === 'both') && <>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10, borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_fee')}</th>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_trans_fee')}</th>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_total')}</th>
-                  </>}
-                  {(currency === 'lbp' || currency === 'both') && <>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10, borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_fee_lbp')}</th>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_trans_fee_lbp')}</th>
-                    <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_total_lbp')}</th>
-                  </>}
+                  <th style={{ ...TH, textAlign: 'right', fontSize: 10, borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_total')}</th>
+                  <th style={{ ...TH, textAlign: 'right', fontSize: 10 }}>{t('cma_total_lbp')}</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleRows.map(r => {
-                  const localLbp = (r.std_local_teus ?? r.local_teus) * LOCAL_LBP
-                  const transLbp = r.trans_teus * TRANS_LBP
-                  return (
-                    <tr key={r.agent}>
-                      <td style={{ ...TD, fontSize: 11 }}>{r.agent}</td>
-                      <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.local_20}</span></td>
-                      <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.local_40}</span></td>
-                      <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.trans_20}</span></td>
-                      <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.trans_40}</span></td>
-                      <td style={{ ...TDR, fontSize: 11, borderInlineStart: '1px solid #EEF0F6', fontWeight: 600 }}><span className="num-ltr">{r.local_teus}</span></td>
-                      <td style={{ ...TDR, fontSize: 11, fontWeight: 600 }}><span className="num-ltr">{r.trans_teus}</span></td>
-                      {(currency === 'usd' || currency === 'both') && <>
-                        <td style={{ ...TDR, fontSize: 11, borderInlineStart: '1px solid #EEF0F6' }}><span className="num-ltr">${fmt2(r.local_fee)}</span></td>
-                        <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">${fmt2(r.trans_fee)}</span></td>
-                        <td style={{ ...TDR, fontSize: 11, fontWeight: 700 }}><span className="num-ltr">${fmt2(r.total)}</span></td>
-                      </>}
-                      {(currency === 'lbp' || currency === 'both') && <>
-                        <td style={{ ...TDR, fontSize: 11, borderInlineStart: '1px solid #EEF0F6' }}><span className="num-ltr">{localLbp.toLocaleString('en-US')}</span></td>
-                        <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{transLbp.toLocaleString('en-US')}</span></td>
-                        <td style={{ ...TDR, fontSize: 11, fontWeight: 700 }}><span className="num-ltr">{(localLbp + transLbp).toLocaleString('en-US')}</span></td>
-                      </>}
-                    </tr>
-                  )
-                })}
+                {visibleTrsRows.map(r => (
+                  <tr key={r.voyage_number}>
+                    <td style={{ ...TD, fontSize: 11 }}>{r.agent}</td>
+                    <td style={{ ...TD, fontSize: 11 }}><span className="num-ltr">{r.voyage_number}</span></td>
+                    <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.local_20}</span></td>
+                    <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.local_40}</span></td>
+                    <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.trans_20}</span></td>
+                    <td style={{ ...TDR, fontSize: 11 }}><span className="num-ltr">{r.trans_40}</span></td>
+                    <td style={{ ...TDR, fontSize: 11, borderInlineStart: '1px solid #EEF0F6', fontWeight: 600 }}><span className="num-ltr">{r.local_teus}</span></td>
+                    <td style={{ ...TDR, fontSize: 11, fontWeight: 600 }}><span className="num-ltr">{r.trans_teus}</span></td>
+                    <td style={{ ...TDR, fontSize: 11, borderInlineStart: '1px solid #EEF0F6', fontWeight: 700, color: '#1B2A4A' }}><span className="num-ltr">${fmt2(r.total)}</span></td>
+                    <td style={{ ...TDR, fontSize: 11, fontWeight: 700, color: '#1B2A4A' }}><span className="num-ltr">{(r.local_lbp + r.trans_lbp).toLocaleString('en-US')}</span></td>
+                  </tr>
+                ))}
               </tbody>
               <tfoot>
                 <tr>
-                  <td style={{ ...TDF, textAlign: 'left', fontSize: 10, textTransform: 'uppercase' }}>{t('total_records')}</td>
-                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{totals.local_20}</span></td>
-                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{totals.local_40}</span></td>
-                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{totals.trans_20}</span></td>
-                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{totals.trans_40}</span></td>
-                  <td style={{ ...TDF, fontSize: 11, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{totals.local_teus}</span></td>
-                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{totals.trans_teus}</span></td>
-                  {(currency === 'usd' || currency === 'both') && <>
-                    <td style={{ ...TDF, fontSize: 11, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">${fmt2(totals.local_fee)}</span></td>
-                    <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">${fmt2(totals.trans_fee)}</span></td>
-                    <td style={{ ...TDF, fontSize: 13 }}><span className="num-ltr">${fmt2(totals.total)}</span></td>
-                  </>}
-                  {(currency === 'lbp' || currency === 'both') && <>
-                    <td style={{ ...TDF, fontSize: 11, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{(totals.std_local_teus * LOCAL_LBP).toLocaleString('en-US')}</span></td>
-                    <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{(totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
-                    <td style={{ ...TDF, fontSize: 13 }}><span className="num-ltr">{(totals.std_local_teus * LOCAL_LBP + totals.trans_teus * TRANS_LBP).toLocaleString('en-US')}</span></td>
-                  </>}
+                  <td style={{ ...TDF, textAlign: 'left', fontSize: 10, textTransform: 'uppercase' }} colSpan={2}>{t('total_records')}</td>
+                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{trsTotals.local_20}</span></td>
+                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{trsTotals.local_40}</span></td>
+                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{trsTotals.trans_20}</span></td>
+                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{trsTotals.trans_40}</span></td>
+                  <td style={{ ...TDF, fontSize: 11, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{trsTotals.local_teus}</span></td>
+                  <td style={{ ...TDF, fontSize: 11 }}><span className="num-ltr">{trsTotals.trans_teus}</span></td>
+                  <td style={{ ...TDF, fontSize: 12, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">${fmt2(trsTotals.total)}</span></td>
+                  <td style={{ ...TDF, fontSize: 12 }}><span className="num-ltr">{trsTotals.total_lbp.toLocaleString('en-US')}</span></td>
                 </tr>
               </tfoot>
             </table>
-            <div style={{ marginTop: 14, fontSize: 9, color: '#888' }}>
-              <div>{t('cma_rates_note')}</div>
-              <div style={{ marginTop: 2 }}>{t('cma_rates_note_lbp')}</div>
+            <div style={{ marginTop: 20, paddingTop: 12, borderTop: '1px solid #E0E0E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <img src={portLogo} alt="Port of Beirut" style={{ height: 28, width: 'auto', opacity: 0.5 }} />
+              <span style={{ fontSize: 9, color: '#aaa', fontStyle: 'italic' }}>Prepared by: Ibrahim Al-Itani</span>
             </div>
           </div>
         </div>
@@ -253,7 +268,7 @@ export default function CMAScreen() {
                   background: '#F0F4FF', padding: '7px 12px', borderRadius: 4,
                   fontWeight: 700, fontSize: 13, color: '#1B2A4A', marginBottom: 4,
                 }}>
-                  <span>{t('voyage_number')}: <span className="num-ltr">{voyage.voyage_number}</span></span>
+                  <span>{t('voyage_number')}: <span className="num-ltr">{voyage.voyage_number}</span>{voyage.vessel_name ? ` — ${voyage.vessel_name}` : ''}</span>
                   <span>{t('shipping_agent')}: {voyage.shipping_agent}</span>
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
@@ -404,6 +419,13 @@ export default function CMAScreen() {
           />
         </div>
 
+        {tab === 'cma' && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={detailed} onChange={e => setDetailed(e.target.checked)} />
+            {t('cma_detailed_report')}
+          </label>
+        )}
+
         <button
           onClick={tab === 'cma' ? handleGenerateCMA : handleGenerateGC}
           disabled={loading || gcLoading}
@@ -430,9 +452,21 @@ export default function CMAScreen() {
             ⬇ {t('cma_export_excel')}
           </button>
         )}
-        {tab === 'cma' && visibleRows.length > 0 && (
+        {tab === 'cma' && trsData && trsData.length > 0 && (
           <button
-            onClick={handlePrintCMA}
+            onClick={handleExportTRS}
+            style={{
+              height: 38, padding: '0 20px', borderRadius: 6,
+              border: '1px solid #27ae60', background: 'white',
+              color: '#27ae60', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            ⬇ {t('cma_export_excel')}
+          </button>
+        )}
+        {tab === 'cma' && visibleTrsRows.length > 0 && (
+          <button
+            onClick={handlePrintTRS}
             style={{
               height: 38, padding: '0 20px', borderRadius: 6,
               border: '1px solid var(--color-primary)', background: 'white',
@@ -456,7 +490,7 @@ export default function CMAScreen() {
             ))}
           </div>
         )}
-        {tab === 'cma' && report && (
+        {tab === 'cma' && (report || trsData) && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--color-text-muted)', cursor: 'pointer', marginInlineStart: 'auto' }}>
             <input type="checkbox" checked={hideZeros} onChange={e => setHideZeros(e.target.checked)} />
             {t('cma_hide_zeros')}
@@ -592,6 +626,86 @@ export default function CMAScreen() {
         </>
       )}
 
+      {/* ── Detailed (TRS) content ───────────────────────────────────────────── */}
+      {tab === 'cma' && trsData !== null && (
+        <>
+          {visibleTrsRows.length > 0 && (
+            <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ flex: 1, padding: '16px 24px', textAlign: 'center', background: 'white' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Total TEUs</div>
+                <div className="num-ltr" style={{ fontSize: 26, fontWeight: 700, color: 'var(--color-text)' }}>{(trsTotals.local_teus + trsTotals.trans_teus).toLocaleString('en-US')}</div>
+              </div>
+              <div style={{ flex: 1, padding: '16px 24px', textAlign: 'center', background: 'white', borderInlineStart: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('cma_total')}</div>
+                <div className="num-ltr" style={{ fontSize: 26, fontWeight: 700, color: '#1B2A4A' }}>${fmt2(trsTotals.total)}</div>
+              </div>
+              <div style={{ flex: 1, padding: '16px 24px', textAlign: 'center', background: 'white', borderInlineStart: '1px solid var(--color-border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('cma_total_lbp')}</div>
+                <div className="num-ltr" style={{ fontSize: 26, fontWeight: 700, color: '#1B2A4A' }}>{trsTotals.total_lbp.toLocaleString('en-US')}</div>
+              </div>
+            </div>
+          )}
+          <div style={{ background: 'white', borderRadius: 8, border: '1px solid var(--color-border)', overflow: 'hidden' }}>
+          {visibleTrsRows.length === 0 ? (
+            <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
+              {trsData.length === 0 ? t('cma_no_data') : t('cma_all_zeros_hidden')}
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...TH, textAlign: 'left' }}>{t('shipping_agent')}</th>
+                    <th style={{ ...TH, textAlign: 'left' }}>{t('voyage_number')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_20ft_local')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_40ft_local')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_20ft_trans')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_40ft_trans')}</th>
+                    <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_local_teus')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_trans_teus')}</th>
+                    <th style={{ ...TH, textAlign: 'right', borderInlineStart: '1px solid #D0D8EC' }}>{t('cma_total')}</th>
+                    <th style={{ ...TH, textAlign: 'right' }}>{t('cma_total_lbp')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleTrsRows.map(r => (
+                    <tr key={r.voyage_number} style={{ transition: 'background 0.1s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#F8FAFF'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={TD}>{r.agent}</td>
+                      <td style={TD}><span className="num-ltr">{r.voyage_number}</span></td>
+                      <td style={TDR}><span className="num-ltr">{r.local_20}</span></td>
+                      <td style={TDR}><span className="num-ltr">{r.local_40}</span></td>
+                      <td style={TDR}><span className="num-ltr">{r.trans_20}</span></td>
+                      <td style={TDR}><span className="num-ltr">{r.trans_40}</span></td>
+                      <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', fontWeight: 600 }}><span className="num-ltr">{r.local_teus}</span></td>
+                      <td style={{ ...TDR, fontWeight: 600 }}><span className="num-ltr">{r.trans_teus}</span></td>
+                      <td style={{ ...TDR, borderInlineStart: '1px solid #EEF0F6', fontWeight: 700, color: '#1B2A4A' }}><span className="num-ltr">${fmt2(r.total)}</span></td>
+                      <td style={{ ...TDR, fontWeight: 700, color: '#1B2A4A' }}><span className="num-ltr">{(r.local_lbp + r.trans_lbp).toLocaleString('en-US')}</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td style={{ ...TDF, textAlign: 'left', fontSize: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }} colSpan={2}>{t('total_records')}</td>
+                    <td style={TDF}><span className="num-ltr">{trsTotals.local_20}</span></td>
+                    <td style={TDF}><span className="num-ltr">{trsTotals.local_40}</span></td>
+                    <td style={TDF}><span className="num-ltr">{trsTotals.trans_20}</span></td>
+                    <td style={TDF}><span className="num-ltr">{trsTotals.trans_40}</span></td>
+                    <td style={{ ...TDF, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">{trsTotals.local_teus}</span></td>
+                    <td style={TDF}><span className="num-ltr">{trsTotals.trans_teus}</span></td>
+                    <td style={{ ...TDF, fontSize: 15, borderInlineStart: '1px solid #D0D8EC' }}><span className="num-ltr">${fmt2(trsTotals.total)}</span></td>
+                    <td style={{ ...TDF, fontSize: 15 }}><span className="num-ltr">{trsTotals.total_lbp.toLocaleString('en-US')}</span></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+        </>
+      )}
+
       {/* ── GC content ───────────────────────────────────────────────────────── */}
       {tab === 'gc' && gcReport !== null && (
         <div>
@@ -615,7 +729,7 @@ export default function CMAScreen() {
                     borderBottom: '1px solid #D0D8EC',
                   }}>
                     <span style={{ fontWeight: 700, fontSize: 14, color: '#1B2A4A' }}>
-                      {t('voyage_number')}: <span className="num-ltr">{voyage.voyage_number}</span>
+                      {t('voyage_number')}: <span className="num-ltr">{voyage.voyage_number}</span>{voyage.vessel_name ? ` — ${voyage.vessel_name}` : ''}
                     </span>
                     <span style={{ fontSize: 13, color: '#555' }}>
                       {t('shipping_agent')}: {voyage.shipping_agent}

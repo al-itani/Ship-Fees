@@ -30,11 +30,15 @@ try {
   autoUpdater.on('update-not-available',  (i) => updLog('no update — current is latest', JSON.stringify(i)))
   autoUpdater.on('update-available',      (i) => updLog('update available — downloading silently', JSON.stringify(i)))
 
+  let updateDownloaded = false
   autoUpdater.on('update-downloaded', () => {
     updLog('update downloaded — notifying renderer')
+    updateDownloaded = true
     const win = BrowserWindow.getAllWindows()[0]
     if (win?.webContents) win.webContents.send('updater:ready')
   })
+
+  ipcMain.handle('updater:isReady', () => updateDownloaded)
 
   autoUpdater.on('error', (err) => {
     updLog('ERROR', err?.message || err, err?.stack || '')
@@ -317,31 +321,53 @@ ipcMain.handle('cma:getReport',
 )
 
 ipcMain.handle('cma:getGCReport',
-  (_, year, month) => C ? { success: false, error: 'not_supported' } : cmaHandlers.getGCReport(year, month)
+  (_, year, month) => C ? clientHandlers.cmaGetGCReport(month, year) : cmaHandlers.getGCReport(year, month)
+)
+
+ipcMain.handle('cma:getTrsReport',
+  (_, year, month) => C ? clientHandlers.cmaGetTrsReport(month, year) : cmaHandlers.getTrsReport(year, month)
 )
 
 ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
   try {
     const XLSX = require('xlsx')
 
-    const voyageHeaders = ['Vessel Name','Agent','Voyage #','Bill #','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)']
-    const toRow = r => ({
-      'Vessel Name':   r.vessel_name || '',
-      'Agent':         r.agent,
-      'Voyage #':      r.voyage_number,
-      'Bill #':        r.bill_number || '',
-      '20ft Local':    r.local_20,
-      '40ft Local':    r.local_40,
-      '20ft Trans':    r.trans_20,
-      '40ft Trans':    r.trans_40,
-      'Local TEUs':    r.local_teus,
-      'Trans TEUs':    r.trans_teus,
-      'Local Fee ($)': r.local_fee,
-      'Trans Fee ($)': r.trans_fee,
-      'Total ($)':     r.total,
-    })
+    const LOCAL_LBP_RATE = 479260
+    const TRANS_LBP_RATE = 311519
+    const voyageHeaders = ['Vessel Name','Agent','Voyage #','Bill #','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)','Local Fee (LL)','Trans Fee (LL)','Total (LL)']
+    const toRow = r => {
+      const localLbp = (r.std_local_teus ?? r.local_teus) * LOCAL_LBP_RATE
+      const transLbp = r.trans_teus * TRANS_LBP_RATE
+      return {
+        'Vessel Name':    r.vessel_name || '',
+        'Agent':          r.agent,
+        'Voyage #':       r.voyage_number,
+        'Bill #':         r.bill_number || '',
+        '20ft Local':     r.local_20,
+        '40ft Local':     r.local_40,
+        '20ft Trans':     r.trans_20,
+        '40ft Trans':     r.trans_40,
+        'Local TEUs':     r.local_teus,
+        'Trans TEUs':     r.trans_teus,
+        'Local Fee ($)':  r.local_fee,
+        'Trans Fee ($)':  r.trans_fee,
+        'Total ($)':      r.total,
+        'Local Fee (LL)': localLbp,
+        'Trans Fee (LL)': transLbp,
+        'Total (LL)':     localLbp + transLbp,
+      }
+    }
     const colWidths = (rows, headers) =>
       headers.map(h => ({ wch: Math.max(h.length, ...rows.map(r => String(r[h] ?? '').length)) + 2 }))
+    const addTotalsRow = (mapped, headers, labelCol, label) => {
+      const tot = { [labelCol]: label }
+      for (const h of headers) {
+        if (h === labelCol) continue
+        const sum = mapped.reduce((s, r) => s + (typeof r[h] === 'number' ? r[h] : 0), 0)
+        tot[h] = +sum.toFixed(2)
+      }
+      mapped.push(tot)
+    }
 
     const wb = XLSX.utils.book_new()
     let defaultFilename
@@ -351,7 +377,7 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
       const reportResult = cmaHandlers.getReport(year, month)
       if (!reportResult.success) return reportResult
 
-      const summaryHeaders = ['Agent','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)']
+      const summaryHeaders = ['Agent','20ft Local','40ft Local','20ft Trans','40ft Trans','Local TEUs','Trans TEUs','Local Fee ($)','Trans Fee ($)','Total ($)','Local Fee (LL)','Trans Fee (LL)','Total (LL)']
       const summaryRows = []
 
       for (const agentRow of reportResult.data) {
@@ -360,12 +386,15 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
 
         const rows = detail.data
         const mapped = rows.map(toRow)
+        addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
         const ws = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
         ws['!cols'] = colWidths(mapped, voyageHeaders)
         // Sheet name: strip Excel-illegal chars, max 31 chars
         const sheetName = agentRow.agent.replace(/[/\\?*[\]:]/g, '').slice(0, 31) || `Agent_${summaryRows.length + 1}`
         XLSX.utils.book_append_sheet(wb, ws, sheetName)
 
+        const localLbp = (agentRow.std_local_teus ?? agentRow.local_teus) * LOCAL_LBP_RATE
+        const transLbp = agentRow.trans_teus * TRANS_LBP_RATE
         summaryRows.push({
           'Agent':          agentRow.agent,
           '20ft Local':     agentRow.local_20,
@@ -377,9 +406,13 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
           'Local Fee ($)':  agentRow.local_fee,
           'Trans Fee ($)':  agentRow.trans_fee,
           'Total ($)':      agentRow.total,
+          'Local Fee (LL)': localLbp,
+          'Trans Fee (LL)': transLbp,
+          'Total (LL)':     localLbp + transLbp,
         })
       }
 
+      addTotalsRow(summaryRows, summaryHeaders, 'Agent', 'TOTAL')
       const wsSummary = XLSX.utils.json_to_sheet(summaryRows, { header: summaryHeaders })
       wsSummary['!cols'] = colWidths(summaryRows, summaryHeaders)
       XLSX.utils.book_append_sheet(wb, wsSummary, 'All Agents')
@@ -392,6 +425,7 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
 
       const rows = result.data
       const mapped = rows.map(toRow)
+      addTotalsRow(mapped, voyageHeaders, 'Vessel Name', 'TOTAL')
       const wsVoyages = XLSX.utils.json_to_sheet(mapped, { header: voyageHeaders })
       wsVoyages['!cols'] = colWidths(mapped, voyageHeaders)
 
@@ -400,23 +434,28 @@ ipcMain.handle('cma:exportExcel', async (event, { year, month, agent }) => {
         trans_20: acc.trans_20 + r.trans_20, trans_40: acc.trans_40 + r.trans_40,
         local_teus: acc.local_teus + r.local_teus, trans_teus: acc.trans_teus + r.trans_teus,
         local_fee: acc.local_fee + r.local_fee, trans_fee: acc.trans_fee + r.trans_fee,
-        total: acc.total + r.total,
-      }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0 })
+        total: acc.total + r.total, std_local_teus: acc.std_local_teus + (r.std_local_teus ?? r.local_teus),
+      }), { local_20:0, local_40:0, trans_20:0, trans_40:0, local_teus:0, trans_teus:0, local_fee:0, trans_fee:0, total:0, std_local_teus:0 })
 
+      const localLbp = totals.std_local_teus * LOCAL_LBP_RATE
+      const transLbp = totals.trans_teus * TRANS_LBP_RATE
       const summaryRow = {
-        'Vessel Name':   `${agent} — ${MONTHS[month - 1]} ${year}`,
-        'Agent':         agent,
-        'Voyage #':      `${rows.length} voyage(s)`,
-        'Bill #':        '',
-        '20ft Local':    totals.local_20,
-        '40ft Local':    totals.local_40,
-        '20ft Trans':    totals.trans_20,
-        '40ft Trans':    totals.trans_40,
-        'Local TEUs':    totals.local_teus,
-        'Trans TEUs':    totals.trans_teus,
-        'Local Fee ($)': +totals.local_fee.toFixed(2),
-        'Trans Fee ($)': +totals.trans_fee.toFixed(2),
-        'Total ($)':     +totals.total.toFixed(2),
+        'Vessel Name':    `${agent} — ${MONTHS[month - 1]} ${year}`,
+        'Agent':          agent,
+        'Voyage #':       `${rows.length} voyage(s)`,
+        'Bill #':         '',
+        '20ft Local':     totals.local_20,
+        '40ft Local':     totals.local_40,
+        '20ft Trans':     totals.trans_20,
+        '40ft Trans':     totals.trans_40,
+        'Local TEUs':     totals.local_teus,
+        'Trans TEUs':     totals.trans_teus,
+        'Local Fee ($)':  +totals.local_fee.toFixed(2),
+        'Trans Fee ($)':  +totals.trans_fee.toFixed(2),
+        'Total ($)':      +totals.total.toFixed(2),
+        'Local Fee (LL)': localLbp,
+        'Trans Fee (LL)': transLbp,
+        'Total (LL)':     localLbp + transLbp,
       }
       const wsSummary = XLSX.utils.json_to_sheet([summaryRow], { header: voyageHeaders })
       wsSummary['!cols'] = colWidths([summaryRow], voyageHeaders)
