@@ -91,7 +91,9 @@ export default function BerthingRecords({ onEdit, onGenerateReceipt }) {
   }, [records])
 
   function canEdit(voyage) {
-    return session.role === 'admin' || voyage.rows.some(r => r.created_by === session.id)
+    return session.role === 'admin'
+      || session.permissions?.includes('edit_others_records')
+      || voyage.rows.some(r => r.created_by === session.id)
   }
 
   async function handleDelete(voyage) {
